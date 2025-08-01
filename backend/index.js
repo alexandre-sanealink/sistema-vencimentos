@@ -4,10 +4,8 @@ import path from 'path';
 import 'dotenv/config';
 import './mailer.js';
 import pg from 'pg';
-// NOVAS IMPORTAÇÕES DE SEGURANÇA
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-
 
 const { Pool } = pg;
 const pool = new Pool({
@@ -21,59 +19,72 @@ app.use(cors());
 app.use(express.static(path.join(process.cwd(), '../frontend')));
 
 
-// --- ROTA DE SETUP TEMPORÁRIA ---
-// ESTA ROTA SERÁ USADA APENAS UMA VEZ PARA CONFIGURAR O BANCO DE DADOS
+// ROTA DE SETUP (COMENTADA PARA SEGURANÇA, JÁ USAMOS)
+/*
 app.get('/api/setup-inicial', async (req, res) => {
+    // ... código do setup ...
+});
+*/
+
+
+// --- NOVA ROTA DE LOGIN ---
+app.post('/api/login', async (req, res) => {
+    const { email, senha } = req.body;
     try {
-        // Comando para criar a tabela de usuários
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS usuarios (
-                id SERIAL PRIMARY KEY,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                senha_hash VARCHAR(255) NOT NULL
-            );
-        `);
-
-        // Comando para alterar a tabela de documentos
-        // Usamos 'ALTER TABLE ... ADD COLUMN IF NOT EXISTS' mas o Postgre não suporta nativamente,
-        // então vamos checar se a coluna existe de outra forma
-        const colunas = await pool.query(`
-            SELECT column_name FROM information_schema.columns 
-            WHERE table_name='documentos' and column_name='criado_por_email'
-        `);
-        if (colunas.rowCount === 0) {
-            await pool.query(`
-                ALTER TABLE documentos
-                ADD COLUMN criado_por_email VARCHAR(255),
-                ADD COLUMN modificado_em TIMESTAMP;
-            `);
+        // 1. Encontra o usuário pelo email
+        const resultado = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        if (resultado.rowCount === 0) {
+            return res.status(400).json({ message: 'Email ou senha inválidos.' });
         }
-        
-        // Criptografa uma senha padrão para o primeiro usuário
-        // A senha padrão será 'mudar123'
-        const salt = await bcrypt.genSalt(10);
-        const senhaHash = await bcrypt.hash('mudar123', salt);
+        const usuario = resultado.rows[0];
 
-        // Insere o usuário administrador (SE ELE NÃO EXISTIR)
-        await pool.query(`
-            INSERT INTO usuarios (email, senha_hash)
-            VALUES ('alexandre.bwsweb@gmail.com', $1)
-            ON CONFLICT (email) DO NOTHING;
-        `, [senhaHash]);
+        // 2. Compara a senha enviada com a senha criptografada no banco
+        const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
+        if (!senhaValida) {
+            return res.status(400).json({ message: 'Email ou senha inválidos.' });
+        }
 
-        res.status(200).send('✅ Setup do banco de dados concluído com sucesso! Tabelas criadas e usuário administrador inserido com a senha padrão "mudar123".');
+        // 3. Se a senha estiver correta, gera o "crachá de acesso" (Token JWT)
+        const token = jwt.sign(
+            { id: usuario.id, email: usuario.email }, // Informações que guardamos no crachá
+            process.env.JWT_SECRET, // A frase secreta que configuramos no Render
+            { expiresIn: '8h' } // Validade do crachá
+        );
+
+        res.status(200).json({ token });
     } catch (error) {
-        console.error("❌ Erro no setup inicial:", error);
-        res.status(500).send('Erro durante o setup do banco de dados.');
+        console.error('Erro no login:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
     }
 });
 
 
-// --- ROTAS DA APLICAÇÃO (sem alterações por enquanto) ---
-// (Omiti o restante do código das rotas GET, POST, PUT para ser breve, mantenha o seu como estava)
-// #region ROTAS
-app.get('/api/documentos', async (req, res) => {
+// --- NOVO MIDDLEWARE DE SEGURANÇA ---
+// Este é o "segurança" que ficará na porta das rotas de documentos
+const verificarToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1]; // Formato "Bearer TOKEN"
+
+    if (!token) {
+        return res.sendStatus(401); // 401 Unauthorized - Não autorizado (faltou o crachá)
+    }
+
+    jwt.verify(token, process.env.JWT_SECRET, (err, usuario) => {
+        if (err) {
+            return res.sendStatus(403); // 403 Forbidden - Proibido (crachá inválido/expirado)
+        }
+        req.usuario = usuario; // Anexa os dados do usuário na requisição
+        next(); // Deixa a requisição prosseguir para a rota final
+    });
+};
+
+
+// --- ROTAS DE DOCUMENTOS (AGORA PROTEGIDAS E COM AUDITORIA) ---
+
+// Para buscar, precisa do crachá (verificarToken)
+app.get('/api/documentos', verificarToken, async (req, res) => {
     try {
+        // A query não muda, pois todos veem todos os documentos
         const { rows } = await pool.query('SELECT * FROM documentos ORDER BY "dataVencimento" ASC');
         res.status(200).json(rows);
     } catch (error) {
@@ -82,20 +93,23 @@ app.get('/api/documentos', async (req, res) => {
     }
 });
 
-app.post('/api/documentos', async (req, res) => {
+// Para cadastrar, precisa do crachá e registra o email do usuário
+app.post('/api/documentos', verificarToken, async (req, res) => {
     try {
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        const novoDocumento = {
-            id: Date.now(),
-            status: 'Pendente',
+        
+        const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status, criado_por_email)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`;
+        const values = [
+            Date.now(),
             nome,
             categoria,
-            diasAlerta: parseInt(diasAlerta, 10),
-            dataVencimento
-        };
-        const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status)
-                       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`;
-        const values = [novoDocumento.id, novoDocumento.nome, novoDocumento.categoria, novoDocumento.dataVencimento, novoDocumento.diasAlerta, novoDocumento.status];
+            dataVencimento,
+            parseInt(diasAlerta, 10),
+            'Pendente',
+            req.usuario.email // <-- AUDITORIA: Pega o email do "crachá"
+        ];
+        
         const { rows } = await pool.query(query, values);
         res.status(201).json(rows[0]);
     } catch (error) {
@@ -104,13 +118,24 @@ app.post('/api/documentos', async (req, res) => {
     }
 });
 
-app.put('/api/documentos/:id', async (req, res) => {
+// Para editar, precisa do crachá e registra a data da modificação
+app.put('/api/documentos/:id', verificarToken, async (req, res) => {
     try {
         const idDocumento = parseInt(req.params.id, 10);
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        const query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4
-                       WHERE id = $5 RETURNING *`;
-        const values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), idDocumento];
+
+        const query = `UPDATE documentos 
+                       SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5
+                       WHERE id = $6 RETURNING *`;
+        const values = [
+            nome,
+            categoria,
+            dataVencimento,
+            parseInt(diasAlerta, 10),
+            new Date(), // <-- AUDITORIA: Pega a data/hora atual
+            idDocumento
+        ];
+
         const { rows } = await pool.query(query, values);
         res.status(200).json(rows[0]);
     } catch (error) {
@@ -118,7 +143,7 @@ app.put('/api/documentos/:id', async (req, res) => {
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
 });
-// #endregion
+
 
 const PORTA = process.env.PORT || 3000;
 app.listen(PORTA, '0.0.0.0', () => {
