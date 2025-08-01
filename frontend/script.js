@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- CONFIGURAÇÃO ---
     const API_URL = '';
     // IMPORTANTE: ALTERE A LINHA ABAIXO PARA O SEU EMAIL DE ADMINISTRADOR
-    const ADMIN_EMAIL = 'alexandre.bwsweb@gmail.com';
+    const ADMIN_EMAIL = 'seu-email@suaempresa.com';
 
     // --- ELEMENTOS DO DOM ---
     const telaLogin = document.getElementById('tela-login');
@@ -41,7 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
     const limparToken = () => localStorage.removeItem('authToken');
-    const parseJwt = (token) => JSON.parse(atob(token.split('.')[1]));
+    const parseJwt = (token) => {
+        try {
+            return JSON.parse(atob(token.split('.')[1]));
+        } catch (e) {
+            return null;
+        }
+    };
     const getAuthHeaders = () => ({
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${obterToken()}`
@@ -50,11 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- FUNÇÕES DE CONTROLE DE TELA ---
     const verificarLogin = () => {
         const token = obterToken();
-        if (token) {
+        const usuario = token ? parseJwt(token) : null;
+        
+        if (usuario) {
             telaLogin.classList.add('hidden');
             telaPrincipal.classList.remove('hidden');
             
-            const usuario = parseJwt(token);
             welcomeMessage.textContent = `Bem-vindo, ${usuario.email}`;
             if (usuario.email === ADMIN_EMAIL) {
                 adminPanel.classList.remove('hidden');
@@ -68,23 +75,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- LÓGICA DE API ---
-    const fetchDocumentos = async () => { /* ... (código completo na região abaixo) ... */ };
-    const cadastrarDocumento = async (doc) => { /* ... (código completo na região abaixo) ... */ };
-    const atualizarDocumento = async (id, doc) => { /* ... (código completo na região abaixo) ... */ };
-    const cadastrarUsuario = async (email, senha) => { /* ... (código completo na região abaixo) ... */ };
-
-    // --- LÓGICA DE RENDERIZAÇÃO E UI ---
-    const renderizarTabela = (docs) => { /* ... (código completo na região abaixo) ... */ };
-    const aplicarFiltrosEBusca = () => { /* ... (código completo na região abaixo) ... */ };
-    const abrirModalEdicao = (doc) => { /* ... (código completo na região abaixo) ... */ };
-    const fecharModalEdicao = () => { modal.classList.remove('visible'); formEdicao.reset(); };
-    const tdHelper = (tr, c) => { const cell = document.createElement('td'); cell.textContent = c; tr.appendChild(cell); return cell; };
-    const formatarDataParaInput = (d) => (d ? d.split('T')[0] : '');
-    const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
-
-    // #region Funções completas
-    fetchDocumentos = async () => {
+    // --- FUNÇÕES DE API ---
+    const fetchDocumentos = async () => {
         try {
             const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` }});
             if (response.status === 401 || response.status === 403) { limparToken(); verificarLogin(); return; }
@@ -93,19 +85,22 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltrosEBusca();
         } catch (error) { console.error('Erro ao buscar documentos:', error); tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar dados.</td></tr>`; }
     };
-    cadastrarDocumento = async (doc) => {
+    
+    const cadastrarDocumento = async (doc) => {
         try {
             const response = await fetch(DOCS_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(doc) });
             if (response.ok) { formPrincipal.reset(); fetchDocumentos(); } else { alert('Erro ao cadastrar documento.'); }
         } catch (error) { console.error('Erro ao cadastrar documento:', error); }
     };
-    atualizarDocumento = async (id, doc) => {
+    
+    const atualizarDocumento = async (id, doc) => {
         try {
             const response = await fetch(`${DOCS_URL}/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(doc) });
             if (response.ok) { fecharModalEdicao(); fetchDocumentos(); } else { alert('Erro ao atualizar documento.'); }
         } catch (error) { console.error('Erro ao atualizar documento:', error); }
     };
-    cadastrarUsuario = async (email, senha) => {
+
+    const cadastrarUsuario = async (email, senha) => {
         try {
             const response = await fetch(`${API_URL}/api/register`, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ email, senha }) });
             const result = await response.json();
@@ -113,7 +108,13 @@ document.addEventListener('DOMContentLoaded', () => {
             else { alert(`Erro: ${result.message}`); }
         } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão ao tentar cadastrar usuário.'); }
     };
-    renderizarTabela = (docs) => {
+
+    // --- FUNÇÕES DE RENDERIZAÇÃO E UI ---
+    const formatarDataParaInput = (d) => (d ? d.split('T')[0] : '');
+    const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
+    const tdHelper = (tr, c) => { const cell = document.createElement('td'); cell.textContent = c; tr.appendChild(cell); return cell; };
+    
+    const renderizarTabela = (docs) => {
         tbody.innerHTML = '';
         if (docs.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum documento encontrado.</td></tr>`; return; }
         docs.sort((a, b) => new Date(a.dataVencimento) - new Date(b.dataVencimento));
@@ -142,13 +143,15 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.appendChild(tr);
         });
     };
-    aplicarFiltrosEBusca = () => {
+    
+    const aplicarFiltrosEBusca = () => {
         let docs = [...todosOsDocumentos];
         if (filtroCategoriaAtual !== 'todos') docs = docs.filter(d => d.categoria === filtroCategoriaAtual);
         if (termoDeBusca.length > 0) docs = docs.filter(d => d.nome.toLowerCase().includes(termoDeBusca.toLowerCase()));
         renderizarTabela(docs);
     };
-    abrirModalEdicao = (doc) => {
+
+    const abrirModalEdicao = (doc) => {
         hiddenEditId.value = doc.id;
         editNome.value = doc.nome;
         editCategoria.value = doc.categoria || '';
@@ -156,7 +159,8 @@ document.addEventListener('DOMContentLoaded', () => {
         editAlerta.value = doc.diasAlerta;
         modal.classList.add('visible');
     };
-    // #endregion
+    
+    const fecharModalEdicao = () => { modal.classList.remove('visible'); formEdicao.reset(); };
 
     // --- EVENT LISTENERS ---
     formLogin.addEventListener('submit', async (e) => {
@@ -167,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(LOGIN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, senha }) });
             if (response.ok) {
-                const { token, usuario } = await response.json();
+                const { token } = await response.json();
                 salvarToken(token);
                 verificarLogin();
             } else { loginErrorMessage.textContent = 'Email ou senha inválidos.'; loginErrorMessage.style.display = 'block'; }
