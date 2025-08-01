@@ -1,0 +1,465 @@
+/* Importação da fonte está no HTML, aqui definimos a aplicação */
+
+/* Reset e Estilos Gerais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif; /* APLICANDO A FONTE POPPINS */
+    background-color: #f0f2f5;
+    color: #495057;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 30px auto;
+    padding: 20px;
+}
+
+header h1 {
+    color: #343a40;
+    text-align: center;
+    margin-bottom: 30px;
+    font-weight: 700;
+}
+
+/* Layout Principal de Duas Colunas */
+.main-content {
+    display: flex;
+    gap: 30px; /* Espaço entre as colunas */
+    align-items: flex-start; /* Alinha os itens no topo */
+}
+
+/* Coluna do Formulário */
+.form-container {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    flex-basis: 35%; /* Largura da coluna do formulário */
+}
+
+/* Coluna da Lista de Documentos */
+.lista-container {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    flex-basis: 65%; /* Largura da coluna da lista */
+}
+
+h2 {
+    font-weight: 500;
+    color: #495057;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 10px;
+}
+
+/* Estilos do Formulário */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.form-group input[type="text"],
+.form-group input[type="date"],
+.form-group input[type="number"] {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: #80bdff;
+    box-shadow: 0 0 0 2px rgba(0,123,255,.25);
+}
+
+button[type="submit"] {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button[type="submit"]:hover {
+    background-color: #0056b3;
+}
+
+/* Estilos da Tabela */
+.table-wrapper {
+    overflow-x: auto; /* Garante que a tabela seja responsiva em telas menores */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #e9ecef;
+    vertical-align: middle;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 500;
+    font-size: 14px;
+    color: #6c757d;
+}
+
+td {
+    font-size: 14px;
+}
+
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Estilos para o Status na Célula da Tabela */
+.status-span {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 15px;
+    color: white;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    white-space: nowrap; /* Impede que o texto quebre em duas linhas */
+}
+
+/* Cores específicas para cada status */
+.status-em-dia { background-color: #28a745; }      /* Verde */
+.status-vence-breve { background-color: #ffc107; color: #333; } /* Amarelo */
+.status-atrasado { background-color: #dc3545; }     /* Vermelho */
+.status-renovado { background-color: #17a2b8; }     /* Azul Claro */
+.status-em-renovacao { background-color: #6c757d; } /* Cinza */
+
+/* Estilo para a contagem de dias */
+.dias-restantes {
+    font-weight: 500;
+}
+
+/* --- ESTILOS DO MODAL DE EDIÇÃO --- */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none; /* Escondido por padrão */
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-overlay.visible {
+    display: flex; /* Mostra o modal */
+}
+
+.modal-content {
+    background: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+}
+
+.modal-header h2 {
+    margin: 0;
+    text-align: left;
+    border: none;
+}
+
+.close-button {
+    background: transparent;
+    border: none;
+    font-size: 28px;
+    font-weight: bold;
+    color: #6c757d;
+    cursor: pointer;
+}
+
+#form-edicao label {
+    font-weight: 500;
+}
+
+#form-edicao select, #form-edicao input {
+     width: 100%;
+    padding: 10px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+}
+
+#anexo-atual {
+    font-size: 12px;
+    color: #6c757d;
+    display: block;
+    margin-top: 5px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 30px;
+}
+
+.modal-footer button {
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+}
+
+.btn-salvar {
+    background-color: #007bff;
+    color: white;
+}
+.btn-salvar:hover {
+    background-color: #0056b3;
+}
+
+.btn-cancelar {
+    background-color: #6c757d;
+    color: white;
+}
+.btn-cancelar:hover {
+    background-color: #5a6268;
+}
+
+/* Estilo para o botão de editar na tabela */
+.btn-editar {
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    border: 1px solid #007bff;
+    background-color: transparent;
+    color: #007bff;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-editar:hover {
+    background-color: #007bff;
+    color: white;
+}
+
+/* --- ESTILOS DO CABEÇALHO DA LISTA E FILTROS --- */
+
+.lista-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap; /* Permite que os itens quebrem linha em telas menores */
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.lista-header h2 {
+    margin: 0;
+    border: none;
+    padding: 0;
+}
+
+.filtros-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.filtros-container span {
+    font-size: 14px;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.filtro-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #ced4da;
+    background-color: #fff;
+    color: #495057;
+    border-radius: 20px; /* Deixa os botões arredondados */
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filtro-btn:hover {
+    background-color: #e9ecef;
+}
+
+.filtro-btn.active {
+    background-color: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* --- ESTILOS DA BUSCA --- */
+
+.search-container {
+    flex-grow: 1; /* Faz o container da busca ocupar o espaço disponível */
+    display: flex;
+    justify-content: flex-end;
+}
+
+#input-busca {
+    padding: 8px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    width: 100%;
+    max-width: 300px; /* Limita a largura máxima do campo */
+}
+
+/* Ajuste no cabeçalho da lista para alinhar melhor com a busca */
+.lista-header {
+    margin-bottom: 10px;
+}
+
+.filtros-container {
+    margin-bottom: 20px;
+}
+
+/* --- ESTILOS PARA CUSTOMIZAR O SELECT --- */
+
+.select-wrapper {
+    position: relative; /* Necessário para posicionar a seta customizada */
+}
+
+/* Estilo que será aplicado a todos os 'select' dentro do wrapper */
+.select-wrapper select {
+    /* Remove a aparência padrão do navegador */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    
+    /* Aplica os mesmos estilos dos outros inputs */
+    width: 100%;
+    padding: 12px;
+    padding-right: 40px; /* Deixa espaço para a nossa seta */
+    border: 1px solid #ced4da;
+    border-radius: 6px;
+    font-family: 'Poppins', sans-serif;
+    font-size: 14px;
+    background-color: #fff; /* Garante fundo branco */
+    cursor: pointer;
+}
+
+/* Cria a nossa seta customizada */
+.select-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 15px;
+    transform: translateY(-50%);
+
+    /* Desenha um triângulo (seta para baixo) com bordas */
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid #6c757d;
+
+    pointer-events: none; /* Faz com que o clique passe através da seta para o select */
+}
+
+/* --- ESTILOS PARA O BOTÃO DE UPLOAD CUSTOMIZADO --- */
+
+.file-upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.file-upload-input {
+    /* Esconde o input original de forma acessível */
+    width: 0.1px;
+    height: 0.1px;
+    opacity: 0;
+    overflow: hidden;
+    position: absolute;
+    z-index: -1;
+}
+
+.file-upload-button {
+    /* Estiliza a label para parecer um botão */
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: #6c757d;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    display: inline-block; /* Importante para a label se comportar como botão */
+}
+
+.file-upload-button:hover {
+    background-color: #5a6268;
+}
+
+.file-name-display {
+    font-size: 14px;
+    color: #6c757d;
+    font-style: italic;
+}
+
+.anexo-atual-display {
+    font-size: 14px;
+    color: #343a40;
+    margin-bottom: 8px;
+    display: block;
+    word-break: break-all;
+}
+
+/* --- AJUSTE PARA O MODAL EM TELAS PEQUENAS --- */
+
+.modal-content {
+    max-height: 90vh; /* A altura máxima será 90% da altura da tela */
+    overflow-y: auto; /* Se o conteúdo passar dessa altura, cria uma barra de rolagem vertical */
+}
