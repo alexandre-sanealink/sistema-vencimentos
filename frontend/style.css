@@ -560,3 +560,79 @@ tbody tr:last-child td {
     border-color: #80bdff;
     box-shadow: 0 0 0 2px rgba(0,123,255,.25);
 }
+
+/* ... (todos os estilos que já tínhamos até a tela de login) ... */
+
+/* --- AJUSTES FINAIS E RESPONSIVIDADE --- */
+.hidden { display: none !important; }
+
+.main-header {
+    /* ... (estilos do header como estavam) ... */
+    align-items: center;
+}
+#welcome-message {
+    font-size: 14px;
+    color: #6c757d;
+    margin-right: 15px;
+}
+
+#btn-toggle-form {
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+#btn-toggle-form:hover {
+    background-color: #0056b3;
+}
+
+.filtros-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.formularios-wrapper {
+    margin-bottom: 30px;
+    padding: 30px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.admin-container {
+    border-top: 1px solid #dee2e6;
+    margin-top: 30px;
+    padding-top: 30px;
+}
+
+/* --- MEDIA QUERY PARA CELULAR --- */
+@media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    .lista-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .filtros-wrapper {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .search-container {
+        justify-content: flex-start;
+    }
+    #input-busca {
+        max-width: none;
+    }
+    #welcome-message {
+        display: none; /* Esconde a mensagem de boas-vindas em telas pequenas */
+    }
+}
