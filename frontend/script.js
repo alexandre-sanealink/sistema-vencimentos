@@ -2,7 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- CONFIGURAÇÃO ---
     // IMPORTANTE: VERIFIQUE SE ESTE EMAIL ESTÁ EXATAMENTE IGUAL AO SEU EMAIL DE LOGIN
-    const ADMIN_EMAIL = 'alexandre.bwsweb@gmail.com';
+    const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
     // (O restante do código é o mesmo da versão anterior, que está correta)
     // #region CÓDIGO COMPLETO E CORRIGIDO
