@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const LOGIN_URL = `${API_URL}/api/login`;
     const DOCS_URL = `${API_URL}/api/documentos`;
     const REGISTER_URL = `${API_URL}/api/register`;
-    const ADMIN_EMAIL = 'seu-email-de-admin@suaempresa.com'; // <-- MUITO IMPORTANTE: COLOQUE SEU EMAIL AQUI
+    const ADMIN_EMAIL = 'alexandre.bwsweb@gmail.com'; // <-- MUITO IMPORTANTE: COLOQUE SEU EMAIL AQUI
 
     // --- ELEMENTOS DO DOM ---
     const telaLogin = document.getElementById('tela-login');
