@@ -93,3 +93,6 @@ app.put('/api/documentos/:id', async (req, res) => {
 });
 
 const PORTA = process.env.PORT || 3000;
+app.listen(PORTA, '0.0.0.0', () => {
+    console.log(`🚀 Servidor rodando na porta ${PORTA}.`);
+});
