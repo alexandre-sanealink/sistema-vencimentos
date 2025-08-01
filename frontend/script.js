@@ -1,9 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+    // --- CONFIGURAÇÃO ---
     const API_URL = '';
     const LOGIN_URL = `${API_URL}/api/login`;
     const DOCS_URL = `${API_URL}/api/documentos`;
     const REGISTER_URL = `${API_URL}/api/register`;
-    const ADMIN_EMAIL = 'alexandre.bwsweb@gmail.com'; // <-- MUITO IMPORTANTE: COLOQUE SEU EMAIL AQUI
+    // IMPORTANTE: ALTERE A LINHA ABAIXO PARA O SEU EMAIL DE ADMINISTRADOR
+    const ADMIN_EMAIL = 'seu-email-de-admin@suaempresa.com';
 
     // --- ELEMENTOS DO DOM ---
     const telaLogin = document.getElementById('tela-login');
@@ -73,45 +76,50 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltrosEBusca();
         } catch (error) { console.error('Erro ao buscar docs:', error); }
     };
-    
+
     // --- LÓGICA DOS MODAIS ---
     const abrirModal = (modalElement) => modalElement.classList.add('visible');
     const fecharModal = (modalElement) => modalElement.classList.remove('visible');
-
-    btnAbrirModalCadastro.addEventListener('click', () => {
-        formDocumento.reset();
-        docId.value = '';
-        modalTitulo.textContent = 'Cadastrar Novo Documento';
-        abrirModal(modalDocumento);
-    });
-
-    btnAdminPanel.addEventListener('click', () => abrirModal(modalAdmin));
     
-    // Adiciona evento para fechar modais
-    [modalDocumento, modalAdmin].forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.classList.contains('close-button')) {
-                fecharModal(modal);
-            }
-        });
-    });
-
     // --- LÓGICA DA APLICAÇÃO ---
-    const aplicarFiltrosEBusca = () => {
+    const aplicarFiltrosEBusca = () => { /* ... código completo na região abaixo ... */ };
+    const renderizarTabela = (docs) => { /* ... código completo na região abaixo ... */ };
+
+    // #region Funções completas de renderização e UI
+    aplicarFiltrosEBusca = () => {
         let docs = [...todosOsDocumentos];
         if (filtroCategoriaAtual !== 'todos') docs = docs.filter(d => d.categoria === filtroCategoriaAtual);
         if (termoDeBusca.length > 0) docs = docs.filter(d => d.nome.toLowerCase().includes(termoDeBusca.toLowerCase()));
         renderizarTabela(docs);
     };
 
-    const renderizarTabela = (docs) => {
+    renderizarTabela = (docs) => {
         tbody.innerHTML = '';
         if (docs.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum documento encontrado.</td></tr>`; return; }
         docs.sort((a, b) => new Date(a.dataVencimento) - new Date(b.dataVencimento));
         docs.forEach(doc => {
             const tr = document.createElement('tr');
-            // ... (lógica de criar células da tabela)
-            const tdAcoes = document.createElement('td');
+            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+            const dataVencimento = new Date(doc.dataVencimento);
+            const diffTime = dataVencimento.getTime() - hoje.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            let statusTexto, statusClasse;
+            if (doc.status === 'Renovado' || doc.status === 'Em_renovacao') { statusTexto = doc.status.replace('_', ' '); statusClasse = doc.status.toLowerCase(); }
+            else {
+                if (diffDays < 0) { statusTexto = 'Atrasado'; statusClasse = 'atrasado'; }
+                else if (diffDays <= 30) { statusTexto = 'Vence em Breve'; statusClasse = 'vence-breve'; }
+                else { statusTexto = 'Em Dia'; statusClasse = 'em-dia'; }
+            }
+            const tdHelper = (tr, c) => { const cell = document.createElement('td'); cell.textContent = c; tr.appendChild(cell); return cell; };
+            tdHelper(tr, doc.nome);
+            tdHelper(tr, doc.categoria || 'N/A');
+            tdHelper(tr, doc.dataVencimento ? doc.dataVencimento.split('T')[0].split('-').reverse().join('/') : 'N/A');
+            const tdDias = tdHelper(tr, ''); tdDias.classList.add('dias-restantes');
+            if (doc.status === 'Renovado') { tdDias.textContent = '-'; }
+            else if (diffDays >= 0) { tdDias.textContent = `Faltam ${diffDays} dia(s)`; }
+            else { tdDias.textContent = `Vencido há ${Math.abs(diffDays)} dia(s)`; }
+            const tdStatus = tdHelper(tr, ''); const spanStatus = document.createElement('span'); spanStatus.className = `status-span status-${statusClasse}`; spanStatus.textContent = statusTexto; tdStatus.appendChild(spanStatus);
+            const tdAcoes = tdHelper(tr, '');
             const btnEditar = document.createElement('button');
             btnEditar.textContent = 'Editar';
             btnEditar.className = 'btn-editar';
@@ -130,30 +138,54 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.appendChild(tr);
         });
     };
-    
+    // #endregion
+
     // --- EVENT LISTENERS ---
-    formLogin.addEventListener('submit', async (e) => { /* ... (lógica de login) ... */ });
+    formLogin.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        loginErrorMessage.style.display = 'none';
+        const email = document.getElementById('email').value;
+        const senha = document.getElementById('senha').value;
+        try {
+            const response = await fetch(LOGIN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, senha }) });
+            if (response.ok) { const { token } = await response.json(); salvarToken(token); verificarLogin(); }
+            else { loginErrorMessage.textContent = 'Email ou senha inválidos.'; loginErrorMessage.style.display = 'block'; }
+        } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }
+    });
     btnLogout.addEventListener('click', () => { limparToken(); verificarLogin(); });
+    btnAbrirModalCadastro.addEventListener('click', () => {
+        formDocumento.reset();
+        docId.value = '';
+        modalTitulo.textContent = 'Cadastrar Novo Documento';
+        abrirModal(modalDocumento);
+    });
+    btnAdminPanel.addEventListener('click', () => abrirModal(modalAdmin));
+    [modalDocumento, modalAdmin].forEach(modal => {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal || e.target.classList.contains('close-button')) { fecharModal(modal); }
+        });
+    });
     formDocumento.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = docId.value;
-        const doc = {
-            nome: docNome.value,
-            categoria: docCategoria.value,
-            dataVencimento: docVencimento.value,
-            diasAlerta: docAlerta.value,
-        };
-        if (id) { // Se tem ID, atualiza
-            await fetch(`${DOCS_URL}/${id}`, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify(doc) });
-        } else { // Senão, cadastra
-            await fetch(DOCS_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify(doc) });
-        }
+        const doc = { nome: docNome.value, categoria: docCategoria.value, dataVencimento: docVencimento.value, diasAlerta: docAlerta.value };
+        const url = id ? `${DOCS_URL}/${id}` : DOCS_URL;
+        const method = id ? 'PUT' : 'POST';
+        await fetch(url, { method: method, headers: getAuthHeaders(), body: JSON.stringify(doc) });
         fecharModal(modalDocumento);
         fetchDocumentos();
     });
-    formRegister.addEventListener('submit', async (e) => { /* ... (lógica de cadastro de usuário) ... */ });
-    filtrosContainer.addEventListener('click', (e) => { /* ... (lógica de filtro) ... */ });
-    inputBusca.addEventListener('input', (e) => { /* ... (lógica de busca) ... */ });
+    formRegister.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('register-email').value;
+        const senha = document.getElementById('register-senha').value;
+        const response = await fetch(REGISTER_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ email, senha }) });
+        const result = await response.json();
+        if (response.ok) { alert(`Usuário "${result.usuario.email}" criado com sucesso!`); formRegister.reset(); fecharModal(modalAdmin); }
+        else { alert(`Erro: ${result.message}`); }
+    });
+    filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
+    inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
 
     // --- INICIA O SISTEMA ---
     verificarLogin();
