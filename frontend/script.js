@@ -1,16 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const API_URL = '';
+
+    const API_URL = ''; // Usa o mesmo domínio do site
     const DOCS_URL = `${API_URL}/api/documentos`;
 
+    // --- VARIÁVEIS GLOBAIS DE ESTADO ---
     let todosOsDocumentos = [];
     let filtroCategoriaAtual = 'todos';
     let termoDeBusca = '';
 
+    // --- ELEMENTOS DO DOM ---
     const formPrincipal = document.getElementById('form-documento');
     const tbody = document.getElementById('tbody-documentos');
     const filtrosContainer = document.getElementById('filtros-categoria');
     const inputBusca = document.getElementById('input-busca');
 
+    // Elementos do Modal de Edição
     const modal = document.getElementById('modal-edicao');
     const formEdicao = document.getElementById('form-edicao');
     const btnFecharModal = document.getElementById('btn-fechar-modal');
@@ -20,7 +24,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const editCategoria = document.getElementById('edit-categoria');
     const editVencimento = document.getElementById('edit-vencimento');
     const editAlerta = document.getElementById('edit-alerta');
-
+    
+    // --- FUNÇÕES AUXILIARES ---
     const formatarDataParaInput = (dataISO) => (dataISO ? dataISO.split('T')[0] : '');
     const formatarDataParaExibicao = (dataISO) => {
         if (!dataISO) return 'N/A';
@@ -29,16 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     const tdHelper = (tr, content) => {
         const cell = document.createElement('td');
-        cell.textContent = content; tr.appendChild(cell); return cell;
+        cell.textContent = content;
+        tr.appendChild(cell);
+        return cell;
     };
 
-    const aplicarFiltrosEBusca = () => {
-        let docs = [...todosOsDocumentos];
-        if (filtroCategoriaAtual !== 'todos') docs = docs.filter(d => d.categoria === filtroCategoriaAtual);
-        if (termoDeBusca.length > 0) docs = docs.filter(d => d.nome.toLowerCase().includes(termoDeBusca.toLowerCase()));
-        renderizarTabela(docs);
-    };
-
+    // --- FUNÇÃO CENTRAL DE RENDERIZAÇÃO ---
     const renderizarTabela = (documentos) => {
         tbody.innerHTML = '';
         if (documentos.length === 0) {
@@ -83,6 +84,13 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.appendChild(tr);
         });
     };
+    
+    const aplicarFiltrosEBusca = () => {
+        let docs = [...todosOsDocumentos];
+        if (filtroCategoriaAtual !== 'todos') docs = docs.filter(d => d.categoria === filtroCategoriaAtual);
+        if (termoDeBusca.length > 0) docs = docs.filter(d => d.nome.toLowerCase().includes(termoDeBusca.toLowerCase()));
+        renderizarTabela(docs);
+    };
 
     const abrirModalEdicao = (doc) => {
         hiddenEditId.value = doc.id;
@@ -92,16 +100,14 @@ document.addEventListener('DOMContentLoaded', () => {
         editAlerta.value = doc.diasAlerta;
         modal.classList.add('visible');
     };
+
     const fecharModalEdicao = () => {
         modal.classList.remove('visible');
         formEdicao.reset();
     };
 
-    const fetchDocumentos = async () => { /* ...código sem alteração... */ };
-    const cadastrarDocumento = async (doc) => { /* ...código sem alteração... */ };
-    const atualizarDocumento = async (id, doc) => { /* ...código sem alteração... */ };
-    // #region Funções API
-    fetchDocumentos = async () => {
+    // --- FUNÇÕES DE COMUNICAÇÃO COM API ---
+    const fetchDocumentos = async () => {
         try {
             const response = await fetch(DOCS_URL);
             if (!response.ok) throw new Error('Falha na resposta da rede');
@@ -112,7 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
         }
     };
-    cadastrarDocumento = async (doc) => {
+    
+    const cadastrarDocumento = async (doc) => {
         try {
             const response = await fetch(DOCS_URL, {
                 method: 'POST',
@@ -125,7 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert('Erro ao cadastrar documento.'); }
         } catch (error) { console.error('Erro ao cadastrar documento:', error); }
     };
-    atualizarDocumento = async (id, doc) => {
+    
+    const atualizarDocumento = async (id, doc) => {
         try {
             const response = await fetch(`${DOCS_URL}/${id}`, {
                 method: 'PUT',
@@ -138,8 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert('Erro ao atualizar documento.'); }
         } catch (error) { console.error('Erro ao atualizar documento:', error); }
     };
-    // #endregion
 
+    // --- EVENT LISTENERS ---
     formPrincipal.addEventListener('submit', (e) => {
         e.preventDefault();
         const doc = {
@@ -150,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         cadastrarDocumento(doc);
     });
+
     formEdicao.addEventListener('submit', (e) => {
         e.preventDefault();
         const id = hiddenEditId.value;
@@ -161,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         atualizarDocumento(id, doc);
     });
+
     filtrosContainer.addEventListener('click', (e) => {
         if (e.target.tagName === 'BUTTON') {
             document.querySelector('.filtro-btn.active').classList.remove('active');
@@ -169,10 +179,12 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltrosEBusca();
         }
     });
+
     inputBusca.addEventListener('input', (e) => {
         termoDeBusca = e.target.value;
         aplicarFiltrosEBusca();
     });
+
     btnFecharModal.addEventListener('click', fecharModalEdicao);
     btnCancelarEdicao.addEventListener('click', fecharModalEdicao);
     modal.addEventListener('click', (e) => { if (e.target === modal) fecharModalEdicao(); });
