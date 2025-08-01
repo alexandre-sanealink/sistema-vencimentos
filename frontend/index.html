@@ -38,16 +38,55 @@
 
             <main class="main-content">
                 <div class="form-container">
-                    </div>
+                    <h2>Cadastrar Novo Documento</h2>
+                    <form id="form-documento">
+                        <div class="form-group"><label for="nome">Nome do Documento</label><input type="text" id="nome" required></div>
+                        <div class="form-group"><label for="categoria">Categoria</label><div class="select-wrapper"><select id="categoria" required><option value="" disabled selected>Selecione uma categoria</option><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
+                        <div class="form-group"><label for="vencimento">Data de Vencimento</label><input type="date" id="vencimento" required></div>
+                        <div class="form-group"><label for="alerta">Alertar com (dias de antecedência)</label><input type="number" id="alerta" min="0" value="30" required></div>
+                        <button type="submit">Salvar Documento</button>
+                    </form>
+                </div>
                 <div class="lista-container">
+                    <div class="lista-header"><h2>Meus Documentos</h2><div class="search-container"><input type="search" id="input-busca" placeholder="Pesquisar por nome..."></div></div>
+                    <div id="filtros-categoria" class="filtros-container">
+                        <span>Filtrar por:</span>
+                        <button class="filtro-btn active" data-categoria="todos">Todos</button><button class="filtro-btn" data-categoria="Empresa">Empresa</button><button class="filtro-btn" data-categoria="Caminhões">Caminhões</button><button class="filtro-btn" data-categoria="Colaboradores">Colaboradores</button>
                     </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Nome do Documento</th>
+                                    <th>Categoria</th>
+                                    <th>Data de Vencimento</th>
+                                    <th>Dias Restantes</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-documentos"></tbody>
+                        </table>
+                    </div>
+                </div>
             </main>
         </div>
         
         <div id="modal-edicao" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header"><h2>Editar Documento</h2><button id="btn-fechar-modal" class="close-button">&times;</button></div>
+                <form id="form-edicao">
+                    <input type="hidden" id="edit-id">
+                    <div class="form-group"><label for="edit-nome">Nome do Documento</label><input type="text" id="edit-nome" required></div>
+                    <div class="form-group"><label for="edit-categoria">Categoria</label><div class="select-wrapper"><select id="edit-categoria" required><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
+                    <div class="form-group"><label for="edit-vencimento">Data de Vencimento</label><input type="date" id="edit-vencimento" required></div>
+                    <div class="form-group"><label for="edit-alerta">Alertar com (dias de antecedência)</label><input type="number" id="edit-alerta" min="0" required></div>
+                    <div class="modal-footer"><button type="submit" class="btn-salvar">Salvar Alterações</button><button type="button" id="btn-cancelar-edicao" class="btn-cancelar">Cancelar</button></div>
+                </form>
             </div>
+        </div>
     </div>
     
     <script src="script.js"></script>
-    </body>
+</body>
 </html>
