@@ -29,37 +29,16 @@
                 <h1>Controle de Vencimentos</h1>
                 <div class="header-controls">
                     <span id="welcome-message"></span>
-                    <button id="btn-logout">Sair</button>
+                    <button id="btn-admin-panel" class="header-btn admin-only hidden">Adicionar Usuário</button>
+                    <button id="btn-logout" class="header-btn logout-btn">Sair</button>
                 </div>
             </header>
 
             <main class="main-content">
-                <div class="formularios-wrapper hidden" id="formularios-wrapper">
-                    <div class="form-container">
-                        <h2>Cadastrar Novo Documento</h2>
-                        <form id="form-documento">
-                            <div class="form-group"><label for="nome">Nome do Documento</label><input type="text" id="nome" required></div>
-                            <div class="form-group"><label for="categoria">Categoria</label><div class="select-wrapper"><select id="categoria" required><option value="" disabled selected>Selecione</option><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
-                            <div class="form-group"><label for="vencimento">Data de Vencimento</label><input type="date" id="vencimento" required></div>
-                            <div class="form-group"><label for="alerta">Alertar com (dias de antecedência)</label><input type="number" id="alerta" min="0" value="30" required></div>
-                            <button type="submit">Salvar Documento</button>
-                        </form>
-                    </div>
-    
-                    <div class="form-container admin-container hidden" id="admin-panel">
-                        <h2>Adicionar Novo Usuário</h2>
-                        <form id="form-register">
-                            <div class="form-group"><label for="register-email">Email do Novo Usuário</label><input type="email" id="register-email" required></div>
-                            <div class="form-group"><label for="register-senha">Senha Temporária</label><input type="password" id="register-senha" required></div>
-                            <button type="submit">Criar Usuário</button>
-                        </form>
-                    </div>
-                </div>
-
                 <div class="lista-container">
                     <div class="lista-header">
                         <h2>Meus Documentos</h2>
-                        <button id="btn-toggle-form">Cadastrar Novo Documento</button>
+                        <button id="btn-abrir-modal-cadastro" class="btn-principal">Cadastrar Novo Documento</button>
                     </div>
                     <div class="filtros-wrapper">
                         <div id="filtros-categoria" class="filtros-container">
@@ -89,16 +68,33 @@
             </main>
         </div>
         
-        <div id="modal-edicao" class="modal-overlay">
+        <div id="modal-documento" class="modal-overlay">
             <div class="modal-content">
-                <div class="modal-header"><h2>Editar Documento</h2><button id="btn-fechar-modal" class="close-button">&times;</button></div>
-                <form id="form-edicao">
-                    <input type="hidden" id="edit-id">
-                    <div class="form-group"><label for="edit-nome">Nome do Documento</label><input type="text" id="edit-nome" required></div>
-                    <div class="form-group"><label for="edit-categoria">Categoria</label><div class="select-wrapper"><select id="edit-categoria" required><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
-                    <div class="form-group"><label for="edit-vencimento">Data de Vencimento</label><input type="date" id="edit-vencimento" required></div>
-                    <div class="form-group"><label for="edit-alerta">Alertar com (dias de antecedência)</label><input type="number" id="edit-alerta" min="0" required></div>
-                    <div class="modal-footer"><button type="submit" class="btn-salvar">Salvar Alterações</button><button type="button" id="btn-cancelar-edicao" class="btn-cancelar">Cancelar</button></div>
+                <div class="modal-header">
+                    <h2 id="modal-titulo"></h2>
+                    <button class="close-button">&times;</button>
+                </div>
+                <form id="form-documento">
+                    <input type="hidden" id="documento-id">
+                    <div class="form-group"><label for="documento-nome">Nome do Documento</label><input type="text" id="documento-nome" required></div>
+                    <div class="form-group"><label for="documento-categoria">Categoria</label><div class="select-wrapper"><select id="documento-categoria" required><option value="" disabled selected>Selecione</option><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
+                    <div class="form-group"><label for="documento-vencimento">Data de Vencimento</label><input type="date" id="documento-vencimento" required></div>
+                    <div class="form-group"><label for="documento-alerta">Alertar com (dias de antecedência)</label><input type="number" id="documento-alerta" min="0" required></div>
+                    <div class="modal-footer"><button type="submit" class="btn-salvar">Salvar</button></div>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-admin" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Adicionar Novo Usuário</h2>
+                    <button class="close-button">&times;</button>
+                </div>
+                <form id="form-register">
+                    <div class="form-group"><label for="register-email">Email do Novo Usuário</label><input type="email" id="register-email" required></div>
+                    <div class="form-group"><label for="register-senha">Senha Temporária</label><input type="password" id="register-senha" required></div>
+                    <div class="modal-footer"><button type="submit" class="btn-salvar">Criar Usuário</button></div>
                 </form>
             </div>
         </div>
