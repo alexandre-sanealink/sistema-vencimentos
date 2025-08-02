@@ -72,7 +72,7 @@ td { font-size: 14px; }
     .header-controls { flex-direction: column; align-items: stretch; text-align: center;}
     .lista-header { flex-direction: column; align-items: stretch; }
     .filtros-wrapper { flex-direction: column; align-items: stretch; }
-    #welcome-message, .welcome-button { display: none; }
+    .welcome-button { display: none; }
     .main-header h1 { font-size: 24px; text-align: center;}
     .search-container { justify-content: flex-start; }
     #input-busca { max-width: none; }

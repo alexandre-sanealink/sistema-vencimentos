@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const formLogin = document.getElementById('form-login');
     const btnLogout = document.getElementById('btn-logout');
     const loginErrorMessage = document.getElementById('login-error-message');
-    const welcomeMessage = document.getElementById('welcome-message');
     const tbody = document.getElementById('tbody-documentos');
     const filtrosContainer = document.getElementById('filtros-categoria');
     const inputBusca = document.getElementById('input-busca');
@@ -172,8 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
+        const closeButton = m.querySelector('.close-button');
+        if (closeButton) {
+            closeButton.addEventListener('click', () => fecharModal(m));
+        }
         m.addEventListener('click', (e) => {
-            if (e.target.classList.contains('modal-overlay') || e.target.classList.contains('close-button')) { fecharModal(m); }
+            if (e.target === m) { fecharModal(m); }
         });
     });
 

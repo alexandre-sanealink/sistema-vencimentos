@@ -18,6 +18,18 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(process.cwd(), '../frontend')));
 
+// ROTA DE SETUP TEMPORÁRIA (USE UMA VEZ E DEPOIS PODE REMOVER)
+app.get('/api/setup/add-name-column', async (req, res) => {
+    try {
+        await pool.query(`ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS nome VARCHAR(255);`);
+        await pool.query(`UPDATE usuarios SET nome = 'Admin Padrão' WHERE nome IS NULL;`);
+        res.status(200).send('✅ Coluna "nome" adicionada/verificada e usuários antigos atualizados!');
+    } catch (error) {
+        console.error("❌ Erro ao alterar a tabela 'usuarios':", error);
+        res.status(500).send('Erro durante a atualização do banco de dados.');
+    }
+});
+
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -73,18 +85,8 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
 
 app.get('/api/documentos', verificarToken, async (req, res) => {
     try {
-        // CORREÇÃO AQUI: TORNANDO A CONSULTA MAIS EXPLÍCITA
         const query = `
-            SELECT
-                doc.id,
-                doc.nome,
-                doc.categoria,
-                doc."dataVencimento",
-                doc."diasAlerta",
-                doc.status,
-                doc.criado_por_email,
-                doc.modificado_em,
-                u.nome as criado_por_nome
+            SELECT doc.id, doc.nome, doc.categoria, doc."dataVencimento", doc."diasAlerta", doc.status, doc.criado_por_email, doc.modificado_em, u.nome as criado_por_nome
             FROM documentos doc
             LEFT JOIN usuarios u ON doc.criado_por_email = u.email
             ORDER BY doc."dataVencimento" ASC
