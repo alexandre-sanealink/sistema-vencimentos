@@ -18,27 +18,6 @@ app.use(express.json());
 app.use(cors());
 app.use(express.static(path.join(process.cwd(), '../frontend')));
 
-// --- ROTA DE LOGIN ATUALIZADA ---
-app.post('/api/login', async (req, res) => {
-    const { email, senha } = req.body;
-    try {
-        const resultado = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (resultado.rowCount === 0) {
-            return res.status(400).json({ message: 'Email ou senha inválidos.' });
-        }
-        const usuario = resultado.rows[0];
-        const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
-        if (!senhaValida) {
-            return res.status(400).json({ message: 'Email ou senha inválidos.' });
-        }
-        const token = jwt.sign({ id: usuario.id, email: usuario.email, nome: usuario.nome }, process.env.JWT_SECRET, { expiresIn: '8h' });
-        res.status(200).json({ token, usuario: { email: usuario.email, nome: usuario.nome } });
-    } catch (error) {
-        res.status(500).json({ message: 'Erro interno do servidor' });
-    }
-});
-
-// --- MIDDLEWARE DE SEGURANÇA (COM A CORREÇÃO DO 'CONST') ---
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -50,12 +29,22 @@ const verificarToken = (req, res, next) => {
     });
 };
 
-// --- ROTA PARA CADASTRAR USUÁRIOS (PROTEGIDA) ---
+app.post('/api/login', async (req, res) => {
+    const { email, senha } = req.body;
+    try {
+        const resultado = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        if (resultado.rowCount === 0) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+        const usuario = resultado.rows[0];
+        const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
+        if (!senhaValida) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+        const token = jwt.sign({ id: usuario.id, email: usuario.email, nome: usuario.nome }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        res.status(200).json({ token, usuario: { id: usuario.id, email: usuario.email, nome: usuario.nome } });
+    } catch (error) { res.status(500).json({ message: 'Erro interno do servidor' }); }
+});
+
 app.post('/api/register', verificarToken, async (req, res) => {
     const { nome, email, senha } = req.body;
-    if (!nome || !email || !senha) {
-        return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' });
-    }
+    if (!nome || !email || !senha) { return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' }); }
     try {
         const salt = await bcrypt.genSalt(10);
         const senhaHash = await bcrypt.hash(senha, salt);
@@ -68,12 +57,24 @@ app.post('/api/register', verificarToken, async (req, res) => {
     }
 });
 
-// --- ROTAS DE DOCUMENTOS (PROTEGIDAS E COM AUDITORIA) ---
+app.put('/api/perfil', verificarToken, async (req, res) => {
+    const { nome } = req.body;
+    const usuarioId = req.usuario.id;
+    if (!nome) { return res.status(400).json({ message: 'O nome é obrigatório.' }); }
+    try {
+        const query = `UPDATE usuarios SET nome = $1 WHERE id = $2 RETURNING id, email, nome`;
+        const { rows } = await pool.query(query, [nome, usuarioId]);
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error('Erro ao atualizar perfil:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    }
+});
+
 app.get('/api/documentos', verificarToken, async (req, res) => {
     try {
         const query = `
-            SELECT doc.*, u.nome as criado_por_nome
-            FROM documentos doc
+            SELECT doc.*, u.nome as criado_por_nome FROM documentos doc
             LEFT JOIN usuarios u ON doc.criado_por_email = u.email
             ORDER BY doc."dataVencimento" ASC
         `;
@@ -81,7 +82,7 @@ app.get('/api/documentos', verificarToken, async (req, res) => {
         res.status(200).json(rows);
     } catch (error) {
         console.error('Erro ao buscar documentos:', error);
-        res.status(500).json({ message: 'Erro interno do servidor' });
+        res.status(500).json({ message: 'Erro interno do servidor.' });
     }
 });
 
@@ -103,10 +104,9 @@ app.put('/api/documentos/:id', verificarToken, async (req, res) => {
     try {
         const idDocumento = parseInt(req.params.id, 10);
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        const query = `UPDATE documentos 
-                       SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5, criado_por_email = $6
-                       WHERE id = $7 RETURNING *`;
-        const values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), req.usuario.email, idDocumento];
+        const query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5
+                       WHERE id = $6 RETURNING *`;
+        const values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), idDocumento];
         const { rows } = await pool.query(query, values);
         res.status(200).json(rows[0]);
     } catch (error) {

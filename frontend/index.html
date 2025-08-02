@@ -28,12 +28,11 @@
             <header class="main-header">
                 <h1>Controle de Vencimentos</h1>
                 <div class="header-controls">
-                    <span id="welcome-message"></span>
+                    <button id="btn-abrir-perfil" class="welcome-button"></button>
                     <button id="btn-admin-panel" class="header-btn admin-only hidden">Adicionar Usuário</button>
                     <button id="btn-logout" class="header-btn logout-btn">Sair</button>
                 </div>
             </header>
-
             <main class="main-content">
                 <div class="lista-container">
                     <div class="lista-header">
@@ -43,7 +42,10 @@
                     <div class="filtros-wrapper">
                         <div id="filtros-categoria" class="filtros-container">
                             <span>Filtrar por:</span>
-                            <button class="filtro-btn active" data-categoria="todos">Todos</button><button class="filtro-btn" data-categoria="Empresa">Empresa</button><button class="filtro-btn" data-categoria="Caminhões">Caminhões</button><button class="filtro-btn" data-categoria="Colaboradores">Colaboradores</button>
+                            <button class="filtro-btn active" data-categoria="todos">Todos</button>
+                            <button class="filtro-btn" data-categoria="Empresa">Empresa</button>
+                            <button class="filtro-btn" data-categoria="Caminhões">Caminhões</button>
+                            <button class="filtro-btn" data-categoria="Colaboradores">Colaboradores</button>
                         </div>
                         <div class="search-container">
                             <input type="search" id="input-busca" placeholder="Pesquisar por nome...">
@@ -95,8 +97,26 @@
                 <form id="form-register">
                     <div class="form-group"><label for="register-nome">Nome do Novo Usuário</label><input type="text" id="register-nome" required></div>
                     <div class="form-group"><label for="register-email">Email do Novo Usuário</label><input type="email" id="register-email" required></div>
-                     <div class="form-group"><label for="register-senha">Senha Temporária</label><input type="password" id="register-senha" required></div>
-                     <div class="modal-footer"><button type="submit" class="btn-salvar">Criar Usuário</button></div>
+                    <div class="form-group"><label for="register-senha">Senha Temporária</label><input type="password" id="register-senha" required></div>
+                    <div class="modal-footer"><button type="submit" class="btn-salvar">Criar Usuário</button></div>
+                </form>
+            </div>
+        </div>
+
+        <div id="modal-perfil" class="modal-overlay">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Meu Perfil</h2>
+                    <button class="close-button">&times;</button>
+                </div>
+                <form id="form-perfil">
+                    <div class="form-group">
+                        <label for="perfil-nome">Seu Nome</label>
+                        <input type="text" id="perfil-nome" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn-salvar">Salvar Nome</button>
+                    </div>
                 </form>
             </div>
         </div>
