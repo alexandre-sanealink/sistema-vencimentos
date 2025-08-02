@@ -1,62 +1,13 @@
-// (Este é o script.js final, que inclui todas as lógicas)
 document.addEventListener('DOMContentLoaded', () => {
-    const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br'; // <-- Lembre-se de verificar seu email aqui
-    // ... (resto do código)
-
-    // Na função renderizarTabela, mude a linha de criar a célula de auditoria para:
-    tdHelper(tr, doc.criado_por_nome || doc.criado_por_email || '-'); // <-- MUDANÇA AQUI
-    
-    // No EventListener do formRegister, adicione o campo nome:
-    formRegister.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nome = document.getElementById('register-nome').value; // <-- MUDANÇA AQUI
-        const email = document.getElementById('register-email').value;
-        const senha = document.getElementById('register-senha').value;
-        await cadastrarUsuario(nome, email, senha); // <-- MUDANÇA AQUI
-    });
-
-    // Na função cadastrarUsuario, adicione o nome:
-    const cadastrarUsuario = async (nome, email, senha) => { // <-- MUDANÇA AQUI
-        try {
-            const response = await fetch(REGISTER_URL, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({ nome, email, senha }), // <-- MUDANÇA AQUI
-            });
-            // ... (resto da função)
-        } // ... (resto da função)
-    };
-    
-    // Na função verificarLogin, use o nome no "Bem-vindo":
-    const verificarLogin = () => {
-        // ... (lógica inicial)
-        if (token) {
-            // ...
-            const { usuario } = JSON.parse(localStorage.getItem('userInfo')); // Vamos guardar o usuário todo
-            welcomeMessage.textContent = `Bem-vindo, ${usuario.nome}`; // <-- MUDANÇA AQUI
-            // ...
-        } // ...
-    };
-
-    // Na função de login, salve o objeto do usuário
-    formLogin.addEventListener('submit', async (e) => {
-        // ...
-        if (response.ok) {
-            const { token, usuario } = await response.json();
-            salvarToken(token);
-            localStorage.setItem('userInfo', JSON.stringify({ usuario })); // <-- MUDANÇA AQUI
-            verificarLogin();
-        } //...
-    });
-});
-// #region CÓDIGO COMPLETO FINAL (script.js)
-document.addEventListener('DOMContentLoaded', () => {
+    // --- CONFIGURAÇÃO ---
     const API_URL = '';
     const LOGIN_URL = `${API_URL}/api/login`;
     const DOCS_URL = `${API_URL}/api/documentos`;
     const REGISTER_URL = `${API_URL}/api/register`;
+    // IMPORTANTE: ALTERE A LINHA ABAIXO PARA O SEU EMAIL DE ADMINISTRADOR
     const ADMIN_EMAIL = 'seu-email-de-admin@suaempresa.com';
 
+    // --- ELEMENTOS DO DOM ---
     const telaLogin = document.getElementById('tela-login');
     const telaPrincipal = document.getElementById('tela-principal');
     const formLogin = document.getElementById('form-login');
@@ -79,29 +30,30 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalAdmin = document.getElementById('modal-admin');
     const formRegister = document.getElementById('form-register');
     
+    // --- VARIÁVEIS DE ESTADO ---
     let todosOsDocumentos = [];
     let filtroCategoriaAtual = 'todos';
     let termoDeBusca = '';
 
+    // --- FUNÇÕES DE TOKEN E AUTENTICAÇÃO ---
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
     const limparToken = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); };
-    const parseJwt = (token) => JSON.parse(atob(token.split('.')[1]));
     const getAuthHeaders = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${obterToken()}` });
 
+    // --- FUNÇÕES DE CONTROLE DE TELA E MODAIS ---
     const verificarLogin = () => {
         const token = obterToken();
-        if (token) {
+        const userInfo = localStorage.getItem('userInfo');
+        if (token && userInfo) {
+            const { usuario } = JSON.parse(userInfo);
             telaLogin.classList.add('hidden');
             telaPrincipal.classList.remove('hidden');
-            const usuarioInfo = JSON.parse(localStorage.getItem('userInfo'));
-            if (usuarioInfo && usuarioInfo.usuario) {
-                welcomeMessage.textContent = `Bem-vindo, ${usuarioInfo.usuario.nome}`;
-                if (usuarioInfo.usuario.email === ADMIN_EMAIL) {
-                    btnAdminPanel.classList.remove('hidden');
-                } else {
-                    btnAdminPanel.classList.add('hidden');
-                }
+            welcomeMessage.textContent = `Bem-vindo, ${usuario.nome}`;
+            if (usuario.email === ADMIN_EMAIL) {
+                btnAdminPanel.classList.remove('hidden');
+            } else {
+                btnAdminPanel.classList.add('hidden');
             }
             fetchDocumentos();
         } else {
@@ -109,19 +61,28 @@ document.addEventListener('DOMContentLoaded', () => {
             telaPrincipal.classList.add('hidden');
         }
     };
+    const abrirModal = (modalElement) => modalElement.classList.add('visible');
+    const fecharModal = (modalElement) => modalElement.classList.remove('visible');
 
+    // --- FUNÇÕES DE API ---
     const fetchDocumentos = async () => {
         try {
             const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` } });
             if (response.status === 401 || response.status === 403) { limparToken(); verificarLogin(); return; }
             todosOsDocumentos = await response.json();
             aplicarFiltrosEBusca();
-        } catch (error) { console.error('Erro ao buscar docs:', error); }
+        } catch (error) { console.error('Erro ao buscar docs:', error); tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`; }
+    };
+    const cadastrarUsuario = async (nome, email, senha) => {
+        try {
+            const response = await fetch(REGISTER_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ nome, email, senha }) });
+            const result = await response.json();
+            if (response.ok) { alert(`Usuário "${result.usuario.email}" criado com sucesso!`); formRegister.reset(); fecharModal(modalAdmin); }
+            else { alert(`Erro: ${result.message}`); }
+        } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão ao tentar cadastrar usuário.'); }
     };
 
-    const abrirModal = (modalElement) => modalElement.classList.add('visible');
-    const fecharModal = (modalElement) => modalElement.classList.remove('visible');
-    
+    // --- LÓGICA DA APLICAÇÃO ---
     const aplicarFiltrosEBusca = () => {
         let docs = [...todosOsDocumentos];
         if (filtroCategoriaAtual !== 'todos') docs = docs.filter(d => d.categoria === filtroCategoriaAtual);
@@ -177,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
+    // --- EVENT LISTENERS ---
     formLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginErrorMessage.style.display = 'none';
@@ -192,44 +154,34 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { loginErrorMessage.textContent = 'Email ou senha inválidos.'; loginErrorMessage.style.display = 'block'; }
         } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }
     });
-
     btnLogout.addEventListener('click', () => { limparToken(); verificarLogin(); });
-
     btnAbrirModalCadastro.addEventListener('click', () => {
         formDocumento.reset();
         docId.value = '';
         modalTitulo.textContent = 'Cadastrar Novo Documento';
         abrirModal(modalDocumento);
     });
-
-    btnAdminPanel.addEventListener('click', () => abrirModal(modalAdmin));
-
+    btnAdminPanel.addEventListener('click', () => {
+        formRegister.reset();
+        abrirModal(modalAdmin);
+    });
     [modalDocumento, modalAdmin].forEach(modal => {
         modal.addEventListener('click', (e) => {
-            if (e.target === modal || e.target.classList.contains('close-button')) { fecharModal(modal); }
+            if (e.target.classList.contains('modal-overlay') || e.target.classList.contains('close-button')) { fecharModal(modal); }
         });
     });
-
     formDocumento.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = docId.value;
         const doc = { nome: docNome.value, categoria: docCategoria.value, dataVencimento: docVencimento.value, diasAlerta: docAlerta.value };
         const url = id ? `${DOCS_URL}/${id}` : DOCS_URL;
         const method = id ? 'PUT' : 'POST';
-        await fetch(url, { method: method, headers: getAuthHeaders(), body: JSON.stringify(doc) });
-        fecharModal(modalDocumento);
-        fetchDocumentos();
-    });
-    
-    const cadastrarUsuario = async (nome, email, senha) => {
         try {
-            const response = await fetch(REGISTER_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ nome, email, senha }) });
-            const result = await response.json();
-            if (response.ok) { alert(`Usuário "${result.usuario.email}" criado com sucesso!`); formRegister.reset(); fecharModal(modalAdmin); }
-            else { alert(`Erro: ${result.message}`); }
-        } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão ao tentar cadastrar usuário.'); }
-    };
-
+            const response = await fetch(url, { method: method, headers: getAuthHeaders(), body: JSON.stringify(doc) });
+            if (response.ok) { fecharModal(modalDocumento); fetchDocumentos(); }
+            else { alert('Erro ao salvar documento.'); }
+        } catch (error) { console.error('Erro ao salvar:', error); }
+    });
     formRegister.addEventListener('submit', (e) => {
         e.preventDefault();
         const nome = document.getElementById('register-nome').value;
@@ -237,10 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const senha = document.getElementById('register-senha').value;
         cadastrarUsuario(nome, email, senha);
     });
-
     filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
     inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
 
+    // --- INICIA O SISTEMA ---
     verificarLogin();
 });
-// #endregion
