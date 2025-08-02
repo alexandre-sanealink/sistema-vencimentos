@@ -65,11 +65,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const fetchDocumentos = async () => {
         try {
             const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` } });
-            if (response.status === 401 || response.status === 403) { limparToken(); verificarLogin(); return; }
-            if (!response.ok) throw new Error('Falha na busca de documentos');
+            if (!response.ok) {
+                if (response.status === 401 || response.status === 403) {
+                    limparToken();
+                    verificarLogin();
+                }
+                throw new Error('Falha na busca de documentos');
+            }
             todosOsDocumentos = await response.json();
             aplicarFiltrosEBusca();
-        } catch (error) { console.error('Erro ao buscar docs:', error); tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`; }
+        } catch (error) {
+            console.error('Erro ao buscar docs:', error);
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
+        }
     };
 
     const abrirModal = (modalElement) => modalElement.classList.add('visible');
@@ -165,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
         m.addEventListener('click', (e) => {
-            if (e.target === m || e.target.classList.contains('close-button')) { fecharModal(m); }
+            if (e.target.classList.contains('modal-overlay') || e.target.classList.contains('close-button')) { fecharModal(m); }
         });
     });
 
@@ -175,9 +183,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const doc = { nome: docNome.value, categoria: docCategoria.value, dataVencimento: docVencimento.value, diasAlerta: docAlerta.value };
         const url = id ? `${DOCS_URL}/${id}` : DOCS_URL;
         const method = id ? 'PUT' : 'POST';
-        await fetch(url, { method: method, headers: getAuthHeaders(), body: JSON.stringify(doc) });
-        fecharModal(modalDocumento);
-        fetchDocumentos();
+        try {
+            const response = await fetch(url, { method: method, headers: getAuthHeaders(), body: JSON.stringify(doc) });
+            if (response.ok) { fecharModal(modalDocumento); fetchDocumentos(); }
+            else { alert('Erro ao salvar documento.'); }
+        } catch (error) { console.error('Erro ao salvar:', error); }
     });
     
     formRegister.addEventListener('submit', async (e) => {

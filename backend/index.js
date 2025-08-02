@@ -73,8 +73,19 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
 
 app.get('/api/documentos', verificarToken, async (req, res) => {
     try {
+        // CORREÇÃO AQUI: TORNANDO A CONSULTA MAIS EXPLÍCITA
         const query = `
-            SELECT doc.*, u.nome as criado_por_nome FROM documentos doc
+            SELECT
+                doc.id,
+                doc.nome,
+                doc.categoria,
+                doc."dataVencimento",
+                doc."diasAlerta",
+                doc.status,
+                doc.criado_por_email,
+                doc.modificado_em,
+                u.nome as criado_por_nome
+            FROM documentos doc
             LEFT JOIN usuarios u ON doc.criado_por_email = u.email
             ORDER BY doc."dataVencimento" ASC
         `;
