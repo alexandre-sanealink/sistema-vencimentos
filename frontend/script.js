@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const DOCS_URL = `${API_URL}/api/documentos`;
     const REGISTER_URL = `${API_URL}/api/register`;
     // IMPORTANTE: ALTERE A LINHA ABAIXO PARA O SEU EMAIL DE ADMINISTRADOR
-    const ADMIN_EMAIL = 'seu-email-de-admin@suaempresa.com';
+    const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
     // --- ELEMENTOS DO DOM ---
     const telaLogin = document.getElementById('tela-login');
