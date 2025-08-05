@@ -74,7 +74,10 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` } });
             if (!response.ok) {
-                if (response.status === 401 || response.status === 403) { limparToken(); verificarLogin(); }
+                if (response.status === 401 || response.status === 403) {
+                    limparToken();
+                    verificarLogin();
+                }
                 throw new Error('Falha na busca de documentos');
             }
             todosOsDocumentos = await response.json();
