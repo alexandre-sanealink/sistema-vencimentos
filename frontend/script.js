@@ -4,9 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const DOCS_URL = `${API_URL}/api/documentos`;
     const REGISTER_URL = `${API_URL}/api/register`;
     const PERFIL_URL = `${API_URL}/api/perfil`;
-    // IMPORTANTE: ALTERE A LINHA ABAIXO PARA O SEU EMAIL DE ADMINISTRADOR
-    const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
+    const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br'; // <-- MUITO IMPORTANTE: COLOQUE SEU EMAIL AQUI
 
+    // --- ELEMENTOS DO DOM ---
     const telaLogin = document.getElementById('tela-login');
     const telaPrincipal = document.getElementById('tela-principal');
     const formLogin = document.getElementById('form-login');
@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const docCategoria = document.getElementById('documento-categoria');
     const docVencimento = document.getElementById('documento-vencimento');
     const docAlerta = document.getElementById('documento-alerta');
+    const docArquivo = document.getElementById('documento-arquivo');
+    const docFileName = document.getElementById('file-name-documento');
+    const anexoAtualContainer = document.getElementById('anexo-atual-container');
     const modalAdmin = document.getElementById('modal-admin');
     const formRegister = document.getElementById('form-register');
     const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
@@ -39,7 +42,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
     const limparToken = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); };
-    const getAuthHeaders = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${obterToken()}` });
+    const getAuthHeaders = (isFormData = false) => {
+        const headers = { 'Authorization': `Bearer ${obterToken()}` };
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+        return headers;
+    };
 
     const verificarLogin = () => {
         const token = obterToken();
@@ -65,18 +74,12 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` } });
             if (!response.ok) {
-                if (response.status === 401 || response.status === 403) {
-                    limparToken();
-                    verificarLogin();
-                }
+                if (response.status === 401 || response.status === 403) { limparToken(); verificarLogin(); }
                 throw new Error('Falha na busca de documentos');
             }
             todosOsDocumentos = await response.json();
             aplicarFiltrosEBusca();
-        } catch (error) {
-            console.error('Erro ao buscar docs:', error);
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
-        }
+        } catch (error) { console.error('Erro ao buscar docs:', error); tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Erro ao carregar dados.</td></tr>`; }
     };
 
     const abrirModal = (modalElement) => modalElement.classList.add('visible');
@@ -93,7 +96,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
         const tdHelper = (tr, c) => { const cell = document.createElement('td'); cell.textContent = c; tr.appendChild(cell); return cell; };
         tbody.innerHTML = '';
-        if (docs.length === 0) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`; return; }
+        if (docs.length === 0) { tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Nenhum documento encontrado.</td></tr>`; return; }
         docs.sort((a, b) => new Date(a.dataVencimento) - new Date(b.dataVencimento));
         docs.forEach(doc => {
             const tr = document.createElement('tr');
@@ -117,6 +120,18 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (diffDays >= 0) { tdDias.textContent = `Faltam ${diffDays} dia(s)`; }
             else { tdDias.textContent = `Vencido há ${Math.abs(diffDays)} dia(s)`; }
             const tdStatus = tdHelper(tr, ''); const spanStatus = document.createElement('span'); spanStatus.className = `status-span status-${statusClasse}`; spanStatus.textContent = statusTexto; tdStatus.appendChild(spanStatus);
+            
+            const tdAnexo = tdHelper(tr, '');
+            if (doc.nome_arquivo) {
+                const linkAnexo = document.createElement('a');
+                linkAnexo.href = `${API_URL}/uploads/${doc.nome_arquivo}`;
+                linkAnexo.textContent = 'Ver Anexo';
+                linkAnexo.target = '_blank';
+                tdAnexo.appendChild(linkAnexo);
+            } else {
+                tdAnexo.textContent = 'N/A';
+            }
+
             const tdAcoes = tdHelper(tr, '');
             const btnEditar = document.createElement('button');
             btnEditar.textContent = 'Editar';
@@ -129,6 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 docCategoria.value = doc.categoria;
                 docVencimento.value = doc.dataVencimento ? doc.dataVencimento.split('T')[0] : '';
                 docAlerta.value = doc.diasAlerta;
+                anexoAtualContainer.textContent = doc.nome_arquivo ? `Anexo atual: ${doc.nome_arquivo}` : '';
+                anexoAtualContainer.classList.toggle('hidden', !doc.nome_arquivo);
+                docFileName.textContent = 'Nenhum arquivo novo';
                 abrirModal(modalDocumento);
             };
             tdAcoes.appendChild(btnEditar);
@@ -159,6 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
         formDocumento.reset();
         docId.value = '';
         modalTitulo.textContent = 'Cadastrar Novo Documento';
+        anexoAtualContainer.classList.add('hidden');
+        docFileName.textContent = 'Nenhum arquivo escolhido';
         abrirModal(modalDocumento);
     });
 
@@ -172,40 +192,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
     [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
         const closeButton = m.querySelector('.close-button');
-        if (closeButton) {
-            closeButton.addEventListener('click', () => fecharModal(m));
-        }
-        m.addEventListener('click', (e) => {
-            if (e.target === m) { fecharModal(m); }
-        });
+        if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
+        m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
     });
 
     formDocumento.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = docId.value;
-        const doc = { nome: docNome.value, categoria: docCategoria.value, dataVencimento: docVencimento.value, diasAlerta: docAlerta.value };
+        const formData = new FormData();
+        formData.append('nome', docNome.value);
+        formData.append('categoria', docCategoria.value);
+        formData.append('dataVencimento', docVencimento.value);
+        formData.append('diasAlerta', docAlerta.value);
+        if (docArquivo.files.length > 0) {
+            formData.append('arquivo', docArquivo.files[0]);
+        }
+        
         const url = id ? `${DOCS_URL}/${id}` : DOCS_URL;
         const method = id ? 'PUT' : 'POST';
         try {
-            const response = await fetch(url, { method: method, headers: getAuthHeaders(), body: JSON.stringify(doc) });
+            const response = await fetch(url, { method: method, headers: getAuthHeaders(true), body: formData });
             if (response.ok) { fecharModal(modalDocumento); fetchDocumentos(); }
             else { alert('Erro ao salvar documento.'); }
         } catch (error) { console.error('Erro ao salvar:', error); }
     });
     
-    formRegister.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nome = document.getElementById('register-nome').value;
-        const email = document.getElementById('register-email').value;
-        const senha = document.getElementById('register-senha').value;
+    docArquivo.addEventListener('change', () => {
+        docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
+    });
+    
+    const cadastrarUsuario = async (nome, email, senha) => {
         try {
             const response = await fetch(REGISTER_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ nome, email, senha }) });
             const result = await response.json();
             if (response.ok) { alert(`Usuário "${result.usuario.email}" criado com sucesso!`); formRegister.reset(); fecharModal(modalAdmin); }
             else { alert(`Erro: ${result.message}`); }
         } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão.'); }
-    });
-
+    };
+    
+    formRegister.addEventListener('submit', (e) => { e.preventDefault(); const nome = document.getElementById('register-nome').value; const email = document.getElementById('register-email').value; const senha = document.getElementById('register-senha').value; cadastrarUsuario(nome, email, senha); });
     formPerfil.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = perfilNome.value;
@@ -221,7 +246,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert('Erro ao atualizar o nome.'); }
         } catch (error) { console.error('Erro ao atualizar perfil:', error); }
     });
-
     filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
     inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
 
