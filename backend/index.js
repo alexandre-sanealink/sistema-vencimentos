@@ -15,7 +15,9 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
+// --- CONFIGURAÇÃO DO UPLOAD ---
 const UPLOAD_DIR = '/var/data/uploads';
+// Garante que o diretório de uploads exista no servidor
 if (!fs.existsSync(UPLOAD_DIR)) {
     fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
@@ -32,46 +34,46 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// --- MIDDLEWARE DE SEGURANÇA ---
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
-    if (!token) { return res.sendStatus(401); }
+    if (!token) { return res.sendStatus(401); } // Não autorizado
     jwt.verify(token, process.env.JWT_SECRET, (err, usuario) => {
-        if (err) { return res.sendStatus(403); }
+        if (err) { return res.sendStatus(403); } // Proibido (token inválido/expirado)
         req.usuario = usuario;
         next();
     });
 };
 
+// --- SERVIR ARQUIVOS ESTÁTICOS (FRONTEND E UPLOADS) ---
 app.use(express.static(path.join(process.cwd(), '../frontend')));
 app.use('/uploads', verificarToken, express.static(UPLOAD_DIR));
 
-app.get('/api/setup/add-file-column', async (req, res) => {
-    try {
-        await pool.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS nome_arquivo VARCHAR(255);`);
-        res.status(200).send('✅ Coluna "nome_arquivo" adicionada/verificada com sucesso!');
-    } catch (error) {
-        console.error("❌ Erro ao alterar a tabela 'documentos':", error);
-        res.status(500).send('Erro durante a atualização do banco de dados.');
-    }
-});
 
+// --- ROTAS DE AUTENTICAÇÃO E USUÁRIO ---
 app.post('/api/login', async (req, res) => {
     const { email, senha } = req.body;
     try {
         const resultado = await pool.query('SELECT * FROM usuarios WHERE email = $1', [email]);
         if (resultado.rowCount === 0) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+        
         const usuario = resultado.rows[0];
         const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
         if (!senhaValida) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+
         const token = jwt.sign({ id: usuario.id, email: usuario.email, nome: usuario.nome }, process.env.JWT_SECRET, { expiresIn: '8h' });
         res.status(200).json({ token, usuario: { id: usuario.id, email: usuario.email, nome: usuario.nome } });
-    } catch (error) { res.status(500).json({ message: 'Erro interno do servidor' }); }
+    } catch (error) {
+        console.error('Erro no login:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    }
 });
 
 app.post('/api/register', verificarToken, async (req, res) => {
     const { nome, email, senha } = req.body;
     if (!nome || !email || !senha) { return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' }); }
+    
     try {
         const salt = await bcrypt.genSalt(10);
         const senhaHash = await bcrypt.hash(senha, salt);
@@ -80,6 +82,7 @@ app.post('/api/register', verificarToken, async (req, res) => {
         res.status(201).json({ message: 'Usuário criado com sucesso!', usuario: rows[0] });
     } catch (error) {
         if (error.code === '23505') { return res.status(409).json({ message: 'Este email já está cadastrado.' }); }
+        console.error('Erro ao registrar usuário:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
     }
 });
@@ -88,6 +91,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
     const { nome } = req.body;
     const usuarioId = req.usuario.id;
     if (!nome) { return res.status(400).json({ message: 'O nome é obrigatório.' }); }
+
     try {
         const query = `UPDATE usuarios SET nome = $1 WHERE id = $2 RETURNING id, email, nome`;
         const { rows } = await pool.query(query, [nome, usuarioId]);
@@ -98,6 +102,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
     }
 });
 
+// --- ROTAS DE DOCUMENTOS ---
 app.get('/api/documentos', verificarToken, async (req, res) => {
     try {
         const query = `
