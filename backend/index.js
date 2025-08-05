@@ -1,11 +1,14 @@
+// ARQUIVO index.js COMPLETO E CORRIGIDO
+
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import 'dotenv/config';
-import './mailer.js';
+import './mailer.js'; // Assumindo que este arquivo existe e está configurado
 import pg from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import multer from 'multer'; // NOVO: Importando o multer
 
 const { Client } = pg;
 const connectionConfig = {
@@ -16,7 +19,25 @@ const connectionConfig = {
 const app = express();
 app.use(express.json());
 app.use(cors());
-app.use(express.static(path.join(process.cwd(), '../frontend')));
+
+// ALTERADO: Servindo a pasta frontend e a pasta de uploads
+const frontendPath = path.join(process.cwd(), '../frontend');
+app.use(express.static(frontendPath));
+app.use('/uploads', express.static(path.join(process.cwd(), 'public/uploads')));
+
+
+// NOVO: Configuração do Multer para o armazenamento de arquivos
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'public/uploads/'); // Define a pasta de destino
+    },
+    filename: function (req, file, cb) {
+        // Garante um nome de arquivo único adicionando a data atual
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+const upload = multer({ storage: storage });
+
 
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
@@ -64,14 +85,19 @@ app.get('/api/documentos', verificarToken, async (req, res) => {
     }
 });
 
-app.post('/api/documentos', verificarToken, async (req, res) => {
+// ALTERADO: Rota de criação de documento agora usa o middleware 'upload'
+app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req, res) => {
     const client = new Client(connectionConfig);
     try {
         await client.connect();
+        // Agora o req.body é populado pelo multer
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status, criado_por_email)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`;
-        const values = [Date.now(), nome, categoria, dataVencimento, parseInt(diasAlerta, 10), 'Pendente', req.usuario.email];
+        // O nome do arquivo enviado fica em req.file.filename
+        const nomeArquivo = req.file ? req.file.filename : null;
+
+        const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status, criado_por_email, nome_arquivo)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
+        const values = [Date.now(), nome, categoria, dataVencimento, parseInt(diasAlerta, 10), 'Pendente', req.usuario.email, nomeArquivo];
         const { rows } = await client.query(query, values);
         res.status(201).json(rows[0]);
     } catch (error) {
@@ -82,16 +108,34 @@ app.post('/api/documentos', verificarToken, async (req, res) => {
     }
 });
 
-app.put('/api/documentos/:id', verificarToken, async (req, res) => {
+// ALTERADO: Rota de atualização de documento agora usa o middleware 'upload'
+app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (req, res) => {
     const client = new Client(connectionConfig);
     try {
         await client.connect();
-        const idDocumento = parseInt(req.params.id, 10);
-        const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        const query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5
-                       WHERE id = $6 RETURNING *`;
-        const values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), idDocumento];
+        const idDocumento = req.params.id;
+        const { nome, categoria, dataVencimento, diasAlerta } = req.body; // Agora funciona!
+        
+        let query;
+        let values;
+
+        if (req.file) {
+            // Se um novo arquivo foi enviado, atualizamos o nome do arquivo no DB
+            const nomeArquivo = req.file.filename;
+            query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5, nome_arquivo = $6
+                     WHERE id = $7 RETURNING *`;
+            values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), nomeArquivo, idDocumento];
+        } else {
+            // Se nenhum arquivo novo foi enviado, mantemos o arquivo antigo
+            query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5
+                     WHERE id = $6 RETURNING *`;
+            values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), idDocumento];
+        }
+
         const { rows } = await client.query(query, values);
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Documento não encontrado.' });
+        }
         res.status(200).json(rows[0]);
     } catch (error) {
         console.error('Erro ao atualizar documento:', error);
