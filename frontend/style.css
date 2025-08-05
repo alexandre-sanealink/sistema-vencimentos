@@ -44,7 +44,7 @@ body { font-family: 'Poppins', sans-serif; background-color: #f0f2f5; color: #49
 table { width: 100%; border-collapse: collapse; }
 th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #e9ecef; vertical-align: middle; }
 th { background-color: #f8f9fa; font-weight: 500; font-size: 14px; color: #6c757d; }
-td { font-size: 14px; }
+td { font-size: 14px; word-break: break-word; }
 .dias-restantes { font-weight: 500; }
 .status-span { display: inline-block; padding: 5px 12px; border-radius: 15px; color: white; font-size: 12px; font-weight: 500; text-transform: uppercase; white-space: nowrap; }
 .status-em-dia { background-color: #28a745; } .status-vence-breve { background-color: #ffc107; color: #333; } .status-atrasado { background-color: #dc3545; } .status-renovado { background-color: #17a2b8; } .status-em-renovacao { background-color: #6c757d; }
@@ -67,6 +67,14 @@ td { font-size: 14px; }
 .select-wrapper { position: relative; }
 .select-wrapper select { -webkit-appearance: none; -moz-appearance: none; appearance: none; padding-right: 40px; background-color: #fff; cursor: pointer; }
 .select-wrapper::after { content: ''; position: absolute; top: 50%; right: 15px; transform: translateY(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 7px solid #6c757d; pointer-events: none; }
+
+.file-upload-wrapper { display: flex; align-items: center; gap: 10px; }
+.file-upload-input { width: 0.1px; height: 0.1px; opacity: 0; overflow: hidden; position: absolute; z-index: -1; }
+.file-upload-button { padding: 8px 16px; font-size: 14px; font-weight: 500; background-color: #6c757d; color: white; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; display: inline-block; }
+.file-upload-button:hover { background-color: #5a6268; }
+.file-name-display { font-size: 14px; color: #6c757d; font-style: italic; }
+.anexo-atual-display { font-size: 14px; color: #343a40; margin-bottom: 8px; font-weight: 500; word-break: break-all; }
+
 
 @media (max-width: 820px) {
     .header-controls { flex-direction: column; align-items: stretch; text-align: center;}

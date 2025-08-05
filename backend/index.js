@@ -6,35 +6,18 @@ import './mailer.js';
 import pg from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import multer from 'multer'; // Re-adicionado
-import fs from 'fs'; // Módulo de arquivos do Node
 
-const { Pool } = pg;
-const pool = new Pool({
+const { Client } = pg;
+const connectionConfig = {
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
-});
-
-// --- CONFIGURAÇÃO DO UPLOAD ---
-const UPLOAD_DIR = '/var/data/uploads';
-// Garante que o diretório de uploads exista
-if (!fs.existsSync(UPLOAD_DIR)) {
-    fs.mkdirSync(UPLOAD_DIR, { recursive: true });
-}
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
-    filename: (req, file, cb) => {
-        const nomeUnico = Date.now() + '-' + file.originalname;
-        cb(null, nomeUnico);
-    }
-});
-const upload = multer({ storage: storage });
+};
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+app.use(express.static(path.join(process.cwd(), '../frontend')));
 
-// --- MIDDLEWARE DE SEGURANÇA ---
 const verificarToken = (req, res, next) => {
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
@@ -46,69 +29,113 @@ const verificarToken = (req, res, next) => {
     });
 };
 
-// SERVE OS ARQUIVOS ESTÁTICOS DO FRONTEND
-app.use(express.static(path.join(process.cwd(), '../frontend')));
-// SERVE A PASTA DE UPLOADS DE FORMA SEGURA (APENAS PARA USUÁRIOS LOGADOS)
-app.use('/uploads', verificarToken, express.static(UPLOAD_DIR));
-
-
-// --- ROTA DE SETUP TEMPORÁRIA ---
-app.get('/api/setup/add-file-column', async (req, res) => {
+app.post('/api/login', async (req, res) => {
+    const { email, senha } = req.body;
+    const client = new Client(connectionConfig);
     try {
-        await pool.query(`ALTER TABLE documentos ADD COLUMN IF NOT EXISTS nome_arquivo VARCHAR(255);`);
-        res.status(200).send('✅ Coluna "nome_arquivo" adicionada/verificada com sucesso!');
+        await client.connect();
+        const resultado = await client.query('SELECT * FROM usuarios WHERE email = $1', [email]);
+        if (resultado.rowCount === 0) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+        const usuario = resultado.rows[0];
+        const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
+        if (!senhaValida) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+        const token = jwt.sign({ id: usuario.id, email: usuario.email, nome: usuario.nome }, process.env.JWT_SECRET, { expiresIn: '8h' });
+        res.status(200).json({ token, usuario: { id: usuario.id, email: usuario.email, nome: usuario.nome } });
     } catch (error) {
-        console.error("❌ Erro ao alterar a tabela 'documentos':", error);
-        res.status(500).send('Erro durante a atualização do banco de dados.');
+        console.error('Erro no login:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    } finally {
+        await client.end();
     }
 });
 
-// --- ROTAS DE AUTENTICAÇÃO E PERFIL (sem alteração) ---
-app.post('/api/login', async (req, res) => { /* ... */ });
-app.post('/api/register', verificarToken, async (req, res) => { /* ... */ });
-app.put('/api/perfil', verificarToken, async (req, res) => { /* ... */ });
-
-// --- ROTAS DE DOCUMENTOS (ATUALIZADAS PARA UPLOAD) ---
-app.get('/api/documentos', verificarToken, async (req, res) => { /* ... */ });
-
-app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req, res) => {
+app.get('/api/documentos', verificarToken, async (req, res) => {
+    const client = new Client(connectionConfig);
     try {
+        await client.connect();
+        const query = `SELECT doc.*, u.nome as criado_por_nome FROM documentos doc LEFT JOIN usuarios u ON doc.criado_por_email = u.email ORDER BY doc."dataVencimento" ASC`;
+        const { rows } = await client.query(query);
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error('Erro ao buscar documentos:', error);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    } finally {
+        await client.end();
+    }
+});
+
+app.post('/api/documentos', verificarToken, async (req, res) => {
+    const client = new Client(connectionConfig);
+    try {
+        await client.connect();
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status, criado_por_email, nome_arquivo)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
-        const values = [Date.now(), nome, categoria, dataVencimento, parseInt(diasAlerta, 10), 'Pendente', req.usuario.email, req.file ? req.file.filename : null];
-        const { rows } = await pool.query(query, values);
+        const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status, criado_por_email)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`;
+        const values = [Date.now(), nome, categoria, dataVencimento, parseInt(diasAlerta, 10), 'Pendente', req.usuario.email];
+        const { rows } = await client.query(query, values);
         res.status(201).json(rows[0]);
     } catch (error) {
         console.error('Erro ao cadastrar documento:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
+    } finally {
+        await client.end();
     }
 });
 
-app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (req, res) => {
+app.put('/api/documentos/:id', verificarToken, async (req, res) => {
+    const client = new Client(connectionConfig);
     try {
+        await client.connect();
         const idDocumento = parseInt(req.params.id, 10);
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        
-        // Busca o documento antigo para poder apagar o arquivo se um novo for enviado
-        const docAntigo = await pool.query('SELECT nome_arquivo FROM documentos WHERE id = $1', [idDocumento]);
-
-        if (req.file && docAntigo.rowCount > 0 && docAntigo.rows[0].nome_arquivo) {
-            fs.unlink(path.join(UPLOAD_DIR, docAntigo.rows[0].nome_arquivo), err => {
-                if (err) console.error("Erro ao deletar arquivo antigo:", err);
-            });
-        }
-
-        const query = `UPDATE documentos 
-                       SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5, nome_arquivo = $6
-                       WHERE id = $7 RETURNING *`;
-        const novoNomeArquivo = req.file ? req.file.filename : docAntigo.rows[0].nome_arquivo;
-        const values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), novoNomeArquivo, idDocumento];
-        const { rows } = await pool.query(query, values);
+        const query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5
+                       WHERE id = $6 RETURNING *`;
+        const values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), idDocumento];
+        const { rows } = await client.query(query, values);
         res.status(200).json(rows[0]);
     } catch (error) {
         console.error('Erro ao atualizar documento:', error);
         res.status(500).json({ message: 'Erro interno do servidor' });
+    } finally {
+        await client.end();
+    }
+});
+
+app.post('/api/register', verificarToken, async (req, res) => {
+    const { nome, email, senha } = req.body;
+    if (!nome || !email || !senha) { return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' }); }
+    const client = new Client(connectionConfig);
+    try {
+        await client.connect();
+        const salt = await bcrypt.genSalt(10);
+        const senhaHash = await bcrypt.hash(senha, salt);
+        const query = `INSERT INTO usuarios (nome, email, senha_hash) VALUES ($1, $2, $3) RETURNING id, email, nome`;
+        const { rows } = await client.query(query, [nome, email, senhaHash]);
+        res.status(201).json({ message: 'Usuário criado com sucesso!', usuario: rows[0] });
+    } catch (error) {
+        if (error.code === '23505') { return res.status(409).json({ message: 'Este email já está cadastrado.' }); }
+        console.error('Erro ao registrar usuário:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    } finally {
+        await client.end();
+    }
+});
+
+app.put('/api/perfil', verificarToken, async (req, res) => {
+    const { nome } = req.body;
+    const usuarioId = req.usuario.id;
+    if (!nome) { return res.status(400).json({ message: 'O nome é obrigatório.' }); }
+    const client = new Client(connectionConfig);
+    try {
+        await client.connect();
+        const query = `UPDATE usuarios SET nome = $1 WHERE id = $2 RETURNING id, email, nome`;
+        const { rows } = await client.query(query, [nome, usuarioId]);
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error('Erro ao atualizar perfil:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    } finally {
+        await client.end();
     }
 });
 
