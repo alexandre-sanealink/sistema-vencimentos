@@ -60,6 +60,7 @@
                                     <th>Data de Vencimento</th>
                                     <th>Dias Restantes</th>
                                     <th>Status</th>
+                                    <th>Anexo</th>
                                     <th>Ações</th>
                                 </tr>
                             </thead>
@@ -82,6 +83,15 @@
                     <div class="form-group"><label for="documento-categoria">Categoria</label><div class="select-wrapper"><select id="documento-categoria" required><option value="" disabled selected>Selecione</option><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
                     <div class="form-group"><label for="documento-vencimento">Data de Vencimento</label><input type="date" id="documento-vencimento" required></div>
                     <div class="form-group"><label for="documento-alerta">Alertar com (dias de antecedência)</label><input type="number" id="documento-alerta" min="0" required></div>
+                    <div class="form-group">
+                        <label>Anexo (Opcional)</label>
+                        <div id="anexo-atual-container" class="anexo-atual-display hidden"></div>
+                        <div class="file-upload-wrapper">
+                             <label for="documento-arquivo" class="file-upload-button">Escolher arquivo</label>
+                             <span id="file-name-documento" class="file-name-display">Nenhum arquivo</span>
+                             <input type="file" id="documento-arquivo" class="file-upload-input">
+                        </div>
+                    </div>
                     <div class="modal-footer"><button type="submit" class="btn-salvar">Salvar</button></div>
                 </form>
             </div>

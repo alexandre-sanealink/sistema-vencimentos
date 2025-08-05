@@ -1,10 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const API_URL = '';
+    const API_URL = 'https://www.controle.focodesentupidora.com.br';
     const LOGIN_URL = `${API_URL}/api/login`;
     const DOCS_URL = `${API_URL}/api/documentos`;
     const REGISTER_URL = `${API_URL}/api/register`;
     const PERFIL_URL = `${API_URL}/api/perfil`;
-    // IMPORTANTE: ALTERE A LINHA ABAIXO PARA O SEU EMAIL DE ADMINISTRADOR
     const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
     const telaLogin = document.getElementById('tela-login');
@@ -25,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const docCategoria = document.getElementById('documento-categoria');
     const docVencimento = document.getElementById('documento-vencimento');
     const docAlerta = document.getElementById('documento-alerta');
+    const docArquivo = document.getElementById('documento-arquivo');
+    const docFileName = document.getElementById('file-name-documento');
+    const anexoAtualContainer = document.getElementById('anexo-atual-container');
     const modalAdmin = document.getElementById('modal-admin');
     const formRegister = document.getElementById('form-register');
     const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
@@ -39,7 +41,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
     const limparToken = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); };
-    const getAuthHeaders = () => ({ 'Content-Type': 'application/json', 'Authorization': `Bearer ${obterToken()}` });
+    const getAuthHeaders = (isFormData = false) => {
+        const headers = { 'Authorization': `Bearer ${obterToken()}` };
+        if (!isFormData) {
+            headers['Content-Type'] = 'application/json';
+        }
+        return headers;
+    };
 
     const verificarLogin = () => {
         const token = obterToken();
@@ -65,6 +73,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` } });
             if (!response.ok) {
+                // Combinando o melhor das duas versões: tratando token expirado
                 if (response.status === 401 || response.status === 403) {
                     limparToken();
                     verificarLogin();
@@ -75,7 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltrosEBusca();
         } catch (error) {
             console.error('Erro ao buscar docs:', error);
-            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
+            // Combinando o melhor das duas versões: colspan correto
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
         }
     };
 
@@ -116,12 +126,19 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (diffDays >= 0) { tdDias.textContent = `Faltam ${diffDays} dia(s)`; }
             else { tdDias.textContent = `Vencido há ${Math.abs(diffDays)} dia(s)`; }
             const tdStatus = tdHelper(tr, ''); const spanStatus = document.createElement('span'); spanStatus.className = `status-span status-${statusClasse}`; spanStatus.textContent = statusTexto; tdStatus.appendChild(spanStatus);
+            const tdAnexo = tdHelper(tr, '');
+            if (doc.nome_arquivo) {
+                const linkAnexo = document.createElement('a');
+                linkAnexo.href = `${API_URL}/uploads/${doc.nome_arquivo}`;
+                linkAnexo.textContent = 'Ver Anexo';
+                linkAnexo.target = '_blank';
+                tdAnexo.appendChild(linkAnexo);
+            } else { tdAnexo.textContent = 'N/A'; }
             const tdAcoes = tdHelper(tr, '');
-            // SUBSTITUA o bloco antigo por este novo
-const btnEditar = document.createElement('button');
-btnEditar.className = 'btn-editar'; // Vamos estilizar esta classe no CSS
-btnEditar.title = 'Editar Documento'; // Dica que aparece ao passar o mouse
-btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>`;
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn-editar';
+            btnEditar.title = 'Editar Documento';
+            btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>`;
             btnEditar.onclick = () => {
                 formDocumento.reset();
                 docId.value = doc.id;
@@ -130,6 +147,9 @@ btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height
                 docCategoria.value = doc.categoria;
                 docVencimento.value = doc.dataVencimento ? doc.dataVencimento.split('T')[0] : '';
                 docAlerta.value = doc.diasAlerta;
+                anexoAtualContainer.textContent = doc.nome_arquivo ? `Anexo atual: ${doc.nome_arquivo}` : '';
+                anexoAtualContainer.classList.toggle('hidden', !doc.nome_arquivo);
+                docFileName.textContent = 'Nenhum arquivo novo';
                 abrirModal(modalDocumento);
             };
             tdAcoes.appendChild(btnEditar);
@@ -160,6 +180,8 @@ btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height
         formDocumento.reset();
         docId.value = '';
         modalTitulo.textContent = 'Cadastrar Novo Documento';
+        anexoAtualContainer.classList.add('hidden');
+        docFileName.textContent = 'Nenhum arquivo escolhido';
         abrirModal(modalDocumento);
     });
 
@@ -173,40 +195,43 @@ btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height
 
     [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
         const closeButton = m.querySelector('.close-button');
-        if (closeButton) {
-            closeButton.addEventListener('click', () => fecharModal(m));
-        }
-        m.addEventListener('click', (e) => {
-            if (e.target === m) { fecharModal(m); }
-        });
+        if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
+        m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
     });
 
     formDocumento.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = docId.value;
-        const doc = { nome: docNome.value, categoria: docCategoria.value, dataVencimento: docVencimento.value, diasAlerta: docAlerta.value };
+        const formData = new FormData();
+        formData.append('nome', docNome.value);
+        formData.append('categoria', docCategoria.value);
+        formData.append('dataVencimento', docVencimento.value);
+        formData.append('diasAlerta', docAlerta.value);
+        if (docArquivo.files.length > 0) { formData.append('arquivo', docArquivo.files[0]); }
         const url = id ? `${DOCS_URL}/${id}` : DOCS_URL;
         const method = id ? 'PUT' : 'POST';
         try {
-            const response = await fetch(url, { method: method, headers: getAuthHeaders(), body: JSON.stringify(doc) });
+            const response = await fetch(url, { method: method, headers: getAuthHeaders(true), body: formData });
             if (response.ok) { fecharModal(modalDocumento); fetchDocumentos(); }
             else { alert('Erro ao salvar documento.'); }
         } catch (error) { console.error('Erro ao salvar:', error); }
     });
     
-    formRegister.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const nome = document.getElementById('register-nome').value;
-        const email = document.getElementById('register-email').value;
-        const senha = document.getElementById('register-senha').value;
+    docArquivo.addEventListener('change', () => {
+        docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
+    });
+    
+    const cadastrarUsuario = async (nome, email, senha) => {
         try {
             const response = await fetch(REGISTER_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ nome, email, senha }) });
             const result = await response.json();
             if (response.ok) { alert(`Usuário "${result.usuario.email}" criado com sucesso!`); formRegister.reset(); fecharModal(modalAdmin); }
             else { alert(`Erro: ${result.message}`); }
         } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão.'); }
-    });
-
+    };
+    
+    formRegister.addEventListener('submit', (e) => { e.preventDefault(); const nome = document.getElementById('register-nome').value; const email = document.getElementById('register-email').value; const senha = document.getElementById('register-senha').value; cadastrarUsuario(nome, email, senha); });
+    
     formPerfil.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = perfilNome.value;
