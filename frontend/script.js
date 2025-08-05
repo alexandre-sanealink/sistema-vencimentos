@@ -4,9 +4,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const DOCS_URL = `${API_URL}/api/documentos`;
     const REGISTER_URL = `${API_URL}/api/register`;
     const PERFIL_URL = `${API_URL}/api/perfil`;
-    const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br'; // <-- MUITO IMPORTANTE: COLOQUE SEU EMAIL AQUI
+    // IMPORTANTE: ALTERE A LINHA ABAIXO PARA O SEU EMAIL DE ADMINISTRADOR
+    const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
-    // --- ELEMENTOS DO DOM ---
     const telaLogin = document.getElementById('tela-login');
     const telaPrincipal = document.getElementById('tela-principal');
     const formLogin = document.getElementById('form-login');
@@ -79,7 +79,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             todosOsDocumentos = await response.json();
             aplicarFiltrosEBusca();
-        } catch (error) { console.error('Erro ao buscar docs:', error); tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Erro ao carregar dados.</td></tr>`; }
+        } catch (error) {
+            console.error('Erro ao buscar docs:', error);
+            tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
+        }
     };
 
     const abrirModal = (modalElement) => modalElement.classList.add('visible');
@@ -120,7 +123,6 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (diffDays >= 0) { tdDias.textContent = `Faltam ${diffDays} dia(s)`; }
             else { tdDias.textContent = `Vencido há ${Math.abs(diffDays)} dia(s)`; }
             const tdStatus = tdHelper(tr, ''); const spanStatus = document.createElement('span'); spanStatus.className = `status-span status-${statusClasse}`; spanStatus.textContent = statusTexto; tdStatus.appendChild(spanStatus);
-            
             const tdAnexo = tdHelper(tr, '');
             if (doc.nome_arquivo) {
                 const linkAnexo = document.createElement('a');
@@ -128,10 +130,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 linkAnexo.textContent = 'Ver Anexo';
                 linkAnexo.target = '_blank';
                 tdAnexo.appendChild(linkAnexo);
-            } else {
-                tdAnexo.textContent = 'N/A';
-            }
-
+            } else { tdAnexo.textContent = 'N/A'; }
             const tdAcoes = tdHelper(tr, '');
             const btnEditar = document.createElement('button');
             btnEditar.textContent = 'Editar';
@@ -204,10 +203,7 @@ document.addEventListener('DOMContentLoaded', () => {
         formData.append('categoria', docCategoria.value);
         formData.append('dataVencimento', docVencimento.value);
         formData.append('diasAlerta', docAlerta.value);
-        if (docArquivo.files.length > 0) {
-            formData.append('arquivo', docArquivo.files[0]);
-        }
-        
+        if (docArquivo.files.length > 0) { formData.append('arquivo', docArquivo.files[0]); }
         const url = id ? `${DOCS_URL}/${id}` : DOCS_URL;
         const method = id ? 'PUT' : 'POST';
         try {
@@ -231,6 +227,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     formRegister.addEventListener('submit', (e) => { e.preventDefault(); const nome = document.getElementById('register-nome').value; const email = document.getElementById('register-email').value; const senha = document.getElementById('register-senha').value; cadastrarUsuario(nome, email, senha); });
+    
     formPerfil.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = perfilNome.value;
@@ -246,6 +243,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert('Erro ao atualizar o nome.'); }
         } catch (error) { console.error('Erro ao atualizar perfil:', error); }
     });
+
     filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
     inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
 
