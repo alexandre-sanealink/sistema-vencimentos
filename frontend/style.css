@@ -77,3 +77,27 @@ td { font-size: 14px; }
     .search-container { justify-content: flex-start; }
     #input-busca { max-width: none; }
 }
+
+/* Estilo para o novo botão de editar com ícone */
+.btn-editar {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%; /* Deixa o fundo redondo no hover */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0d6efd; /* Cor azul do ícone */
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.btn-editar:hover {
+    background-color: #e7f1ff; /* Fundo azul claro ao passar o mouse */
+    color: #0a58ca; /* Azul mais escuro do ícone */
+}
+
+.btn-editar svg {
+    width: 16px; /* Tamanho do ícone */
+    height: 16px;
+}

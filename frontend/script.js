@@ -75,7 +75,7 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltrosEBusca();
         } catch (error) {
             console.error('Erro ao buscar docs:', error);
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
         }
     };
 
@@ -110,7 +110,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             tdHelper(tr, doc.nome);
             tdHelper(tr, doc.categoria || '-');
-            tdHelper(tr, doc.criado_por_nome || doc.criado_por_email || '-');
             tdHelper(tr, formatarDataParaExibicao(doc.dataVencimento));
             const tdDias = tdHelper(tr, ''); tdDias.classList.add('dias-restantes');
             if (doc.status === 'Renovado') { tdDias.textContent = '-'; }
@@ -118,9 +117,11 @@ document.addEventListener('DOMContentLoaded', () => {
             else { tdDias.textContent = `Vencido há ${Math.abs(diffDays)} dia(s)`; }
             const tdStatus = tdHelper(tr, ''); const spanStatus = document.createElement('span'); spanStatus.className = `status-span status-${statusClasse}`; spanStatus.textContent = statusTexto; tdStatus.appendChild(spanStatus);
             const tdAcoes = tdHelper(tr, '');
-            const btnEditar = document.createElement('button');
-            btnEditar.textContent = 'Editar';
-            btnEditar.className = 'btn-editar';
+            // SUBSTITUA o bloco antigo por este novo
+const btnEditar = document.createElement('button');
+btnEditar.className = 'btn-editar'; // Vamos estilizar esta classe no CSS
+btnEditar.title = 'Editar Documento'; // Dica que aparece ao passar o mouse
+btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>`;
             btnEditar.onclick = () => {
                 formDocumento.reset();
                 docId.value = doc.id;
