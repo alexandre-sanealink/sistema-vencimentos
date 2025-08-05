@@ -1,5 +1,3 @@
-// ARQUIVO index.js COMPLETO, CORRIGIDO E FINAL
-
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -8,8 +6,8 @@ import './mailer.js';
 import pg from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import multer from 'multer'; // NOVO: Importando o multer
-import { fileURLToPath } from 'url'; // NOVO: Para resolver caminhos no ES Modules
+import multer from 'multer';
+import { fileURLToPath } from 'url';
 
 // --- CONFIGURAÇÕES INICIAIS ---
 const { Client } = pg;
@@ -22,23 +20,17 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// NOVO: Bloco para definir __dirname no ES Modules (mais robusto)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ALTERADO: Servindo a pasta frontend e a pasta de uploads de forma robusta
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
 
-
-// NOVO: Configuração do Multer para o armazenamento de arquivos
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        // Usa o __dirname para garantir que o caminho esteja correto
         cb(null, path.join(__dirname, 'public/uploads/')); 
     },
     filename: function (req, file, cb) {
-        // Garante um nome de arquivo único adicionando a data e hora
         cb(null, Date.now() + '-' + file.originalname);
     }
 });
@@ -97,13 +89,13 @@ app.get('/api/documentos', verificarToken, async (req, res) => {
     }
 });
 
-// ALTERADO: Rota para criar um novo documento
+// Rota para criar um novo documento
 app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req, res) => {
     const client = new Client(connectionConfig);
     try {
         await client.connect();
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
-        const nomeArquivo = req.file ? req.file.filename : null; // Pega o nome do arquivo se ele existir
+        const nomeArquivo = req.file ? req.file.filename : null;
 
         const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status, criado_por_email, nome_arquivo)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
@@ -118,7 +110,7 @@ app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req
     }
 });
 
-// ALTERADO: Rota para atualizar um documento existente
+// Rota para atualizar um documento existente
 app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (req, res) => {
     const client = new Client(connectionConfig);
     try {
@@ -130,13 +122,11 @@ app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (
         let values;
 
         if (req.file) {
-            // Se um NOVO arquivo foi enviado, atualiza o nome do arquivo no banco
             const nomeArquivo = req.file.filename;
             query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5, nome_arquivo = $6
                      WHERE id = $7 RETURNING *`;
             values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), nomeArquivo, id];
         } else {
-            // Se NENHUM arquivo novo foi enviado, não mexe na coluna nome_arquivo
             query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5
                      WHERE id = $6 RETURNING *`;
             values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), id];
