@@ -23,111 +23,202 @@
         </div>
     </div>
 
-    <div id="tela-principal" class="hidden">
-        <div class="container">
-            <header class="main-header">
-                <h1>Controle de Vencimentos</h1>
-                <div class="header-controls">
-                    <button id="btn-abrir-perfil" class="welcome-button"></button>
-                    <button id="btn-admin-panel" class="header-btn admin-only hidden">Adicionar Usuário</button>
-                    <button id="btn-logout" class="header-btn logout-btn">Sair</button>
-                </div>
-            </header>
-            <main class="main-content">
-                <div class="lista-container">
-                    <div class="lista-header">
-                        <h2>Meus Documentos</h2>
-                        <button id="btn-abrir-modal-cadastro" class="btn-principal">Cadastrar Novo Documento</button>
-                    </div>
-                    <div class="filtros-wrapper">
-                        <div id="filtros-categoria" class="filtros-container">
-                            <span>Filtrar por:</span>
-                            <button class="filtro-btn active" data-categoria="todos">Todos</button>
-                            <button class="filtro-btn" data-categoria="Empresa">Empresa</button>
-                            <button class="filtro-btn" data-categoria="Caminhões">Caminhões</button>
-                            <button class="filtro-btn" data-categoria="Colaboradores">Colaboradores</button>
-                        </div>
-                        <div class="search-container">
-                            <input type="search" id="input-busca" placeholder="Pesquisar por nome...">
-                        </div>
-                    </div>
-                    <div class="table-wrapper">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Nome do Documento</th>
-                                    <th>Categoria</th>
-                                    <th>Data de Vencimento</th>
-                                    <th>Dias Restantes</th>
-                                    <th>Status</th>
-                                    <th>Anexo</th>
-                                    <th>Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="tbody-documentos"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </main>
-        </div>
+    <div id="app-container">
         
-        <div id="modal-documento" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2 id="modal-titulo"></h2>
-                    <button class="close-button">&times;</button>
-                </div>
-                <form id="form-documento">
-                    <input type="hidden" id="documento-id">
-                    <div class="form-group"><label for="documento-nome">Nome do Documento</label><input type="text" id="documento-nome" required></div>
-                    <div class="form-group"><label for="documento-categoria">Categoria</label><div class="select-wrapper"><select id="documento-categoria" required><option value="" disabled selected>Selecione</option><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
-                    <div class="form-group"><label for="documento-vencimento">Data de Vencimento</label><input type="date" id="documento-vencimento" required></div>
-                    <div class="form-group"><label for="documento-alerta">Alertar com (dias de antecedência)</label><input type="number" id="documento-alerta" min="0" required></div>
-                    <div class="form-group">
-                        <label>Anexo (Opcional)</label>
-                        <div id="anexo-atual-container" class="anexo-atual-display hidden"></div>
-                        <div class="file-upload-wrapper">
-                             <label for="documento-arquivo" class="file-upload-button">Escolher arquivo</label>
-                             <span id="file-name-documento" class="file-name-display">Nenhum arquivo</span>
-                             <input type="file" id="documento-arquivo" class="file-upload-input">
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <span class="nav-text">Sistema</span>
+            </div>
+           <ul class="sidebar-nav">
+                <li>
+                    <a href="#" id="nav-documentos" class="nav-link active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <span class="nav-text">Documentos</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="nav-frota" class="nav-link">
+                        <img src="assets/icons/tanque-caminhão.svg" alt="Ícone da Frota" class="nav-icon">
+                        <span class="nav-text">Frota</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="nav-colaboradores" class="nav-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                        <span class="nav-text">Colaboradores</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="nav-contratos" class="nav-link">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path><polyline points="14 2 14 8 20 8"></polyline><path d="M12 18v-6"></path><path d="M9 15h6"></path></svg>
+                        <span class="nav-text">Contratos</span>
+                    </a>
+                </li>
+            </ul>
+            <ul class="sidebar-footer">
+                <li>
+                    <a href="#" id="btn-abrir-perfil">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                        <span class="nav-text welcome-button-text">Meu Perfil</span>
+                    </a>
+                </li>
+                <li id="li-admin-panel" class="hidden">
+                    <a href="#" id="btn-admin-panel">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg>
+                        <span class="nav-text">Adicionar Usuário</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" id="btn-logout">
+                       <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        <span class="nav-text">Sair</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <main id="main-content">
+            <div id="content-documentos" class="content-module">
+                <div class="container">
+                    <header class="main-header">
+                        <h1>Controle de Vencimentos</h1>
+                    </header>
+                    <div class="main-content-body">
+                        <div class="lista-container">
+                            <div class="lista-header">
+                                <h2>Meus Documentos</h2>
+                                <button id="btn-abrir-modal-cadastro" class="btn-principal">Cadastrar Novo Documento</button>
+                            </div>
+                            <div class="filtros-wrapper">
+                                <div id="filtros-categoria" class="filtros-container">
+                                    <span>Filtrar por:</span>
+                                    <button class="filtro-btn active" data-categoria="todos">Todos</button>
+                                    <button class="filtro-btn" data-categoria="Empresa">Empresa</button>
+                                    <button class="filtro-btn" data-categoria="Caminhões">Caminhões</button>
+                                    <button class="filtro-btn" data-categoria="Colaboradores">Colaboradores</button>
+                                </div>
+                                <div class="search-container">
+                                    <input type="search" id="input-busca" placeholder="Pesquisar por nome...">
+                                </div>
+                            </div>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Nome do Documento</th>
+                                            <th>Categoria</th>
+                                            <th>Data de Vencimento</th>
+                                            <th>Dias Restantes</th>
+                                            <th>Status</th>
+                                            <th>Anexo</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-documentos"></tbody>
+                                </table>
+                            </div>
+                            <div id="pagination-container" class="pagination-container hidden">
+                                <button id="btn-anterior" class="pagination-button">&lt; Anterior</button>
+                                <span id="page-info"></span>
+                                <button id="btn-proxima" class="pagination-button">Próxima &gt;</button>
+                            </div>
                         </div>
                     </div>
-                    <div class="modal-footer"><button type="submit" class="btn-salvar">Salvar</button></div>
-                </form>
-            </div>
-        </div>
-
-        <div id="modal-admin" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Adicionar Novo Usuário</h2>
-                    <button class="close-button">&times;</button>
                 </div>
-                <form id="form-register">
-                    <div class="form-group"><label for="register-nome">Nome do Novo Usuário</label><input type="text" id="register-nome" required></div>
-                    <div class="form-group"><label for="register-email">Email do Novo Usuário</label><input type="email" id="register-email" required></div>
-                    <div class="form-group"><label for="register-senha">Senha Temporária</label><input type="password" id="register-senha" required></div>
-                    <div class="modal-footer"><button type="submit" class="btn-salvar">Criar Usuário</button></div>
-                </form>
             </div>
-        </div>
 
-        <div id="modal-perfil" class="modal-overlay">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Meu Perfil</h2>
-                    <button class="close-button">&times;</button>
+            <div id="content-frota" class="content-module hidden">
+                <div class="container">
+                    <header class="main-header">
+                        <h1>Controle de Frota</h1>
+                    </header>
+                    <div class="main-content-body">
+                        <p>Módulo de Frota em construção.</p>
+                    </div>
                 </div>
-                <form id="form-perfil">
-                    <div class="form-group">
-                        <label for="perfil-nome">Seu Nome</label>
-                        <input type="text" id="perfil-nome" required>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="submit" class="btn-salvar">Salvar Nome</button>
-                    </div>
-                </form>
             </div>
+
+            <div id="content-colaboradores" class="content-module hidden">
+                 <div class="container">
+                    <header class="main-header">
+                        <h1>Gestão de Colaboradores</h1>
+                    </header>
+                    <div class="main-content-body">
+                        <p>Módulo de Colaboradores em construção.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-contratos" class="content-module hidden">
+                 <div class="container">
+                    <header class="main-header">
+                        <h1>Gestão de Contratos</h1>
+                    </header>
+                    <div class="main-content-body">
+                        <p>Módulo de Contratos em construção.</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+    </div>
+
+    <div id="modal-documento" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-titulo"></h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="form-documento">
+                <input type="hidden" id="documento-id">
+                <div class="form-group"><label for="documento-nome">Nome do Documento</label><input type="text" id="documento-nome" required></div>
+                <div class="form-group"><label for="documento-categoria">Categoria</label><div class="select-wrapper"><select id="documento-categoria" required><option value="" disabled selected>Selecione</option><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
+                <div class="form-group"><label for="documento-vencimento">Data de Vencimento</label><input type="date" id="documento-vencimento" required></div>
+                <div class="form-group"><label for="documento-alerta">Alertar com (dias de antecedência)</label><input type="number" id="documento-alerta" min="0" required></div>
+                <div class="form-group">
+                    <label>Anexo (Opcional)</label>
+                    <div id="anexo-atual-container" class="anexo-atual-display hidden"></div>
+                    <div class="file-upload-wrapper">
+                         <label for="documento-arquivo" class="file-upload-button">Escolher arquivo</label>
+                         <span id="file-name-documento" class="file-name-display">Nenhum arquivo</span>
+                         <input type="file" id="documento-arquivo" class="file-upload-input">
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="submit" class="btn-salvar">Salvar</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-admin" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Adicionar Novo Usuário</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="form-register">
+                <div class="form-group"><label for="register-nome">Nome do Novo Usuário</label><input type="text" id="register-nome" required></div>
+                <div class="form-group"><label for="register-email">Email do Novo Usuário</label><input type="email" id="register-email" required></div>
+                <div class="form-group"><label for="register-senha">Senha Temporária</label><input type="password" id="register-senha" required></div>
+                <div class="modal-footer"><button type="submit" class="btn-salvar">Criar Usuário</button></div>
+            </form>
+        </div>
+    </div>
+
+    <div id="modal-perfil" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Meu Perfil</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="form-perfil">
+                <div class="form-group">
+                    <label for="perfil-nome">Seu Nome</label>
+                    <input type="text" id="perfil-nome" required>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn-salvar">Salvar Nome</button>
+                </div>
+            </form>
         </div>
     </div>
     
