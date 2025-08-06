@@ -1,4 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- REFERÊNCIAS DE ELEMENTOS ---
     const API_URL = 'https://www.controle.focodesentupidora.com.br';
     const LOGIN_URL = `${API_URL}/api/login`;
     const DOCS_URL = `${API_URL}/api/documentos`;
@@ -7,7 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
     const telaLogin = document.getElementById('tela-login');
-    const telaPrincipal = document.getElementById('tela-principal');
+    const appContainer = document.getElementById('app-container');
+    const navLinks = document.querySelectorAll('.nav-link');
+    const contentModules = document.querySelectorAll('.content-module');
     const formLogin = document.getElementById('form-login');
     const btnLogout = document.getElementById('btn-logout');
     const loginErrorMessage = document.getElementById('login-error-message');
@@ -16,6 +19,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputBusca = document.getElementById('input-busca');
     const btnAbrirModalCadastro = document.getElementById('btn-abrir-modal-cadastro');
     const btnAdminPanel = document.getElementById('btn-admin-panel');
+    const liAdminPanel = document.getElementById('li-admin-panel');
+    const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
     const modalDocumento = document.getElementById('modal-documento');
     const formDocumento = document.getElementById('form-documento');
     const modalTitulo = document.getElementById('modal-titulo');
@@ -29,15 +34,23 @@ document.addEventListener('DOMContentLoaded', () => {
     const anexoAtualContainer = document.getElementById('anexo-atual-container');
     const modalAdmin = document.getElementById('modal-admin');
     const formRegister = document.getElementById('form-register');
-    const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
     const modalPerfil = document.getElementById('modal-perfil');
     const formPerfil = document.getElementById('form-perfil');
     const perfilNome = document.getElementById('perfil-nome');
+    const paginationContainer = document.getElementById('pagination-container');
+    const pageInfo = document.getElementById('page-info');
+    const btnAnterior = document.getElementById('btn-anterior');
+    const btnProxima = document.getElementById('btn-proxima');
     
+    // --- ESTADO DA APLICAÇÃO ---
     let todosOsDocumentos = [];
+    let documentosFiltrados = [];
     let filtroCategoriaAtual = 'todos';
     let termoDeBusca = '';
+    let paginaAtual = 1;
+    const ITENS_POR_PAGINA = 15;
 
+    // --- FUNÇÕES AUXILIARES ---
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
     const limparToken = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); };
@@ -48,24 +61,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return headers;
     };
+    const abrirModal = (modalElement) => modalElement.classList.add('visible');
+    const fecharModal = (modalElement) => modalElement.classList.remove('visible');
 
+    // --- LÓGICA DE NAVEGAÇÃO ---
+    const switchView = (targetId) => {
+        contentModules.forEach(module => module.classList.add('hidden'));
+        navLinks.forEach(link => link.classList.remove('active'));
+        const targetContent = document.getElementById(targetId);
+        if (targetContent) targetContent.classList.remove('hidden');
+        const targetLink = document.getElementById(`nav-${targetId.split('-')[1]}`);
+        if(targetLink) targetLink.classList.add('active');
+    };
+    
+    navLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            const moduleName = link.id.split('-')[1];
+            switchView(`content-${moduleName}`);
+        });
+    });
+
+    // --- LÓGICA PRINCIPAL ---
     const verificarLogin = () => {
         const token = obterToken();
         const userInfo = localStorage.getItem('userInfo');
         if (token && userInfo) {
             const { usuario } = JSON.parse(userInfo);
             telaLogin.classList.add('hidden');
-            telaPrincipal.classList.remove('hidden');
-            btnAbrirPerfil.textContent = `Bem-vindo, ${usuario.nome || usuario.email}`;
+            appContainer.classList.remove('hidden');
+            const perfilLinkText = btnAbrirPerfil.querySelector('.nav-text');
+            if (perfilLinkText) perfilLinkText.textContent = `${usuario.nome || usuario.email}`;
             if (usuario.email === ADMIN_EMAIL) {
-                btnAdminPanel.classList.remove('hidden');
+                liAdminPanel.classList.remove('hidden');
             } else {
-                btnAdminPanel.classList.add('hidden');
+                liAdminPanel.classList.add('hidden');
             }
             fetchDocumentos();
+            switchView('content-documentos');
         } else {
             telaLogin.classList.remove('hidden');
-            telaPrincipal.classList.add('hidden');
+            appContainer.classList.add('hidden');
         }
     };
 
@@ -73,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` } });
             if (!response.ok) {
-                // Combinando o melhor das duas versões: tratando token expirado
                 if (response.status === 401 || response.status === 403) {
                     limparToken();
                     verificarLogin();
@@ -84,28 +119,49 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltrosEBusca();
         } catch (error) {
             console.error('Erro ao buscar docs:', error);
-            // Combinando o melhor das duas versões: colspan correto
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
         }
     };
-
-    const abrirModal = (modalElement) => modalElement.classList.add('visible');
-    const fecharModal = (modalElement) => modalElement.classList.remove('visible');
     
     const aplicarFiltrosEBusca = () => {
         let docs = [...todosOsDocumentos];
         if (filtroCategoriaAtual !== 'todos') docs = docs.filter(d => d.categoria === filtroCategoriaAtual);
         if (termoDeBusca.length > 0) docs = docs.filter(d => d.nome.toLowerCase().includes(termoDeBusca.toLowerCase()));
-        renderizarTabela(docs);
+        documentosFiltrados = docs;
+        paginaAtual = 1;
+        renderizarTabela();
+    };
+    
+    const atualizarControlesPaginacao = () => {
+        const totalPaginas = Math.ceil(documentosFiltrados.length / ITENS_POR_PAGINA);
+        if (totalPaginas <= 1) {
+            paginationContainer.classList.add('hidden');
+        } else {
+            paginationContainer.classList.remove('hidden');
+        }
+        pageInfo.textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+        btnAnterior.disabled = paginaAtual === 1;
+        btnProxima.disabled = paginaAtual === totalPaginas;
     };
 
-    const renderizarTabela = (docs) => {
+    const renderizarTabela = () => {
+        tbody.innerHTML = '';
+        if (documentosFiltrados.length === 0) {
+            paginationContainer.classList.add('hidden');
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`;
+            return;
+        }
+        
+        const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+        const fim = inicio + ITENS_POR_PAGINA;
+        const documentosDaPagina = documentosFiltrados.slice(inicio, fim);
+        
+        atualizarControlesPaginacao();
+        
         const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
         const tdHelper = (tr, c) => { const cell = document.createElement('td'); cell.textContent = c; tr.appendChild(cell); return cell; };
-        tbody.innerHTML = '';
-        if (docs.length === 0) { tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`; return; }
-        docs.sort((a, b) => new Date(a.dataVencimento) - new Date(b.dataVencimento));
-        docs.forEach(doc => {
+        
+        documentosDaPagina.forEach(doc => {
             const tr = document.createElement('tr');
             const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
             const dataVencimento = new Date(doc.dataVencimento);
@@ -130,10 +186,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (doc.nome_arquivo) {
                 const linkAnexo = document.createElement('a');
                 linkAnexo.href = `${API_URL}/uploads/${doc.nome_arquivo}`;
-                linkAnexo.textContent = 'Ver Anexo';
                 linkAnexo.target = '_blank';
+                linkAnexo.className = 'btn-anexo';
+                linkAnexo.title = 'Ver Anexo';
+                linkAnexo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/></svg>`;
                 tdAnexo.appendChild(linkAnexo);
-            } else { tdAnexo.textContent = 'N/A'; }
+            } else { 
+                tdAnexo.textContent = 'N/A'; 
+            }
             const tdAcoes = tdHelper(tr, '');
             const btnEditar = document.createElement('button');
             btnEditar.className = 'btn-editar';
@@ -158,6 +218,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     
+    // --- EVENT LISTENERS ---
+    btnAnterior.addEventListener('click', () => {
+        if (paginaAtual > 1) {
+            paginaAtual--;
+            renderizarTabela();
+        }
+    });
+    btnProxima.addEventListener('click', () => {
+        const totalPaginas = Math.ceil(documentosFiltrados.length / ITENS_POR_PAGINA);
+        if (paginaAtual < totalPaginas) {
+            paginaAtual++;
+            renderizarTabela();
+        }
+    });
     formLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginErrorMessage.style.display = 'none';
@@ -173,9 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { loginErrorMessage.textContent = 'Email ou senha inválidos.'; loginErrorMessage.style.display = 'block'; }
         } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }
     });
-
     btnLogout.addEventListener('click', () => { limparToken(); verificarLogin(); });
-
     btnAbrirModalCadastro.addEventListener('click', () => {
         formDocumento.reset();
         docId.value = '';
@@ -184,21 +256,17 @@ document.addEventListener('DOMContentLoaded', () => {
         docFileName.textContent = 'Nenhum arquivo escolhido';
         abrirModal(modalDocumento);
     });
-
     btnAdminPanel.addEventListener('click', () => { formRegister.reset(); abrirModal(modalAdmin); });
-    
     btnAbrirPerfil.addEventListener('click', () => {
         const userInfo = JSON.parse(localStorage.getItem('userInfo'));
         perfilNome.value = userInfo.usuario.nome;
         abrirModal(modalPerfil);
     });
-
     [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
         const closeButton = m.querySelector('.close-button');
         if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
         m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
     });
-
     formDocumento.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = docId.value;
@@ -216,11 +284,9 @@ document.addEventListener('DOMContentLoaded', () => {
             else { alert('Erro ao salvar documento.'); }
         } catch (error) { console.error('Erro ao salvar:', error); }
     });
-    
     docArquivo.addEventListener('change', () => {
         docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
     });
-    
     const cadastrarUsuario = async (nome, email, senha) => {
         try {
             const response = await fetch(REGISTER_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ nome, email, senha }) });
@@ -229,9 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else { alert(`Erro: ${result.message}`); }
         } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão.'); }
     };
-    
     formRegister.addEventListener('submit', (e) => { e.preventDefault(); const nome = document.getElementById('register-nome').value; const email = document.getElementById('register-email').value; const senha = document.getElementById('register-senha').value; cadastrarUsuario(nome, email, senha); });
-    
     formPerfil.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = perfilNome.value;
@@ -247,9 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert('Erro ao atualizar o nome.'); }
         } catch (error) { console.error('Erro ao atualizar perfil:', error); }
     });
-
     filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
     inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
 
+    // --- INICIALIZAÇÃO ---
     verificarLogin();
 });
