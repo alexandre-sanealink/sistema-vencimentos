@@ -7,20 +7,39 @@ document.addEventListener('DOMContentLoaded', () => {
     const PERFIL_URL = `${API_URL}/api/perfil`;
     const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
+    // Elementos principais
     const telaLogin = document.getElementById('tela-login');
     const appContainer = document.getElementById('app-container');
-    const navLinks = document.querySelectorAll('.nav-link');
     const contentModules = document.querySelectorAll('.content-module');
-    const formLogin = document.getElementById('form-login');
+
+    // Elementos do Menu Lateral (Desktop)
+    const sidebar = document.getElementById('sidebar');
+    const navLinks = document.querySelectorAll('#sidebar .nav-link');
     const btnLogout = document.getElementById('btn-logout');
-    const loginErrorMessage = document.getElementById('login-error-message');
+    const btnAdminPanel = document.getElementById('btn-admin-panel');
+    const liAdminPanel = document.getElementById('li-admin-panel');
+    const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
+    
+    // Elementos do Menu de Rodapé (Mobile)
+    const bottomBar = document.getElementById('bottom-bar');
+    const mobileNavLinks = document.querySelectorAll('#bottom-bar .bottom-bar-link');
+    const mobileMoreMenuWrapper = document.getElementById('mobile-more-menu-wrapper');
+    const mobileMoreMenu = document.getElementById('mobile-more-menu');
+    const mobileBtnPerfil = document.getElementById('mobile-btn-perfil');
+    const mobileBtnAdmin = document.getElementById('mobile-btn-admin');
+    const mobileBtnLogout = document.getElementById('mobile-btn-logout');
+
+    // Elementos da Tabela de Documentos
     const tbody = document.getElementById('tbody-documentos');
     const filtrosContainer = document.getElementById('filtros-categoria');
     const inputBusca = document.getElementById('input-busca');
     const btnAbrirModalCadastro = document.getElementById('btn-abrir-modal-cadastro');
-    const btnAdminPanel = document.getElementById('btn-admin-panel');
-    const liAdminPanel = document.getElementById('li-admin-panel');
-    const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
+    const paginationContainer = document.getElementById('pagination-container');
+    const pageInfo = document.getElementById('page-info');
+    const btnAnterior = document.getElementById('btn-anterior');
+    const btnProxima = document.getElementById('btn-proxima');
+    
+    // Elementos dos Modais
     const modalDocumento = document.getElementById('modal-documento');
     const formDocumento = document.getElementById('form-documento');
     const modalTitulo = document.getElementById('modal-titulo');
@@ -37,10 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalPerfil = document.getElementById('modal-perfil');
     const formPerfil = document.getElementById('form-perfil');
     const perfilNome = document.getElementById('perfil-nome');
-    const paginationContainer = document.getElementById('pagination-container');
-    const pageInfo = document.getElementById('page-info');
-    const btnAnterior = document.getElementById('btn-anterior');
-    const btnProxima = document.getElementById('btn-proxima');
+    const loginErrorMessage = document.getElementById('login-error-message');
     
     // --- ESTADO DA APLICAÇÃO ---
     let todosOsDocumentos = [];
@@ -67,22 +83,56 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- LÓGICA DE NAVEGAÇÃO ---
     const switchView = (targetId) => {
         contentModules.forEach(module => module.classList.add('hidden'));
-        navLinks.forEach(link => link.classList.remove('active'));
         const targetContent = document.getElementById(targetId);
         if (targetContent) targetContent.classList.remove('hidden');
-        const targetLink = document.getElementById(`nav-${targetId.split('-')[1]}`);
-        if(targetLink) targetLink.classList.add('active');
+        
+        const moduleName = targetId.split('-')[1];
+        navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${moduleName}`));
+        mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${moduleName}`));
     };
     
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const moduleName = link.id.split('-')[1];
-            switchView(`content-${moduleName}`);
-        });
+    document.querySelectorAll('.nav-link, .bottom-bar-link').forEach(link => {
+        // Ignora o wrapper do menu "Mais" para não tratar o clique nele como uma troca de tela
+        if (link.id !== 'mobile-more-menu-wrapper') { 
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                // Pega o nome do módulo a partir do final do ID
+                const moduleName = link.id.split('-')[link.id.split('-').length - 1];
+                switchView(`content-${moduleName}`);
+            });
+        }
+    });
+
+    // --- LÓGICA DO MENU DE RODAPÉ (MOBILE) ---
+    mobileMoreMenuWrapper.addEventListener('click', (e) => {
+        e.stopPropagation(); // Impede que o clique no documento feche o menu imediatamente
+        mobileMoreMenu.classList.toggle('visible');
+    });
+
+    // Fecha o menu "Mais" se clicar em qualquer outro lugar da tela
+    document.addEventListener('click', (e) => {
+        if (!mobileMoreMenu.contains(e.target) && !mobileMoreMenuWrapper.contains(e.target)) {
+            mobileMoreMenu.classList.remove('visible');
+        }
     });
 
     // --- LÓGICA PRINCIPAL ---
+    const acoesDeUsuario = {
+        abrirPerfil: () => {
+            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+            perfilNome.value = userInfo.usuario.nome;
+            abrirModal(modalPerfil);
+        },
+        abrirAdmin: () => {
+            formRegister.reset();
+            abrirModal(modalAdmin);
+        },
+        fazerLogout: () => {
+            limparToken();
+            verificarLogin();
+        }
+    };
+
     const verificarLogin = () => {
         const token = obterToken();
         const userInfo = localStorage.getItem('userInfo');
@@ -90,15 +140,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const { usuario } = JSON.parse(userInfo);
             telaLogin.classList.add('hidden');
             appContainer.classList.remove('hidden');
+            
             const perfilLinkText = btnAbrirPerfil.querySelector('.nav-text');
             if (perfilLinkText) perfilLinkText.textContent = `${usuario.nome || usuario.email}`;
+
+            // Controla a visibilidade dos botões de admin em ambos os menus
             if (usuario.email === ADMIN_EMAIL) {
                 liAdminPanel.classList.remove('hidden');
+                mobileBtnAdmin.classList.remove('hidden');
             } else {
                 liAdminPanel.classList.add('hidden');
+                mobileBtnAdmin.classList.add('hidden');
             }
             fetchDocumentos();
-            switchView('content-documentos');
+            switchView('content-documentos'); // Inicia na tela de documentos
         } else {
             telaLogin.classList.remove('hidden');
             appContainer.classList.add('hidden');
@@ -247,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { loginErrorMessage.textContent = 'Email ou senha inválidos.'; loginErrorMessage.style.display = 'block'; }
         } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }
     });
-    btnLogout.addEventListener('click', () => { limparToken(); verificarLogin(); });
+    
     btnAbrirModalCadastro.addEventListener('click', () => {
         formDocumento.reset();
         docId.value = '';
@@ -256,12 +311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         docFileName.textContent = 'Nenhum arquivo escolhido';
         abrirModal(modalDocumento);
     });
-    btnAdminPanel.addEventListener('click', () => { formRegister.reset(); abrirModal(modalAdmin); });
-    btnAbrirPerfil.addEventListener('click', () => {
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        perfilNome.value = userInfo.usuario.nome;
-        abrirModal(modalPerfil);
-    });
+    
     [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
         const closeButton = m.querySelector('.close-button');
         if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }

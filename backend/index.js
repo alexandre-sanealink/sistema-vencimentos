@@ -23,12 +23,16 @@ app.use(cors());
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Serve os arquivos estáticos do frontend
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
-app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+// ALTERADO: Agora, a rota /uploads serve os arquivos a partir do disco permanente do Render
+app.use('/uploads', express.static('/var/data/uploads'));
 
+
+// ALTERADO: Configuração do Multer para salvar os arquivos no disco permanente do Render
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, path.join(__dirname, 'public/uploads/')); 
+        cb(null, '/var/data/uploads'); // Caminho exato do seu Render Disk
     },
     filename: function (req, file, cb) {
         cb(null, Date.now() + '-' + file.originalname);
@@ -116,7 +120,7 @@ app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (
     try {
         await client.connect();
         const { id } = req.params;
-        const { nome, categoria, dataVencimento, diasAlerta } = req.body;
+        const { nome, categoria, dataVencimento, diasAlerta } = req.body; 
         
         let query;
         let values;
