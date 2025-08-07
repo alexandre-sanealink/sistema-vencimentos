@@ -7,34 +7,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const PERFIL_URL = `${API_URL}/api/perfil`;
     const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
-    // Elementos principais
     const telaLogin = document.getElementById('tela-login');
     const appContainer = document.getElementById('app-container');
     const contentModules = document.querySelectorAll('.content-module');
-
-    // Elementos do Menu Lateral (Desktop)
     const sidebar = document.getElementById('sidebar');
     const navLinks = document.querySelectorAll('#sidebar .nav-link');
     const btnLogout = document.getElementById('btn-logout');
     const btnAdminPanel = document.getElementById('btn-admin-panel');
     const liAdminPanel = document.getElementById('li-admin-panel');
     const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
-    
-    // Elementos do Menu Mobile
     const hamburgerBtn = document.getElementById('hamburger-btn');
     const menuOverlay = document.getElementById('menu-overlay');
-
-    // Elementos da Tabela de Documentos
+    const bottomBar = document.getElementById('bottom-bar');
+    const mobileNavLinks = document.querySelectorAll('#bottom-bar .bottom-bar-link');
+    const mobileMoreMenuWrapper = document.getElementById('mobile-more-menu-wrapper');
+    const mobileMoreMenu = document.getElementById('mobile-more-menu');
+    const mobileBtnPerfil = document.getElementById('mobile-btn-perfil');
+    const mobileBtnAdmin = document.getElementById('mobile-btn-admin');
+    const mobileBtnLogout = document.getElementById('mobile-btn-logout');
     const tbody = document.getElementById('tbody-documentos');
     const filtrosContainer = document.getElementById('filtros-categoria');
     const inputBusca = document.getElementById('input-busca');
     const btnAbrirModalCadastro = document.getElementById('btn-abrir-modal-cadastro');
+    const listaContainer = document.querySelector('.lista-container'); // Adicionado para o scroll
     const paginationContainer = document.getElementById('pagination-container');
     const pageInfo = document.getElementById('page-info');
     const btnAnterior = document.getElementById('btn-anterior');
     const btnProxima = document.getElementById('btn-proxima');
-    
-    // Elementos dos Modais
     const modalDocumento = document.getElementById('modal-documento');
     const formDocumento = document.getElementById('form-documento');
     const modalTitulo = document.getElementById('modal-titulo');
@@ -54,7 +53,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const formLogin = document.getElementById('form-login');
     const loginErrorMessage = document.getElementById('login-error-message');
     
-    // --- ESTADO DA APLICAÇÃO ---
     let todosOsDocumentos = [];
     let documentosFiltrados = [];
     let filtroCategoriaAtual = 'todos';
@@ -62,51 +60,62 @@ document.addEventListener('DOMContentLoaded', () => {
     let paginaAtual = 1;
     const ITENS_POR_PAGINA = 15;
 
-    // --- FUNÇÕES AUXILIARES ---
     const salvarToken = (token) => localStorage.setItem('authToken', token);
     const obterToken = () => localStorage.getItem('authToken');
     const limparToken = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); };
     const getAuthHeaders = (isFormData = false) => {
         const headers = { 'Authorization': `Bearer ${obterToken()}` };
-        if (!isFormData) {
-            headers['Content-Type'] = 'application/json';
-        }
+        if (!isFormData) { headers['Content-Type'] = 'application/json'; }
         return headers;
     };
     const abrirModal = (modalElement) => modalElement.classList.add('visible');
     const fecharModal = (modalElement) => modalElement.classList.remove('visible');
 
-    // --- LÓGICA DE NAVEGAÇÃO ---
     const switchView = (targetId) => {
         contentModules.forEach(module => module.classList.add('hidden'));
-        navLinks.forEach(link => link.classList.remove('active'));
         const targetContent = document.getElementById(targetId);
         if (targetContent) targetContent.classList.remove('hidden');
-        const targetLink = document.getElementById(`nav-${targetId.split('-')[1]}`);
-        if(targetLink) targetLink.classList.add('active');
+        const moduleName = targetId.split('-')[1];
+        navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${moduleName}`));
+        mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${moduleName}`));
     };
     
-    navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
-            e.preventDefault();
-            const moduleName = link.id.split('-')[1];
-            switchView(`content-${moduleName}`);
-            if (sidebar.classList.contains('sidebar-visible')) {
-                toggleMobileMenu();
-            }
-        });
+    document.querySelectorAll('.nav-link, .bottom-bar-link').forEach(link => {
+        if (link.id !== 'mobile-more-menu-wrapper') { 
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const moduleName = link.id.split('-')[link.id.split('-').length - 1];
+                switchView(`content-${moduleName}`);
+                if (sidebar.classList.contains('sidebar-visible')) {
+                    toggleMobileMenu();
+                }
+            });
+        }
     });
-    
-    // --- LÓGICA DO MENU HAMBÚRGUER ---
+
     const toggleMobileMenu = () => {
         sidebar.classList.toggle('sidebar-visible');
         menuOverlay.classList.toggle('visible');
     };
 
-    if(hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
-    if(menuOverlay) menuOverlay.addEventListener('click', toggleMobileMenu);
+    const acoesDeUsuario = {
+        abrirPerfil: () => {
+            const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+            if (userInfo && userInfo.usuario) {
+                perfilNome.value = userInfo.usuario.nome;
+                abrirModal(modalPerfil);
+            }
+        },
+        abrirAdmin: () => {
+            formRegister.reset();
+            abrirModal(modalAdmin);
+        },
+        fazerLogout: () => {
+            limparToken();
+            verificarLogin();
+        }
+    };
 
-    // --- LÓGICA PRINCIPAL ---
     const verificarLogin = () => {
         const token = obterToken();
         const userInfo = localStorage.getItem('userInfo');
@@ -116,12 +125,13 @@ document.addEventListener('DOMContentLoaded', () => {
             appContainer.classList.remove('hidden');
             const perfilLinkText = btnAbrirPerfil.querySelector('.nav-text');
             if (perfilLinkText) perfilLinkText.textContent = `${usuario.nome || usuario.email}`;
-            
             if (liAdminPanel) {
                 if (usuario.email === ADMIN_EMAIL) {
                     liAdminPanel.classList.remove('hidden');
+                    mobileBtnAdmin.classList.remove('hidden');
                 } else {
                     liAdminPanel.classList.add('hidden');
+                    mobileBtnAdmin.classList.add('hidden');
                 }
             }
             fetchDocumentos();
@@ -160,6 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     const atualizarControlesPaginacao = () => {
+        if (!pageInfo || !paginationContainer) return;
         const totalPaginas = Math.ceil(documentosFiltrados.length / ITENS_POR_PAGINA);
         if (totalPaginas <= 1) {
             paginationContainer.classList.add('hidden');
@@ -175,7 +186,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!tbody) return;
         tbody.innerHTML = '';
         if (documentosFiltrados.length === 0) {
-            paginationContainer.classList.add('hidden');
+            if(paginationContainer) paginationContainer.classList.add('hidden');
             tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`;
             return;
         }
@@ -226,7 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const btnEditar = document.createElement('button');
             btnEditar.className = 'btn-editar';
             btnEditar.title = 'Editar Documento';
-            btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.293zm-9.761 5.175-.106.106-1.528 3.821 3.821-1.528.106-.106A.5.5 0 0 1 5 12.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.468-.325"/></svg>`;
+            // --- NOVO CÓDIGO DO ÍCONE DE LÁPIS (CONTORNO) ---
+            btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
             btnEditar.onclick = () => {
                 formDocumento.reset();
                 docId.value = doc.id;
@@ -247,20 +259,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     
     // --- EVENT LISTENERS ---
-    if(btnAnterior) btnAnterior.addEventListener('click', () => {
+    if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
+    if (menuOverlay) menuOverlay.addEventListener('click', toggleMobileMenu);
+
+    if (btnAnterior) btnAnterior.addEventListener('click', () => {
         if (paginaAtual > 1) {
             paginaAtual--;
             renderizarTabela();
+            if (listaContainer) listaContainer.scrollIntoView({ behavior: 'smooth' });
         }
     });
-    if(btnProxima) btnProxima.addEventListener('click', () => {
+
+    if (btnProxima) btnProxima.addEventListener('click', () => {
         const totalPaginas = Math.ceil(documentosFiltrados.length / ITENS_POR_PAGINA);
         if (paginaAtual < totalPaginas) {
             paginaAtual++;
             renderizarTabela();
+            if (listaContainer) listaContainer.scrollIntoView({ behavior: 'smooth' });
         }
     });
-    if(formLogin) formLogin.addEventListener('submit', async (e) => {
+
+    if (formLogin) formLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
         loginErrorMessage.style.display = 'none';
         const email = document.getElementById('email').value;
@@ -276,8 +295,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }
     });
     
-    if(btnLogout) btnLogout.addEventListener('click', () => { limparToken(); verificarLogin(); });
-    if(btnAbrirModalCadastro) btnAbrirModalCadastro.addEventListener('click', () => {
+    btnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
+    mobileBtnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
+    
+    if (btnAbrirModalCadastro) btnAbrirModalCadastro.addEventListener('click', () => {
         formDocumento.reset();
         docId.value = '';
         modalTitulo.textContent = 'Cadastrar Novo Documento';
@@ -285,12 +306,13 @@ document.addEventListener('DOMContentLoaded', () => {
         docFileName.textContent = 'Nenhum arquivo escolhido';
         abrirModal(modalDocumento);
     });
-    if(btnAdminPanel) btnAdminPanel.addEventListener('click', () => { formRegister.reset(); abrirModal(modalAdmin); });
-    if(btnAbrirPerfil) btnAbrirPerfil.addEventListener('click', () => {
-        const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-        if(userInfo && userInfo.usuario) perfilNome.value = userInfo.usuario.nome;
-        abrirModal(modalPerfil);
-    });
+
+    btnAdminPanel.addEventListener('click', acoesDeUsuario.abrirAdmin);
+    mobileBtnAdmin.addEventListener('click', acoesDeUsuario.abrirAdmin);
+    
+    btnAbrirPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
+    mobileBtnPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
+
     [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
         if(m) {
             const closeButton = m.querySelector('.close-button');
@@ -298,7 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
             m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
         }
     });
-    if(formDocumento) formDocumento.addEventListener('submit', async (e) => {
+    if (formDocumento) formDocumento.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = docId.value;
         const formData = new FormData();
@@ -315,7 +337,7 @@ document.addEventListener('DOMContentLoaded', () => {
             else { alert('Erro ao salvar documento.'); }
         } catch (error) { console.error('Erro ao salvar:', error); }
     });
-    if(docArquivo) docArquivo.addEventListener('change', () => {
+    if (docArquivo) docArquivo.addEventListener('change', () => {
         docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
     });
     const cadastrarUsuario = async (nome, email, senha) => {
@@ -326,8 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
             else { alert(`Erro: ${result.message}`); }
         } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão.'); }
     };
-    if(formRegister) formRegister.addEventListener('submit', (e) => { e.preventDefault(); const nome = document.getElementById('register-nome').value; const email = document.getElementById('register-email').value; const senha = document.getElementById('register-senha').value; cadastrarUsuario(nome, email, senha); });
-    if(formPerfil) formPerfil.addEventListener('submit', async (e) => {
+    if (formRegister) formRegister.addEventListener('submit', (e) => { e.preventDefault(); const nome = document.getElementById('register-nome').value; const email = document.getElementById('register-email').value; const senha = document.getElementById('register-senha').value; cadastrarUsuario(nome, email, senha); });
+    if (formPerfil) formPerfil.addEventListener('submit', async (e) => {
         e.preventDefault();
         const nome = perfilNome.value;
         try {
@@ -342,9 +364,18 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { alert('Erro ao atualizar o nome.'); }
         } catch (error) { console.error('Erro ao atualizar perfil:', error); }
     });
-    if(filtrosContainer) filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
-    if(inputBusca) inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
+    if (filtrosContainer) filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
+    if (inputBusca) inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
+    
+    mobileMoreMenuWrapper.addEventListener('click', (e) => {
+        e.stopPropagation();
+        mobileMoreMenu.classList.toggle('visible');
+    });
+    document.addEventListener('click', () => {
+        if (mobileMoreMenu.classList.contains('visible')) {
+            mobileMoreMenu.classList.remove('visible');
+        }
+    });
 
-    // --- INICIALIZAÇÃO ---
     verificarLogin();
 });
