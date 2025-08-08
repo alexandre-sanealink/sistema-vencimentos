@@ -87,8 +87,6 @@ body { font-family: 'Poppins', sans-serif; background-color: #f0f2f5; color: #49
 .filtro-btn:hover { background-color: #e9ecef; }
 .filtro-btn.active { background-color: #007bff; color: white; border-color: #007bff; }
 .search-container { flex-grow: 1; display: flex; justify-content: flex-end; }
-
-/* ALTERADO: Seletor de ID para CLASSE para ser reutilizável */
 .input-busca-style { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-family: 'Poppins', sans-serif; font-size: 14px; width: 100%; max-width: 300px; }
 
 .table-wrapper { overflow-x: auto; }
@@ -99,12 +97,16 @@ td { font-size: 14px; white-space: nowrap; }
 .dias-restantes { font-weight: 500; }
 .status-span { display: inline-block; padding: 5px 12px; border-radius: 15px; color: white; font-size: 12px; font-weight: 500; text-transform: uppercase; white-space: nowrap; }
 .status-em-dia { background-color: #28a745; } .status-vence-breve { background-color: #ffc107; color: #333; } .status-atrasado { background-color: #dc3545; } .status-renovado { background-color: #17a2b8; } .status-em-renovacao { background-color: #6c757d; }
-.btn-editar, .btn-anexo { background: none; border: none; cursor: pointer; padding: 5px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s; }
+/* MODIFICADO: Adicionada a classe .btn-deletar à regra base */
+.btn-editar, .btn-anexo, .btn-deletar { background: none; border: none; cursor: pointer; padding: 5px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s; }
 .btn-editar { color: #0d6efd; }
 .btn-editar:hover { background-color: #e7f1ff; color: #0a58ca; }
 .btn-anexo { color: #6c757d; }
 .btn-anexo:hover { background-color: #e9ecef; color: #212529; }
-.btn-editar svg, .btn-anexo svg { width: 16px; height: 16px; }
+/* NOVO: Estilos para o botão de deletar */
+.btn-deletar { color: #dc3545; }
+.btn-deletar:hover { background-color: #f8d7da; color: #721c24; }
+.btn-editar svg, .btn-anexo svg, .btn-deletar svg { width: 16px; height: 16px; } /* MODIFICADO */
 
 /* --- PAGINAÇÃO --- */
 .pagination-container { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; margin-top: 20px; border-top: 1px solid #e9ecef; }

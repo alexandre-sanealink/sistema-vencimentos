@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const veiculoModelo = document.getElementById('veiculo-modelo');
     const veiculoAno = document.getElementById('veiculo-ano');
     const veiculoTipo = document.getElementById('veiculo-tipo');
-    const inputBuscaVeiculo = document.getElementById('input-busca-veiculo'); // NOVO
+    const inputBuscaVeiculo = document.getElementById('input-busca-veiculo');
     
     // Admin e Perfil
     const modalAdmin = document.getElementById('modal-admin');
@@ -76,10 +76,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let todosOsDocumentos = [];
     let documentosFiltrados = [];
     let todosOsVeiculos = [];
-    let veiculosFiltrados = []; // NOVO
+    let veiculosFiltrados = [];
     let filtroCategoriaAtual = 'todos';
     let termoDeBusca = '';
-    let termoDeBuscaVeiculo = ''; // NOVO
+    let termoDeBuscaVeiculo = '';
     let paginaAtual = 1;
     const ITENS_POR_PAGINA = 15;
 
@@ -223,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
         atualizarControlesPaginacao();
         
         const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
-        const tdHelper = (tr, c) => { const cell = document.createElement('td'); cell.textContent = c; tr.appendChild(cell); return cell; };
         
         documentosDaPagina.forEach(doc => {
             const tr = document.createElement('tr');
@@ -238,15 +237,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 else if (diffDays <= 30) { statusTexto = 'Vence em Breve'; statusClasse = 'vence-breve'; }
                 else { statusTexto = 'Em Dia'; statusClasse = 'em-dia'; }
             }
-            tdHelper(tr, doc.nome);
-            tdHelper(tr, doc.categoria || '-');
-            tdHelper(tr, formatarDataParaExibicao(doc.dataVencimento));
-            const tdDias = tdHelper(tr, ''); tdDias.classList.add('dias-restantes');
-            if (doc.status === 'Renovado') { tdDias.textContent = '-'; }
-            else if (diffDays >= 0) { tdDias.textContent = `Faltam ${diffDays} dia(s)`; }
-            else { tdDias.textContent = `Vencido há ${Math.abs(diffDays)} dia(s)`; }
-            const tdStatus = tdHelper(tr, ''); const spanStatus = document.createElement('span'); spanStatus.className = `status-span status-${statusClasse}`; spanStatus.textContent = statusTexto; tdStatus.appendChild(spanStatus);
-            const tdAnexo = tdHelper(tr, '');
+            tr.innerHTML = `
+                <td>${doc.nome}</td>
+                <td>${doc.categoria || '-'}</td>
+                <td>${formatarDataParaExibicao(doc.dataVencimento)}</td>
+                <td class="dias-restantes">${doc.status === 'Renovado' ? '-' : (diffDays >= 0 ? `Faltam ${diffDays} dia(s)` : `Vencido há ${Math.abs(diffDays)} dia(s)`)}</td>
+                <td><span class="status-span status-${statusClasse}">${statusTexto}</span></td>
+                <td></td>
+                <td></td>
+            `;
+
+            const anexoCell = tr.children[5];
             if (doc.nome_arquivo) {
                 const linkAnexo = document.createElement('a');
                 linkAnexo.href = `${API_URL}/uploads/${doc.nome_arquivo}`;
@@ -254,11 +255,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 linkAnexo.className = 'btn-anexo';
                 linkAnexo.title = 'Ver Anexo';
                 linkAnexo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/></svg>`;
-                tdAnexo.appendChild(linkAnexo);
+                anexoCell.appendChild(linkAnexo);
             } else { 
-                tdAnexo.textContent = 'N/A'; 
+                anexoCell.textContent = 'N/A'; 
             }
-            const tdAcoes = document.createElement('td');
+            
+            const acoesCell = tr.children[6];
             const btnEditar = document.createElement('button');
             btnEditar.className = 'btn-editar';
             btnEditar.title = 'Editar Documento';
@@ -276,8 +278,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 docFileName.textContent = 'Nenhum arquivo novo';
                 abrirModal(modalDocumento);
             };
-            tdAcoes.appendChild(btnEditar);
-            tr.appendChild(tdAcoes);
+            acoesCell.appendChild(btnEditar);
             tbodyDocumentos.appendChild(tr);
         });
     };
@@ -288,14 +289,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(VEICULOS_URL, { headers: getAuthHeaders() });
             if (!response.ok) throw new Error('Falha na busca de veículos');
             todosOsVeiculos = await response.json();
-            aplicarFiltroBuscaVeiculos(); // MODIFICADO
+            aplicarFiltroBuscaVeiculos();
         } catch (error) {
             console.error('Erro ao buscar veículos:', error);
             if(tbodyVeiculos) tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar veículos.</td></tr>`;
         }
     };
 
-    // NOVO: Função para filtrar e renderizar veículos
     const aplicarFiltroBuscaVeiculos = () => {
         let veiculos = [...todosOsVeiculos];
         const termo = termoDeBuscaVeiculo.toLowerCase();
@@ -315,7 +315,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!tbodyVeiculos) return;
         tbodyVeiculos.innerHTML = '';
 
-        // MODIFICADO: Usa a lista 'veiculosFiltrados' em vez de 'todosOsVeiculos'
         if (veiculosFiltrados.length === 0) {
             tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum veículo encontrado.</td></tr>`;
             return;
@@ -329,13 +328,55 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${veiculo.modelo}</td>
                 <td>${veiculo.ano}</td>
                 <td>${veiculo.tipo}</td>
-                <td>
-                    <button class="btn-editar" title="Editar Veículo">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                    </button>
-                </td>
+                <td></td> 
             `;
-            // Lógica para editar será adicionada futuramente
+            
+            const acoesCell = tr.children[5];
+
+            // Botão Editar
+            const btnEditar = document.createElement('button');
+            btnEditar.className = 'btn-editar';
+            btnEditar.title = 'Editar Veículo';
+            btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+            btnEditar.onclick = () => {
+                formVeiculo.reset();
+                veiculoId.value = veiculo.id;
+                modalVeiculoTitulo.textContent = 'Editar Veículo';
+                veiculoPlaca.value = veiculo.placa;
+                veiculoMarca.value = veiculo.marca;
+                veiculoModelo.value = veiculo.modelo;
+                veiculoAno.value = veiculo.ano;
+                veiculoTipo.value = veiculo.tipo;
+                abrirModal(modalVeiculo);
+            };
+
+            // Botão Deletar
+            const btnDeletar = document.createElement('button');
+            btnDeletar.className = 'btn-deletar'; // Adicionaremos estilo para este botão
+            btnDeletar.title = 'Excluir Veículo';
+            btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+            btnDeletar.onclick = async () => {
+                if (confirm(`Tem certeza que deseja excluir o veículo de placa ${veiculo.placa}?`)) {
+                    try {
+                        const response = await fetch(`${VEICULOS_URL}/${veiculo.id}`, {
+                            method: 'DELETE',
+                            headers: getAuthHeaders()
+                        });
+                        if (response.ok) {
+                            fetchVeiculos(); // Recarrega a lista após a exclusão
+                        } else {
+                            const erro = await response.json();
+                            alert(`Erro ao excluir veículo: ${erro.error}`);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao deletar veículo:', error);
+                        alert('Ocorreu um erro de conexão ao tentar excluir.');
+                    }
+                }
+            };
+            
+            acoesCell.appendChild(btnEditar);
+            acoesCell.appendChild(btnDeletar);
             tbodyVeiculos.appendChild(tr);
         });
     };
@@ -492,9 +533,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (filtrosContainer) filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
     
-    // Event Listeners de Busca
     if (inputBusca) inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
-    // NOVO: Event Listener para busca de veículos
     if (inputBuscaVeiculo) inputBuscaVeiculo.addEventListener('input', (e) => { termoDeBuscaVeiculo = e.target.value; aplicarFiltroBuscaVeiculos(); });
     
     mobileMoreMenuWrapper.addEventListener('click', (e) => {
