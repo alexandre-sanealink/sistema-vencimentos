@@ -8,6 +8,7 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
+import veiculoRoutes from './routes/veiculoRoutes.js'; // NOVO: Importa as rotas de veículos
 
 // --- CONFIGURAÇÕES INICIAIS ---
 const { Client } = pg;
@@ -55,6 +56,7 @@ const verificarToken = (req, res, next) => {
 
 
 // --- ROTAS DA API ---
+app.use('/api', veiculoRoutes); // NOVO: Diz ao app para usar as rotas de veículos
 
 // Rota de Login
 app.post('/api/login', async (req, res) => {
@@ -102,7 +104,7 @@ app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req
         const nomeArquivo = req.file ? req.file.filename : null;
 
         const query = `INSERT INTO documentos (id, nome, categoria, "dataVencimento", "diasAlerta", status, criado_por_email, nome_arquivo)
-                       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
+                                VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`;
         const values = [String(Date.now()), nome, categoria, dataVencimento, parseInt(diasAlerta, 10), 'Pendente', req.usuario.email, nomeArquivo];
         const { rows } = await client.query(query, values);
         res.status(201).json(rows[0]);
@@ -128,11 +130,11 @@ app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (
         if (req.file) {
             const nomeArquivo = req.file.filename;
             query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5, nome_arquivo = $6
-                     WHERE id = $7 RETURNING *`;
+                         WHERE id = $7 RETURNING *`;
             values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), nomeArquivo, id];
         } else {
             query = `UPDATE documentos SET nome = $1, categoria = $2, "dataVencimento" = $3, "diasAlerta" = $4, modificado_em = $5
-                     WHERE id = $6 RETURNING *`;
+                         WHERE id = $6 RETURNING *`;
             values = [nome, categoria, dataVencimento, parseInt(diasAlerta, 10), new Date(), id];
         }
 
