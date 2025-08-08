@@ -16,6 +16,16 @@ router.get('/veiculos', veiculoController.listarVeiculos);
 // Acessível em http://seusite.com/api/veiculos
 router.post('/veiculos', veiculoController.criarVeiculo);
 
+// --- NOVAS ROTAS ---
+
+// Rota para ATUALIZAR (PUT) um veículo existente pelo ID
+// Acessível em http://seusite.com/api/veiculos/123
+router.put('/veiculos/:id', veiculoController.atualizarVeiculo);
+
+// Rota para DELETAR (DELETE) um veículo pelo ID
+// Acessível em http://seusite.com/api/veiculos/123
+router.delete('/veiculos/:id', veiculoController.deletarVeiculo);
+
 
 // Exporta o roteador para que o aplicativo principal possa usá-lo
 module.exports = router;
