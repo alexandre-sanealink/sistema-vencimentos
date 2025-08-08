@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_URL = 'https://www.controle.focodesentupidora.com.br';
     const LOGIN_URL = `${API_URL}/api/login`;
     const DOCS_URL = `${API_URL}/api/documentos`;
+    const VEICULOS_URL = `${API_URL}/api/veiculos`;
     const REGISTER_URL = `${API_URL}/api/register`;
     const PERFIL_URL = `${API_URL}/api/perfil`;
     const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
@@ -25,11 +26,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const mobileBtnPerfil = document.getElementById('mobile-btn-perfil');
     const mobileBtnAdmin = document.getElementById('mobile-btn-admin');
     const mobileBtnLogout = document.getElementById('mobile-btn-logout');
-    const tbody = document.getElementById('tbody-documentos');
+    
+    // Documentos
+    const tbodyDocumentos = document.getElementById('tbody-documentos');
     const filtrosContainer = document.getElementById('filtros-categoria');
     const inputBusca = document.getElementById('input-busca');
     const btnAbrirModalCadastro = document.getElementById('btn-abrir-modal-cadastro');
-    const listaContainer = document.querySelector('.lista-container'); // Adicionado para o scroll
+    const listaContainer = document.querySelector('.lista-container');
     const paginationContainer = document.getElementById('pagination-container');
     const pageInfo = document.getElementById('page-info');
     const btnAnterior = document.getElementById('btn-anterior');
@@ -45,6 +48,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const docArquivo = document.getElementById('documento-arquivo');
     const docFileName = document.getElementById('file-name-documento');
     const anexoAtualContainer = document.getElementById('anexo-atual-container');
+
+    // Frota
+    const tbodyVeiculos = document.getElementById('tbody-veiculos');
+    const modalVeiculo = document.getElementById('modal-veiculo');
+    const btnAbrirModalVeiculo = document.getElementById('btn-abrir-modal-veiculo');
+    const formVeiculo = document.getElementById('form-veiculo');
+    const modalVeiculoTitulo = document.getElementById('modal-veiculo-titulo');
+    const veiculoId = document.getElementById('veiculo-id');
+    const veiculoPlaca = document.getElementById('veiculo-placa');
+    const veiculoMarca = document.getElementById('veiculo-marca');
+    const veiculoModelo = document.getElementById('veiculo-modelo');
+    const veiculoAno = document.getElementById('veiculo-ano');
+    const veiculoTipo = document.getElementById('veiculo-tipo');
+    const inputBuscaVeiculo = document.getElementById('input-busca-veiculo'); // NOVO
+    
+    // Admin e Perfil
     const modalAdmin = document.getElementById('modal-admin');
     const formRegister = document.getElementById('form-register');
     const modalPerfil = document.getElementById('modal-perfil');
@@ -53,10 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const formLogin = document.getElementById('form-login');
     const loginErrorMessage = document.getElementById('login-error-message');
     
+    // Variáveis de estado
     let todosOsDocumentos = [];
     let documentosFiltrados = [];
+    let todosOsVeiculos = [];
+    let veiculosFiltrados = []; // NOVO
     let filtroCategoriaAtual = 'todos';
     let termoDeBusca = '';
+    let termoDeBuscaVeiculo = ''; // NOVO
     let paginaAtual = 1;
     const ITENS_POR_PAGINA = 15;
 
@@ -135,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             fetchDocumentos();
+            fetchVeiculos();
             switchView('content-documentos');
         } else {
             telaLogin.classList.remove('hidden');
@@ -142,9 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- LÓGICA DO MÓDULO DE DOCUMENTOS ---
     const fetchDocumentos = async () => {
         try {
-            const response = await fetch(DOCS_URL, { headers: { 'Authorization': `Bearer ${obterToken()}` } });
+            const response = await fetch(DOCS_URL, { headers: getAuthHeaders() });
             if (!response.ok) {
                 if (response.status === 401 || response.status === 403) {
                     limparToken();
@@ -156,7 +181,7 @@ document.addEventListener('DOMContentLoaded', () => {
             aplicarFiltrosEBusca();
         } catch (error) {
             console.error('Erro ao buscar docs:', error);
-            if(tbody) tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
+            if(tbodyDocumentos) tbodyDocumentos.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
         }
     };
     
@@ -183,11 +208,11 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderizarTabela = () => {
-        if(!tbody) return;
-        tbody.innerHTML = '';
+        if(!tbodyDocumentos) return;
+        tbodyDocumentos.innerHTML = '';
         if (documentosFiltrados.length === 0) {
             if(paginationContainer) paginationContainer.classList.add('hidden');
-            tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`;
+            tbodyDocumentos.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`;
             return;
         }
         
@@ -233,11 +258,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else { 
                 tdAnexo.textContent = 'N/A'; 
             }
-            const tdAcoes = tdHelper(tr, '');
+            const tdAcoes = document.createElement('td');
             const btnEditar = document.createElement('button');
             btnEditar.className = 'btn-editar';
             btnEditar.title = 'Editar Documento';
-            // --- NOVO CÓDIGO DO ÍCONE DE LÁPIS (CONTORNO) ---
             btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
             btnEditar.onclick = () => {
                 formDocumento.reset();
@@ -254,9 +278,68 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             tdAcoes.appendChild(btnEditar);
             tr.appendChild(tdAcoes);
-            tbody.appendChild(tr);
+            tbodyDocumentos.appendChild(tr);
         });
     };
+
+    // --- LÓGICA DO MÓDULO DE FROTA ---
+    const fetchVeiculos = async () => {
+        try {
+            const response = await fetch(VEICULOS_URL, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Falha na busca de veículos');
+            todosOsVeiculos = await response.json();
+            aplicarFiltroBuscaVeiculos(); // MODIFICADO
+        } catch (error) {
+            console.error('Erro ao buscar veículos:', error);
+            if(tbodyVeiculos) tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar veículos.</td></tr>`;
+        }
+    };
+
+    // NOVO: Função para filtrar e renderizar veículos
+    const aplicarFiltroBuscaVeiculos = () => {
+        let veiculos = [...todosOsVeiculos];
+        const termo = termoDeBuscaVeiculo.toLowerCase();
+
+        if (termo.length > 0) {
+            veiculos = veiculos.filter(v => 
+                v.placa.toLowerCase().includes(termo) ||
+                v.marca.toLowerCase().includes(termo) ||
+                v.modelo.toLowerCase().includes(termo)
+            );
+        }
+        veiculosFiltrados = veiculos;
+        renderizarTabelaVeiculos();
+    };
+
+    const renderizarTabelaVeiculos = () => {
+        if (!tbodyVeiculos) return;
+        tbodyVeiculos.innerHTML = '';
+
+        // MODIFICADO: Usa a lista 'veiculosFiltrados' em vez de 'todosOsVeiculos'
+        if (veiculosFiltrados.length === 0) {
+            tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum veículo encontrado.</td></tr>`;
+            return;
+        }
+
+        veiculosFiltrados.forEach(veiculo => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${veiculo.placa}</td>
+                <td>${veiculo.marca}</td>
+                <td>${veiculo.modelo}</td>
+                <td>${veiculo.ano}</td>
+                <td>${veiculo.tipo}</td>
+                <td>
+                    <button class="btn-editar" title="Editar Veículo">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                    </button>
+                </td>
+            `;
+            // Lógica para editar será adicionada futuramente
+            tbodyVeiculos.appendChild(tr);
+        });
+    };
+
     
     // --- EVENT LISTENERS ---
     if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
@@ -313,13 +396,14 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAbrirPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
     mobileBtnPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
 
-    [modalDocumento, modalAdmin, modalPerfil].forEach(m => {
+    [modalDocumento, modalAdmin, modalPerfil, modalVeiculo].forEach(m => {
         if(m) {
             const closeButton = m.querySelector('.close-button');
             if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
             m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
         }
     });
+
     if (formDocumento) formDocumento.addEventListener('submit', async (e) => {
         e.preventDefault();
         const id = docId.value;
@@ -337,6 +421,48 @@ document.addEventListener('DOMContentLoaded', () => {
             else { alert('Erro ao salvar documento.'); }
         } catch (error) { console.error('Erro ao salvar:', error); }
     });
+
+    if (btnAbrirModalVeiculo) btnAbrirModalVeiculo.addEventListener('click', () => {
+        formVeiculo.reset();
+        veiculoId.value = '';
+        if(modalVeiculoTitulo) modalVeiculoTitulo.textContent = 'Cadastrar Novo Veículo';
+        abrirModal(modalVeiculo);
+    });
+
+    if (formVeiculo) formVeiculo.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const dadosVeiculo = {
+            placa: veiculoPlaca.value,
+            marca: veiculoMarca.value,
+            modelo: veiculoModelo.value,
+            ano: veiculoAno.value,
+            tipo: veiculoTipo.value,
+        };
+
+        const id = veiculoId.value;
+        const url = id ? `${VEICULOS_URL}/${id}` : VEICULOS_URL;
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: getAuthHeaders(),
+                body: JSON.stringify(dadosVeiculo)
+            });
+
+            if (response.ok) {
+                fecharModal(modalVeiculo);
+                fetchVeiculos();
+            } else {
+                const erro = await response.json();
+                alert(`Erro ao salvar veículo: ${erro.error}`);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar veículo:', error);
+            alert('Ocorreu um erro de conexão. Tente novamente.');
+        }
+    });
+
     if (docArquivo) docArquivo.addEventListener('change', () => {
         docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
     });
@@ -365,7 +491,11 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error('Erro ao atualizar perfil:', error); }
     });
     if (filtrosContainer) filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
+    
+    // Event Listeners de Busca
     if (inputBusca) inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
+    // NOVO: Event Listener para busca de veículos
+    if (inputBuscaVeiculo) inputBuscaVeiculo.addEventListener('input', (e) => { termoDeBuscaVeiculo = e.target.value; aplicarFiltroBuscaVeiculos(); });
     
     mobileMoreMenuWrapper.addEventListener('click', (e) => {
         e.stopPropagation();
