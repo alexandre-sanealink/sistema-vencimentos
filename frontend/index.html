@@ -103,7 +103,8 @@
                                     <button class="filtro-btn" data-categoria="Colaboradores">Colaboradores</button>
                                 </div>
                                 <div class="search-container">
-                                    <input type="search" id="input-busca" class="input-busca-style" placeholder="Pesquisar por nome..."> </div>
+                                    <input type="search" id="input-busca" class="input-busca-style" placeholder="Pesquisar por nome...">
+                                </div>
                             </div>
                             <div class="table-wrapper">
                                 <table>
@@ -144,7 +145,8 @@
                             </div>
                             <div class="filtros-wrapper">
                                 <div class="search-container">
-                                    <input type="search" id="input-busca-veiculo" class="input-busca-style" placeholder="Pesquisar por placa, marca, modelo..."> </div>
+                                    <input type="search" id="input-busca-veiculo" class="input-busca-style" placeholder="Pesquisar por placa, marca, modelo...">
+                                </div>
                             </div>
                             <div class="table-wrapper">
                                 <table>
@@ -159,6 +161,37 @@
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-veiculos"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="content-veiculo-detalhes" class="content-module hidden">
+                <div class="container">
+                    <header class="main-header">
+                        <h1 id="detalhes-veiculo-titulo">Detalhes do Veículo</h1>
+                        <button id="btn-voltar-para-frota" class="btn-secundario">&larr; Voltar para a Lista</button>
+                    </header>
+                    <div class="main-content-body">
+                        <div class="lista-container">
+                            <div class="lista-header">
+                                <h2>Histórico de Manutenção</h2>
+                                <button id="btn-abrir-modal-manutencao" class="btn-principal">Adicionar Registro</button>
+                            </div>
+                            <div class="table-wrapper">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Data</th>
+                                            <th>Tipo</th>
+                                            <th>KM Atual</th>
+                                            <th>Peças / Descrição</th>
+                                            <th>Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tbody-manutencoes"></tbody>
                                 </table>
                             </div>
                         </div>
@@ -294,6 +327,49 @@
             </form>
         </div>
     </div>
+
+    <div id="modal-manutencao" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-manutencao-titulo">Adicionar Registro de Manutenção</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="form-manutencao">
+                <input type="hidden" id="manutencao-id">
+                <div class="form-row">
+                    <div class="form-group half-width">
+                        <label for="manutencao-data">Data</label>
+                        <input type="date" id="manutencao-data" required>
+                    </div>
+                    <div class="form-group half-width">
+                        <label for="manutencao-km">KM Atual</label>
+                        <input type="number" id="manutencao-km" placeholder="Ex: 123456" required min="0">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="manutencao-tipo">Tipo de Manutenção</label>
+                    <div class="select-wrapper">
+                        <select id="manutencao-tipo" required>
+                            <option value="" disabled selected>Selecione</option>
+                            <option value="Preventiva">Preventiva</option>
+                            <option value="Corretiva">Corretiva</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pecas-section">
+                    <h3>Peças e Serviços</h3>
+                    <div id="lista-pecas-container">
+                        </div>
+                    <button type="button" id="btn-adicionar-peca" class="btn-adicionar-item">+ Adicionar Peça/Serviço</button>
+                </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn-salvar">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
 
     <div id="modal-admin" class="modal-overlay">
         <div class="modal-content">

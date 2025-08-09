@@ -62,6 +62,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const veiculoAno = document.getElementById('veiculo-ano');
     const veiculoTipo = document.getElementById('veiculo-tipo');
     const inputBuscaVeiculo = document.getElementById('input-busca-veiculo');
+    // --- NOVO: Referências para Detalhes do Veículo ---
+    const contentVeiculoDetalhes = document.getElementById('content-veiculo-detalhes');
+    const detalhesVeiculoTitulo = document.getElementById('detalhes-veiculo-titulo');
+    const btnVoltarParaFrota = document.getElementById('btn-voltar-para-frota');
+    // --- NOVO: Referências para o Modal de Manutenção ---
+    const tbodyManutencoes = document.getElementById('tbody-manutencoes');
+    const btnAbrirModalManutencao = document.getElementById('btn-abrir-modal-manutencao');
+    const modalManutencao = document.getElementById('modal-manutencao');
+    const formManutencao = document.getElementById('form-manutencao');
+    const manutencaoId = document.getElementById('manutencao-id');
+    const manutencaoData = document.getElementById('manutencao-data');
+    const manutencaoKm = document.getElementById('manutencao-km');
+    const manutencaoTipo = document.getElementById('manutencao-tipo');
+    const listaPecasContainer = document.getElementById('lista-pecas-container');
+    const btnAdicionarPeca = document.getElementById('btn-adicionar-peca');
+
     
     // Admin e Perfil
     const modalAdmin = document.getElementById('modal-admin');
@@ -77,6 +93,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let documentosFiltrados = [];
     let todosOsVeiculos = [];
     let veiculosFiltrados = [];
+    let veiculoSelecionado = null; // Guarda o veículo que está sendo visualizado nos detalhes
     let filtroCategoriaAtual = 'todos';
     let termoDeBusca = '';
     let termoDeBuscaVeiculo = '';
@@ -98,9 +115,21 @@ document.addEventListener('DOMContentLoaded', () => {
         contentModules.forEach(module => module.classList.add('hidden'));
         const targetContent = document.getElementById(targetId);
         if (targetContent) targetContent.classList.remove('hidden');
-        const moduleName = targetId.split('-')[1];
-        navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${moduleName}`));
-        mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${moduleName}`));
+    
+        // Lógica para manter o menu principal ativo corretamente
+        let activeModuleName = '';
+        if (targetId.startsWith('content-')) {
+        activeModuleName = targetId.split('-')[1];
+        }
+        // Caso especial: se estamos na página de detalhes, o módulo ativo ainda é 'frota'
+        if (targetId === 'content-veiculo-detalhes') {
+        activeModuleName = 'frota';
+        }
+
+        if (activeModuleName) {
+        navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${activeModuleName}`));
+        mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${activeModuleName}`));
+        }
     };
     
     document.querySelectorAll('.nav-link, .bottom-bar-link').forEach(link => {
@@ -283,7 +312,57 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
+    const exibirDetalhesDoVeiculo = async (veiculo) => {
+            veiculoSelecionado = veiculo; // Guarda o veículo selecionado globalmente
+    
+            // Atualiza o título da página de detalhes
+            detalhesVeiculoTitulo.textContent = `Detalhes: ${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
+
+            // Troca para a view de detalhes
+            switchView('content-veiculo-detalhes');
+
+            // Busca e renderiza o histórico de manutenções
+            try {
+            const response = await fetch(`${VEICULOS_URL}/${veiculo.id}/manutencoes`, { headers: getAuthHeaders() });
+            if (!response.ok) throw new Error('Falha ao buscar manutenções');
+            const manutencoes = await response.json();
+            renderizarTabelaManutencoes(manutencoes);
+        } catch (error) {
+            console.error('Erro ao buscar manutenções:', error);
+            tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar histórico de manutenções.</td></tr>`;
+        }
+    };
+
     // --- LÓGICA DO MÓDULO DE FROTA ---
+    // --- NOVO: Funções de Manutenção ---
+
+const adicionarLinhaPeca = () => {
+    const div = document.createElement('div');
+    div.className = 'form-row peca-item'; // Classe para estilização e identificação
+
+    div.innerHTML = `
+        <div class="form-group peca-qtd">
+            <input type="number" class="peca-input-qtd" placeholder="Qtd" min="1" value="1" required>
+        </div>
+        <div class="form-group peca-desc">
+            <input type="text" class="peca-input-desc" placeholder="Descrição da peça ou serviço" required>
+        </div>
+        <div class="form-group peca-marca">
+            <input type="text" class="peca-input-marca" placeholder="Marca (opcional)">
+        </div>
+        <div class="form-group peca-acao">
+            <button type="button" class="btn-remover-item">&times;</button>
+        </div>
+    `;
+
+    // Lógica para o botão de remover a linha
+    const btnRemover = div.querySelector('.btn-remover-item');
+    btnRemover.addEventListener('click', () => {
+        div.remove();
+    });
+
+    listaPecasContainer.appendChild(div);
+};
     const fetchVeiculos = async () => {
         try {
             const response = await fetch(VEICULOS_URL, { headers: getAuthHeaders() });
@@ -312,74 +391,111 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const renderizarTabelaVeiculos = () => {
-        if (!tbodyVeiculos) return;
-        tbodyVeiculos.innerHTML = '';
+    if (!tbodyVeiculos) return;
+    tbodyVeiculos.innerHTML = '';
 
-        if (veiculosFiltrados.length === 0) {
-            tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum veículo encontrado.</td></tr>`;
-            return;
-        }
+    if (veiculosFiltrados.length === 0) {
+        tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum veículo encontrado.</td></tr>`;
+        return;
+    }
 
-        veiculosFiltrados.forEach(veiculo => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${veiculo.placa}</td>
-                <td>${veiculo.marca}</td>
-                <td>${veiculo.modelo}</td>
-                <td>${veiculo.ano}</td>
-                <td>${veiculo.tipo}</td>
-                <td></td> 
-            `;
-            
-            const acoesCell = tr.children[5];
+    veiculosFiltrados.forEach(veiculo => {
+        const tr = document.createElement('tr');
+        tr.className = 'linha-clicavel'; // Adiciona a classe para o estilo do cursor
+        tr.onclick = () => exibirDetalhesDoVeiculo(veiculo); // Adiciona o evento de clique na linha
 
-            // Botão Editar
-            const btnEditar = document.createElement('button');
-            btnEditar.className = 'btn-editar';
-            btnEditar.title = 'Editar Veículo';
-            btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
-            btnEditar.onclick = () => {
-                formVeiculo.reset();
-                veiculoId.value = veiculo.id;
-                modalVeiculoTitulo.textContent = 'Editar Veículo';
-                veiculoPlaca.value = veiculo.placa;
-                veiculoMarca.value = veiculo.marca;
-                veiculoModelo.value = veiculo.modelo;
-                veiculoAno.value = veiculo.ano;
-                veiculoTipo.value = veiculo.tipo;
-                abrirModal(modalVeiculo);
-            };
+        tr.innerHTML = `
+            <td>${veiculo.placa}</td>
+            <td>${veiculo.marca}</td>
+            <td>${veiculo.modelo}</td>
+            <td>${veiculo.ano}</td>
+            <td>${veiculo.tipo}</td>
+            <td></td> 
+        `;
+        
+        const acoesCell = tr.children[5];
+        acoesCell.onclick = (e) => e.stopPropagation(); // Impede que o clique nos botões ative o clique da linha
 
-            // Botão Deletar
-            const btnDeletar = document.createElement('button');
-            btnDeletar.className = 'btn-deletar'; // Adicionaremos estilo para este botão
-            btnDeletar.title = 'Excluir Veículo';
-            btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
-            btnDeletar.onclick = async () => {
-                if (confirm(`Tem certeza que deseja excluir o veículo de placa ${veiculo.placa}?`)) {
-                    try {
-                        const response = await fetch(`${VEICULOS_URL}/${veiculo.id}`, {
-                            method: 'DELETE',
-                            headers: getAuthHeaders()
-                        });
-                        if (response.ok) {
-                            fetchVeiculos(); // Recarrega a lista após a exclusão
-                        } else {
-                            const erro = await response.json();
-                            alert(`Erro ao excluir veículo: ${erro.error}`);
-                        }
-                    } catch (error) {
-                        console.error('Erro ao deletar veículo:', error);
-                        alert('Ocorreu um erro de conexão ao tentar excluir.');
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-editar';
+        btnEditar.title = 'Editar Veículo';
+        btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+        btnEditar.onclick = (e) => {
+            e.stopPropagation();
+            formVeiculo.reset();
+            veiculoId.value = veiculo.id;
+            modalVeiculoTitulo.textContent = 'Editar Veículo';
+            veiculoPlaca.value = veiculo.placa;
+            veiculoMarca.value = veiculo.marca;
+            veiculoModelo.value = veiculo.modelo;
+            veiculoAno.value = veiculo.ano;
+            veiculoTipo.value = veiculo.tipo;
+            abrirModal(modalVeiculo);
+        };
+
+        const btnDeletar = document.createElement('button');
+        btnDeletar.className = 'btn-deletar';
+        btnDeletar.title = 'Excluir Veículo';
+        btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+        btnDeletar.onclick = async (e) => {
+            e.stopPropagation();
+            if (confirm(`Tem certeza que deseja excluir o veículo de placa ${veiculo.placa}?`)) {
+                try {
+                    const response = await fetch(`${VEICULOS_URL}/${veiculo.id}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+                    if (response.ok) {
+                        fetchVeiculos();
+                    } else {
+                        const erro = await response.json();
+                        alert(`Erro ao excluir veículo: ${erro.error}`);
                     }
+                } catch (error) {
+                    console.error('Erro ao deletar veículo:', error);
+                    alert('Ocorreu um erro de conexão ao tentar excluir.');
                 }
-            };
-            
-            acoesCell.appendChild(btnEditar);
-            acoesCell.appendChild(btnDeletar);
-            tbodyVeiculos.appendChild(tr);
-        });
-    };
+            }
+        };
+        
+        acoesCell.appendChild(btnEditar);
+        acoesCell.appendChild(btnDeletar);
+        tbodyVeiculos.appendChild(tr);
+    });
+};
+
+    // --- NOVO: Funções de Manutenção ---
+const renderizarTabelaManutencoes = (manutencoes) => {
+    if (!tbodyManutencoes) return;
+    tbodyManutencoes.innerHTML = '';
+
+    if (manutencoes.length === 0) {
+        tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum registro de manutenção encontrado.</td></tr>`;
+        return;
+    }
+
+    const formatarData = (d) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+
+    manutencoes.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${formatarData(m.data)}</td>
+            <td>${m.tipo}</td>
+            <td>${m.km_atual}</td>
+            <td>${m.pecas || '-'}</td>
+            <td>
+                </td>
+        `;
+        tbodyManutencoes.appendChild(tr);
+    });
+};
+
+const abrirModalManutencao = () => {
+    if (!veiculoSelecionado) return;
+    formManutencao.reset();
+    manutencaoId.value = '';
+    abrirModal(modalManutencao);
+};
 
     
     // --- EVENT LISTENERS ---
@@ -416,8 +532,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 localStorage.setItem('userInfo', JSON.stringify({ usuario }));
                 verificarLogin();
             } else { loginErrorMessage.textContent = 'Email ou senha inválidos.'; loginErrorMessage.style.display = 'block'; }
-        } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }
-    });
+        } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }  
+});
     
     btnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
     mobileBtnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
@@ -437,7 +553,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnAbrirPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
     mobileBtnPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
 
-    [modalDocumento, modalAdmin, modalPerfil, modalVeiculo].forEach(m => {
+    [modalDocumento, modalAdmin, modalPerfil, modalVeiculo, modalManutencao].forEach(m => {
         if(m) {
             const closeButton = m.querySelector('.close-button');
             if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
@@ -504,6 +620,68 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- NOVO: Event Listeners para Manutenção ---
+if (btnAbrirModalManutencao) {
+    btnAbrirModalManutencao.addEventListener('click', () => {
+        formManutencao.reset();
+        manutencaoId.value = '';
+        
+        // Limpa as linhas de peças antigas e adiciona uma nova em branco para começar
+        listaPecasContainer.innerHTML = '';
+        adicionarLinhaPeca(); 
+
+        abrirModal(modalManutencao);
+    });
+}
+
+if (formManutencao) {
+    formManutencao.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!veiculoSelecionado) return;
+
+        // Coleta os dados de todas as linhas de peças dinâmicas
+        const pecas = [];
+        const pecaItems = document.querySelectorAll('.peca-item');
+        pecaItems.forEach(item => {
+            const quantidade = item.querySelector('.peca-input-qtd').value;
+            const descricao = item.querySelector('.peca-input-desc').value;
+            const marca = item.querySelector('.peca-input-marca').value;
+
+            if (descricao) { // Só adiciona se a descrição for preenchida
+                pecas.push({ quantidade, descricao, marca });
+            }
+        });
+
+        const dadosManutencao = {
+            data: manutencaoData.value,
+            tipo: manutencaoTipo.value,
+            km_atual: manutencaoKm.value,
+            pecas: pecas, // Envia o array de objetos 'pecas'
+        };
+
+        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
+        const method = 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: getAuthHeaders(),
+                body: JSON.stringify(dadosManutencao)
+            });
+
+            if (response.ok) {
+                fecharModal(modalManutencao);
+                exibirDetalhesDoVeiculo(veiculoSelecionado); 
+            } else {
+                const erro = await response.json();
+                alert(`Erro ao salvar registro: ${erro.error}`);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar manutenção:', error);
+            alert('Ocorreu um erro de conexão. Tente novamente.');
+        }
+    });
+}
     if (docArquivo) docArquivo.addEventListener('change', () => {
         docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
     });
@@ -536,6 +714,61 @@ document.addEventListener('DOMContentLoaded', () => {
     if (inputBusca) inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
     if (inputBuscaVeiculo) inputBuscaVeiculo.addEventListener('input', (e) => { termoDeBuscaVeiculo = e.target.value; aplicarFiltroBuscaVeiculos(); });
     
+        
+    // --- NOVO: Event Listener para o botão "Voltar" ---
+        if (btnVoltarParaFrota) {
+            btnVoltarParaFrota.addEventListener('click', () => {
+            switchView('content-frota');
+            });
+        }
+
+        // --- NOVO: Event Listeners para Manutenção ---
+        if (btnAbrirModalManutencao) {
+            btnAbrirModalManutencao.addEventListener('click', abrirModalManutencao);
+        }
+
+        if (btnAdicionarPeca) {
+    btnAdicionarPeca.addEventListener('click', adicionarLinhaPeca);
+}
+
+        if (formManutencao) {
+            formManutencao.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!veiculoSelecionado) return;
+
+        const dadosManutencao = {
+            data: manutencaoData.value,
+            tipo: manutencaoTipo.value,
+            km_atual: manutencaoKm.value,
+            pecas: manutencaoPecas.value,
+            // Campos futuros: tempo_gasto, eficiencia
+        };
+
+        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
+        const method = 'POST'; // Futuramente teremos 'PUT' para edição
+
+        try {
+            const response = await fetch(url, {
+                method: method,
+                headers: getAuthHeaders(),
+                body: JSON.stringify(dadosManutencao)
+            });
+
+            if (response.ok) {
+                fecharModal(modalManutencao);
+                // Atualiza a lista de manutenções na tela
+                exibirDetalhesDoVeiculo(veiculoSelecionado); 
+            } else {
+                const erro = await response.json();
+                alert(`Erro ao salvar registro: ${erro.error}`);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar manutenção:', error);
+            alert('Ocorreu um erro de conexão. Tente novamente.');
+        }
+    });
+}
+
     mobileMoreMenuWrapper.addEventListener('click', (e) => {
         e.stopPropagation();
         mobileMoreMenu.classList.toggle('visible');
