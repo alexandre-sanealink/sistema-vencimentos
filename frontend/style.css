@@ -78,6 +78,10 @@ body { font-family: 'Poppins', sans-serif; background-color: #f0f2f5; color: #49
 .lista-header h2 { margin: 0; border: none; padding: 0; font-weight: 500; }
 .btn-principal { padding: 10px 20px; font-size: 14px; font-weight: 500; background-color: #007bff; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
 .btn-principal:hover { background-color: #0056b3; }
+/* NOVO: Estilo para o botão secundário */
+.btn-secundario { padding: 10px 20px; font-size: 14px; font-weight: 500; background-color: #6c757d; color: white; border: none; border-radius: 6px; cursor: pointer; transition: background-color 0.2s; }
+.btn-secundario:hover { background-color: #5a6268; }
+
 
 /* --- FILTROS, TABELA E MODAIS --- */
 .filtros-wrapper { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
@@ -97,16 +101,22 @@ td { font-size: 14px; white-space: nowrap; }
 .dias-restantes { font-weight: 500; }
 .status-span { display: inline-block; padding: 5px 12px; border-radius: 15px; color: white; font-size: 12px; font-weight: 500; text-transform: uppercase; white-space: nowrap; }
 .status-em-dia { background-color: #28a745; } .status-vence-breve { background-color: #ffc107; color: #333; } .status-atrasado { background-color: #dc3545; } .status-renovado { background-color: #17a2b8; } .status-em-renovacao { background-color: #6c757d; }
-/* MODIFICADO: Adicionada a classe .btn-deletar à regra base */
 .btn-editar, .btn-anexo, .btn-deletar { background: none; border: none; cursor: pointer; padding: 5px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s; }
 .btn-editar { color: #0d6efd; }
 .btn-editar:hover { background-color: #e7f1ff; color: #0a58ca; }
 .btn-anexo { color: #6c757d; }
 .btn-anexo:hover { background-color: #e9ecef; color: #212529; }
-/* NOVO: Estilos para o botão de deletar */
 .btn-deletar { color: #dc3545; }
 .btn-deletar:hover { background-color: #f8d7da; color: #721c24; }
-.btn-editar svg, .btn-anexo svg, .btn-deletar svg { width: 16px; height: 16px; } /* MODIFICADO */
+.btn-editar svg, .btn-anexo svg, .btn-deletar svg { width: 16px; height: 16px; }
+
+/* NOVO: Estilo para linhas de tabela clicáveis */
+.linha-clicavel {
+    cursor: pointer;
+}
+.linha-clicavel:hover {
+    background-color: #f8f9fa; /* Um cinza bem claro para feedback visual */
+}
 
 /* --- PAGINAÇÃO --- */
 .pagination-container { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; margin-top: 20px; border-top: 1px solid #e9ecef; }
@@ -137,6 +147,76 @@ td { font-size: 14px; white-space: nowrap; }
 .file-upload-button:hover { background-color: #5a6268; }
 .file-name-display { font-size: 14px; color: #6c757d; font-style: italic; }
 .anexo-atual-display { font-size: 14px; color: #343a40; margin-bottom: 8px; font-weight: 500; word-break: break-all; }
+
+/* --- NOVO: Estilos para Formulário Dinâmico de Manutenção --- */
+.form-row {
+    display: flex;
+    gap: 15px;
+    align-items: flex-end; /* Alinha os itens na base */
+}
+.form-group.half-width {
+    width: 50%;
+}
+.pecas-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+.pecas-section h3 {
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+.peca-item {
+    margin-bottom: 10px;
+}
+.peca-qtd {
+    width: 15%;
+}
+.peca-desc {
+    width: 50%;
+    flex-grow: 1; /* Permite que a descrição ocupe o espaço restante */
+}
+.peca-marca {
+    width: 25%;
+}
+.peca-acao {
+    width: 40px;
+}
+.btn-adicionar-item {
+    background: none;
+    border: 1px dashed #ced4da;
+    color: #6c757d;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    margin-top: 10px;
+}
+.btn-adicionar-item:hover {
+    background-color: #e9ecef;
+    border-color: #6c757d;
+}
+.btn-remover-item {
+    background: none;
+    border: 1px solid #ced4da;
+    color: #dc3545;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding-bottom: 2px; /* Ajuste visual do 'x' */
+}
+.btn-remover-item:hover {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+}
 
 /* --- ESTILOS DO MENU DE RODAPÉ (MOBILE) --- */
 #bottom-bar {
