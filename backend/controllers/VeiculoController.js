@@ -10,14 +10,12 @@ const pool = new Pool({
   }
 });
 
-// --- FUNÇÕES DO CONTROLADOR ---
+// --- FUNÇÕES DO CONTROLADOR DE VEÍCULOS ---
 
 // Função para LISTAR todos os veículos
 const listarVeiculos = async (req, res) => {
   try {
-    // Executa a query SQL para selecionar todos os veículos, ordenados por ID
     const { rows } = await pool.query('SELECT * FROM veiculos ORDER BY id ASC');
-    // Retorna a lista de veículos como resposta em formato JSON
     res.status(200).json(rows);
   } catch (error) {
     console.error('Erro ao listar veículos:', error);
@@ -25,48 +23,57 @@ const listarVeiculos = async (req, res) => {
   }
 };
 
+// Função para OBTER UM VEÍCULO específico pelo ID
+const obterVeiculoPorId = async (req, res) => {
+  const { id } = req.params; // Pega o ID da URL
+
+  try {
+    const query = 'SELECT * FROM veiculos WHERE id = $1';
+    const { rows } = await pool.query(query, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ error: 'Veículo não encontrado.' });
+    }
+
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error(`Erro ao buscar veículo com ID ${id}:`, error);
+    res.status(500).json({ error: 'Erro interno no servidor' });
+  }
+};
+
 // Função para CRIAR um novo veículo
 const criarVeiculo = async (req, res) => {
-  // Pega os dados enviados na requisição (vindos do formulário do frontend)
   const { placa, marca, modelo, ano, tipo } = req.body;
 
-  // Validação simples para ver se os campos obrigatórios foram enviados
   if (!placa || !marca || !modelo || !ano || !tipo) {
     return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
   }
 
   try {
-    // A query SQL para inserir um novo veículo na tabela
     const query = `
       INSERT INTO veiculos (placa, marca, modelo, ano, tipo, created_at, updated_at)
       VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
       RETURNING *;
     `;
-    // Os valores a serem inseridos, na ordem correta ($1, $2, etc.)
     const values = [placa, marca, modelo, ano, tipo];
-
-    // Executa a query
     const { rows } = await pool.query(query, values);
-    
-    // Retorna o veículo que foi acabado de criar
     res.status(201).json(rows[0]);
 
   } catch (error) {
     console.error('Erro ao criar veículo:', error);
-    // Verifica se o erro é de placa duplicada
-    if (error.code === '23505') { // Código de erro do PostgreSQL para violação de constraint unique
+    if (error.code === '23505') {
       return res.status(409).json({ error: 'A placa informada já está cadastrada.' });
     }
     res.status(500).json({ error: 'Erro interno no servidor' });
   }
 };
 
-// --- NOVO: Função para ATUALIZAR um veículo existente ---
+// Função para ATUALIZAR um veículo existente
 const atualizarVeiculo = async (req, res) => {
-  const { id } = req.params; // Pega o ID do veículo da URL
-  const { placa, marca, modelo, ano, tipo } = req.body; // Pega os novos dados do corpo da requisição
+  const { id } = req.params;
+  const { placa, marca, modelo, ano, tipo } = req.body;
 
-  // Validação dos campos
   if (!placa || !marca || !modelo || !ano || !tipo) {
     return res.status(400).json({ error: 'Todos os campos são obrigatórios.' });
   }
@@ -81,7 +88,6 @@ const atualizarVeiculo = async (req, res) => {
     const values = [placa, marca, modelo, ano, tipo, id];
     const { rows } = await pool.query(query, values);
 
-    // Se nenhum registro foi atualizado, significa que o veículo não foi encontrado
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Veículo não encontrado.' });
     }
@@ -96,15 +102,14 @@ const atualizarVeiculo = async (req, res) => {
   }
 };
 
-// --- NOVO: Função para DELETAR um veículo ---
+// Função para DELETAR um veículo
 const deletarVeiculo = async (req, res) => {
-  const { id } = req.params; // Pega o ID do veículo da URL
+  const { id } = req.params;
 
   try {
     const query = 'DELETE FROM veiculos WHERE id = $1 RETURNING *;';
     const { rows } = await pool.query(query, [id]);
 
-    // Se nenhum registro foi deletado, o veículo não foi encontrado
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Veículo não encontrado.' });
     }
@@ -116,11 +121,70 @@ const deletarVeiculo = async (req, res) => {
   }
 };
 
+// --- NOVO: FUNÇÕES DE MANUTENÇÃO ---
 
-// Exporta as novas funções junto com as antigas
+// Função para LISTAR todas as manutenções de um veículo
+const listarManutencoes = async (req, res) => {
+    const { veiculoId } = req.params;
+    try {
+        const { rows } = await pool.query('SELECT * FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC', [veiculoId]);
+
+        // Converte a string 'pecas' de volta para JSON para cada registro
+        const manutencoesTratadas = rows.map(m => {
+            try {
+                // Garante que o campo 'pecas' seja um array, mesmo que esteja vazio ou nulo no banco
+                m.pecas = m.pecas ? JSON.parse(m.pecas) : [];
+            } catch (e) {
+                console.error('Erro ao fazer parse do JSON de peças:', e);
+                m.pecas = []; // Se houver erro, retorna um array vazio
+            }
+            return m;
+        });
+
+        res.status(200).json(manutencoesTratadas);
+    } catch (error) {
+        console.error(`Erro ao listar manutenções para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
+// Função para ADICIONAR uma nova manutenção
+const adicionarManutencao = async (req, res) => {
+    const { veiculoId } = req.params;
+    // Pega os campos do formulário, incluindo o array de 'pecas'
+    const { data, tipo, km_atual, pecas } = req.body;
+
+    if (!data || !tipo || !km_atual) {
+        return res.status(400).json({ error: 'Os campos data, tipo e km_atual são obrigatórios.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO manutencoes (veiculo_id, data, tipo, km_atual, pecas, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+            RETURNING *;
+        `;
+        // Converte o array de peças para uma string JSON para salvar no banco
+        const pecasJSON = JSON.stringify(pecas);
+        const values = [veiculoId, data, tipo, km_atual, pecasJSON];
+
+        const { rows } = await pool.query(query, values);
+        res.status(201).json(rows[0]);
+
+    } catch (error) {
+        console.error(`Erro ao adicionar manutenção para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
+
+// Exporta as novas funções junto com as outras
 module.exports = {
   listarVeiculos,
+  obterVeiculoPorId,
   criarVeiculo,
   atualizarVeiculo,
   deletarVeiculo,
+  listarManutencoes,    // NOVO
+  adicionarManutencao,  // NOVO
 };
