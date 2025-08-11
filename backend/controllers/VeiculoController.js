@@ -177,6 +177,43 @@ const adicionarManutencao = async (req, res) => {
     }
 };
 
+// --- NOVO: FUNÇÕES DE ABASTECIMENTO ---
+
+// Função para LISTAR todos os abastecimentos de um veículo
+const listarAbastecimentos = async (req, res) => {
+    const { veiculoId } = req.params;
+    try {
+        const { rows } = await pool.query('SELECT * FROM abastecimentos WHERE veiculo_id = $1 ORDER BY data DESC', [veiculoId]);
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error(`Erro ao listar abastecimentos para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
+// Função para ADICIONAR um novo abastecimento
+const adicionarAbastecimento = async (req, res) => {
+    const { veiculoId } = req.params;
+    const { data, km_atual, litros_abastecidos, valor_total, posto } = req.body;
+
+    if (!data || !km_atual || !litros_abastecidos) {
+        return res.status(400).json({ error: 'Os campos data, km_atual e litros_abastecidos são obrigatórios.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO abastecimentos (veiculo_id, data, km_atual, litros_abastecidos, valor_total, posto, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+            RETURNING *;
+        `;
+        const values = [veiculoId, data, km_atual, litros_abastecidos, valor_total, posto];
+        const { rows } = await pool.query(query, values);
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        console.error(`Erro ao adicionar abastecimento para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
 
 // Exporta as novas funções junto com as outras
 module.exports = {
@@ -185,6 +222,8 @@ module.exports = {
   criarVeiculo,
   atualizarVeiculo,
   deletarVeiculo,
-  listarManutencoes,    // NOVO
-  adicionarManutencao,  // NOVO
+  listarManutencoes,
+  adicionarManutencao,
+  listarAbastecimentos,  // NOVO
+  adicionarAbastecimento, // NOVO
 };

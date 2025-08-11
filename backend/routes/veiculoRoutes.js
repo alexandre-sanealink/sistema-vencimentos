@@ -32,6 +32,13 @@ router.get('/veiculos/:veiculoId/manutencoes', veiculoController.listarManutenco
 // Rota para ADICIONAR (POST) uma nova manutenção a um veículo específico
 router.post('/veiculos/:veiculoId/manutencoes', veiculoController.adicionarManutencao);
 
+// --- NOVAS ROTAS DE ABASTECIMENTO (ANINHADAS EM VEÍCULOS) ---
+
+// Rota para LISTAR (GET) todos os abastecimentos de um veículo específico
+router.get('/veiculos/:veiculoId/abastecimentos', veiculoController.listarAbastecimentos);
+
+// Rota para ADICIONAR (POST) um novo abastecimento a um veículo específico
+router.post('/veiculos/:veiculoId/abastecimentos', veiculoController.adicionarAbastecimento);
 
 // Exporta o roteador para que o aplicativo principal possa usá-lo
 module.exports = router;
