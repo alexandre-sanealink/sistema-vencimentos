@@ -78,6 +78,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const listaPecasContainer = document.getElementById('lista-pecas-container');
     const btnAdicionarPeca = document.getElementById('btn-adicionar-peca');
 
+        // --- NOVO: Referências para o Modal de Abastecimento ---
+    const tbodyAbastecimentos = document.getElementById('tbody-abastecimentos');
+    const btnAbrirModalAbastecimento = document.getElementById('btn-abrir-modal-abastecimento');
+    const modalAbastecimento = document.getElementById('modal-abastecimento');
+    const formAbastecimento = document.getElementById('form-abastecimento');
+    const abastecimentoData = document.getElementById('abastecimento-data');
+    const abastecimentoKm = document.getElementById('abastecimento-km');
+    const abastecimentoLitros = document.getElementById('abastecimento-litros');
+    const abastecimentoValor = document.getElementById('abastecimento-valor');
+    const abastecimentoPosto = document.getElementById('abastecimento-posto');
+
     
     // Admin e Perfil
     const modalAdmin = document.getElementById('modal-admin');
@@ -313,25 +324,32 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const exibirDetalhesDoVeiculo = async (veiculo) => {
-            veiculoSelecionado = veiculo; // Guarda o veículo selecionado globalmente
-    
-            // Atualiza o título da página de detalhes
-            detalhesVeiculoTitulo.textContent = `Detalhes: ${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
+    veiculoSelecionado = veiculo;
+    detalhesVeiculoTitulo.textContent = `Detalhes: ${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
+    switchView('content-veiculo-detalhes');
 
-            // Troca para a view de detalhes
-            switchView('content-veiculo-detalhes');
+    // Busca e renderiza o histórico de MANUTENÇÕES
+    try {
+        const resManutencoes = await fetch(`${VEICULOS_URL}/${veiculo.id}/manutencoes`, { headers: getAuthHeaders() });
+        if (!resManutencoes.ok) throw new Error('Falha ao buscar manutenções');
+        const manutencoes = await resManutencoes.json();
+        renderizarTabelaManutencoes(manutencoes);
+    } catch (error) {
+        console.error('Erro ao buscar manutenções:', error);
+        tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
+    }
 
-            // Busca e renderiza o histórico de manutenções
-            try {
-            const response = await fetch(`${VEICULOS_URL}/${veiculo.id}/manutencoes`, { headers: getAuthHeaders() });
-            if (!response.ok) throw new Error('Falha ao buscar manutenções');
-            const manutencoes = await response.json();
-            renderizarTabelaManutencoes(manutencoes);
-        } catch (error) {
-            console.error('Erro ao buscar manutenções:', error);
-            tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar histórico de manutenções.</td></tr>`;
-        }
-    };
+    // Busca e renderiza o histórico de ABASTECIMENTOS
+    try {
+        const resAbastecimentos = await fetch(`${VEICULOS_URL}/${veiculo.id}/abastecimentos`, { headers: getAuthHeaders() });
+        if (!resAbastecimentos.ok) throw new Error('Falha ao buscar abastecimentos');
+        const abastecimentos = await resAbastecimentos.json();
+        renderizarTabelaAbastecimentos(abastecimentos);
+    } catch (error) {
+        console.error('Erro ao buscar abastecimentos:', error);
+        tbodyAbastecimentos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
+    }
+};
 
     // --- LÓGICA DO MÓDULO DE FROTA ---
     // --- NOVO: Funções de Manutenção ---
@@ -497,6 +515,51 @@ const abrirModalManutencao = () => {
     abrirModal(modalManutencao);
 };
 
+// --- NOVO: Funções de Abastecimento ---
+const renderizarTabelaAbastecimentos = (abastecimentos) => {
+    if (!tbodyAbastecimentos) return;
+    tbodyAbastecimentos.innerHTML = '';
+
+    if (abastecimentos.length === 0) {
+        tbodyAbastecimentos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum abastecimento registrado.</td></tr>`;
+        return;
+    }
+    
+    // Ordena os abastecimentos por KM para calcular o consumo corretamente
+    const abastecimentosOrdenados = [...abastecimentos].sort((a, b) => a.km_atual - b.km_atual);
+
+    abastecimentosOrdenados.forEach((abastecimento, index) => {
+        const tr = document.createElement('tr');
+        let consumoKML = '-';
+
+        // Calcula o consumo com base no abastecimento anterior
+        if (index > 0) {
+            const anterior = abastecimentosOrdenados[index - 1];
+            const kmRodados = abastecimento.km_atual - anterior.km_atual;
+            const litrosConsumidos = parseFloat(anterior.litros_abastecidos);
+            if (litrosConsumidos > 0 && kmRodados > 0) {
+                consumoKML = (kmRodados / litrosConsumidos).toFixed(2).replace('.', ',');
+            }
+        }
+
+        tr.innerHTML = `
+            <td>${new Date(abastecimento.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
+            <td>${abastecimento.km_atual}</td>
+            <td>${parseFloat(abastecimento.litros_abastecidos).toFixed(2).replace('.', ',')} L</td>
+            <td>R$ ${abastecimento.valor_total ? parseFloat(abastecimento.valor_total).toFixed(2).replace('.', ',') : '-'}</td>
+            <td>${abastecimento.posto || '-'}</td>
+            <td>${consumoKML}</td>
+        `;
+        tbodyAbastecimentos.appendChild(tr);
+    });
+};
+
+const abrirModalAbastecimento = () => {
+    if (!veiculoSelecionado) return;
+    formAbastecimento.reset();
+    abrirModal(modalAbastecimento);
+};
+
     
     // --- EVENT LISTENERS ---
     if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
@@ -553,8 +616,7 @@ const abrirModalManutencao = () => {
     btnAbrirPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
     mobileBtnPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
 
-    [modalDocumento, modalAdmin, modalPerfil, modalVeiculo, modalManutencao].forEach(m => {
-        if(m) {
+    [modalDocumento, modalAdmin, modalPerfil, modalVeiculo, modalManutencao, modalAbastecimento].forEach(m => {        if(m) {
             const closeButton = m.querySelector('.close-button');
             if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
             m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
@@ -682,6 +744,47 @@ if (formManutencao) {
         }
     });
 }
+// --- NOVO: Event Listeners para Abastecimento ---
+if (btnAbrirModalAbastecimento) {
+    btnAbrirModalAbastecimento.addEventListener('click', abrirModalAbastecimento);
+}
+
+if (formAbastecimento) {
+    formAbastecimento.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!veiculoSelecionado) return;
+
+        const dadosAbastecimento = {
+            data: abastecimentoData.value,
+            km_atual: abastecimentoKm.value,
+            litros_abastecidos: abastecimentoLitros.value,
+            valor_total: abastecimentoValor.value || null,
+            posto: abastecimentoPosto.value,
+        };
+
+        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/abastecimentos`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(dadosAbastecimento)
+            });
+
+            if (response.ok) {
+                fecharModal(modalAbastecimento);
+                exibirDetalhesDoVeiculo(veiculoSelecionado); 
+            } else {
+                const erro = await response.json();
+                alert(`Erro ao salvar registro: ${erro.error}`);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar abastecimento:', error);
+            alert('Ocorreu um erro de conexão. Tente novamente.');
+        }
+    });
+}
+
     if (docArquivo) docArquivo.addEventListener('change', () => {
         docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
     });
