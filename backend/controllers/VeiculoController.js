@@ -2,13 +2,15 @@
 import pg from 'pg';
 const { Pool } = pg;
 
+const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
+
 const pool = new Pool({
     // No Render, ele usará a DATABASE_URL. Localmente (onde DATABASE_URL não existe no .env),
     // a biblioteca 'pg' usará automaticamente as variáveis PGHOST, PGUSER, etc.
     connectionString: process.env.DATABASE_URL,
 
     // Ativa o SSL apenas se NÃO estivermos no ambiente local.
-    ssl: process.env.PGHOST !== 'localhost' ? { rejectUnauthorized: false } : false
+    ssl: IS_LOCAL_ENV ? false : { rejectUnauthorized: false }
 });
 
 // --- FUNÇÕES DO CONTROLADOR ---
