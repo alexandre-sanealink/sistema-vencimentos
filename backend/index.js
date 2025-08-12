@@ -11,13 +11,15 @@ import { fileURLToPath } from 'url';
 import veiculoRoutes from './routes/veiculoRoutes.js'; // NOVO: Importa as rotas de veículos
 
 
-    // Ativa o SSL apenas se NÃO estivermos no ambiente local.
-    ssl: process.env.PGHOST !== 'localhost' ? { rejectUnauthorized: false } : false
-
+// --- CONFIGURAÇÕES INICIAIS ---
+const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
 
 const connectionConfig = {
-    // A biblioteca irá usar as variáveis PG... do .env automaticamente
-    // USA SSL APENAS SE NÃO FOR LOCAL (ex: no Render)
+    // No Render, ele usará a DATABASE_URL. Localmente (onde DATABASE_URL não existe no .env),
+    // a biblioteca 'pg' usará automaticamente as variáveis PGHOST, PGUSER, etc.
+    connectionString: process.env.DATABASE_URL,
+
+    // Ativa o SSL apenas se NÃO estivermos no ambiente local.
     ssl: IS_LOCAL_ENV ? false : { rejectUnauthorized: false }
 };
 
