@@ -66,6 +66,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentVeiculoDetalhes = document.getElementById('content-veiculo-detalhes');
     const detalhesVeiculoTitulo = document.getElementById('detalhes-veiculo-titulo');
     const btnVoltarParaFrota = document.getElementById('btn-voltar-para-frota');
+    // --- NOVO: Referências para o Plano de Manutenção ---
+    const tbodyPlanos = document.getElementById('tbody-planos');
+    const formPlanoManutencao = document.getElementById('form-plano-manutencao');
+    const planoDescricao = document.getElementById('plano-descricao');
+    const planoKm = document.getElementById('plano-km');
+    const planoMeses = document.getElementById('plano-meses');
+
     // --- NOVO: Referências para o Modal de Manutenção ---
     const tbodyManutencoes = document.getElementById('tbody-manutencoes');
     const btnAbrirModalManutencao = document.getElementById('btn-abrir-modal-manutencao');
@@ -349,6 +356,17 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('Erro ao buscar abastecimentos:', error);
         tbodyAbastecimentos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
     }
+
+    // Busca e renderiza o PLANO DE MANUTENÇÃO
+    try {
+        const resPlanos = await fetch(`${VEICULOS_URL}/${veiculo.id}/planos`, { headers: getAuthHeaders() });
+        if (!resPlanos.ok) throw new Error('Falha ao buscar plano de manutenção');
+        const planos = await resPlanos.json();
+        renderizarTabelaPlanos(planos);
+    } catch (error) {
+        console.error('Erro ao buscar plano de manutenção:', error);
+        tbodyPlanos.innerHTML = `<tr><td colspan="4" style="text-align:center;">Erro ao carregar plano.</td></tr>`;
+    }
 };
 
     // --- LÓGICA DO MÓDULO DE FROTA ---
@@ -558,6 +576,33 @@ const abrirModalAbastecimento = () => {
     if (!veiculoSelecionado) return;
     formAbastecimento.reset();
     abrirModal(modalAbastecimento);
+};
+
+// --- NOVO: Funções do Plano de Manutenção ---
+const renderizarTabelaPlanos = (planos) => {
+    if (!tbodyPlanos) return;
+    tbodyPlanos.innerHTML = '';
+
+    if (planos.length === 0) {
+        tbodyPlanos.innerHTML = `<tr><td colspan="4" style="text-align:center;">Nenhum item cadastrado no plano.</td></tr>`;
+        return;
+    }
+
+    planos.forEach(plano => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${plano.descricao}</td>
+            <td>${plano.intervalo_km || '-'}</td>
+            <td>${plano.intervalo_meses || '-'}</td>
+            <td>
+                <button class="btn-deletar" title="Excluir Item do Plano">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </td>
+        `;
+        // A lógica para deletar o item do plano será adicionada futuramente
+        tbodyPlanos.appendChild(tr);
+    });
 };
 
     
@@ -881,6 +926,47 @@ if (formAbastecimento) {
             mobileMoreMenu.classList.remove('visible');
         }
     });
+
+    // --- NOVO: Event Listener para o Formulário do Plano de Manutenção ---
+if (formPlanoManutencao) {
+    formPlanoManutencao.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!veiculoSelecionado) return;
+
+        // Validação para garantir que pelo menos um intervalo foi preenchido
+        if (!planoKm.value && !planoMeses.value) {
+            alert('Por favor, preencha pelo menos um intervalo (KM ou Meses).');
+            return;
+        }
+
+        const dadosPlano = {
+            descricao: planoDescricao.value,
+            intervalo_km: planoKm.value || null,
+            intervalo_meses: planoMeses.value || null,
+        };
+
+        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/planos`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(dadosPlano)
+            });
+
+            if (response.ok) {
+                formPlanoManutencao.reset();
+                exibirDetalhesDoVeiculo(veiculoSelecionado); // Atualiza toda a página de detalhes
+            } else {
+                const erro = await response.json();
+                alert(`Erro ao salvar item do plano: ${erro.error}`);
+            }
+        } catch (error) {
+            console.error('Erro ao salvar item do plano:', error);
+            alert('Ocorreu um erro de conexão. Tente novamente.');
+        }
+    });
+}
 
     verificarLogin();
 });

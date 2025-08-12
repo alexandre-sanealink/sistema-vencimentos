@@ -215,6 +215,44 @@ const adicionarAbastecimento = async (req, res) => {
     }
 };
 
+// --- NOVO: FUNÇÕES DE PLANO DE MANUTENÇÃO ---
+
+// Função para LISTAR todos os planos de manutenção de um veículo
+const listarPlanosManutencao = async (req, res) => {
+    const { veiculoId } = req.params;
+    try {
+        const { rows } = await pool.query('SELECT * FROM planos_manutencao WHERE veiculo_id = $1 ORDER BY id ASC', [veiculoId]);
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error(`Erro ao listar planos para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
+// Função para ADICIONAR um novo item ao plano de manutenção
+const adicionarPlanoManutencao = async (req, res) => {
+    const { veiculoId } = req.params;
+    const { descricao, intervalo_km, intervalo_meses } = req.body;
+
+    if (!descricao || (!intervalo_km && !intervalo_meses)) {
+        return res.status(400).json({ error: 'Descrição e pelo menos um intervalo (KM ou meses) são obrigatórios.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO planos_manutencao (veiculo_id, descricao, intervalo_km, intervalo_meses, created_at, updated_at)
+            VALUES ($1, $2, $3, $4, NOW(), NOW())
+            RETURNING *;
+        `;
+        const values = [veiculoId, descricao, intervalo_km || null, intervalo_meses || null];
+        const { rows } = await pool.query(query, values);
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        console.error(`Erro ao adicionar item ao plano para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
 // Exporta as novas funções junto com as outras
 module.exports = {
   listarVeiculos,
@@ -222,8 +260,10 @@ module.exports = {
   criarVeiculo,
   atualizarVeiculo,
   deletarVeiculo,
-  listarManutencoes,
+  listarManutencaoes,
   adicionarManutencao,
-  listarAbastecimentos,  // NOVO
-  adicionarAbastecimento, // NOVO
+  listarAbastecimentos,
+  adicionarAbastecimento,
+  listarPlanosManutencao,  // NOVO
+  adicionarPlanoManutencao, // NOVO
 };
