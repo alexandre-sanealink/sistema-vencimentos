@@ -886,8 +886,7 @@ if (formManutencao) {
                 const itemManutencao = {
                     tipo: tipo,
                     descricao: descricao,
-                    // Garante que quantidade e marca sejam nulos se não aplicável
-                    quantidade: null,
+                    quantidade: null, // Garante que os campos existam
                     marca: null
                 };
 
