@@ -1,8 +1,8 @@
-// Importa a biblioteca do PostgreSQL
-const { Pool } = require('pg');
+// Alterado: Usa 'import' em vez de 'require'
+import pg from 'pg';
+const { Pool } = pg;
 
-// Configura a conexão com o banco de dados usando a URL que está no arquivo .env
-// É seguro deixar assim, pois o Render injetará a variável de ambiente correta.
+// Configura a conexão com o banco de dados
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: {
@@ -10,10 +10,11 @@ const pool = new Pool({
   }
 });
 
-// --- FUNÇÕES DO CONTROLADOR DE VEÍCULOS ---
+// --- FUNÇÕES DO CONTROLADOR ---
 
 // Função para LISTAR todos os veículos
-const listarVeiculos = async (req, res) => {
+export const listarVeiculos = async (req, res) => {
+  // ... (o miolo da função continua igual)
   try {
     const { rows } = await pool.query('SELECT * FROM veiculos ORDER BY id ASC');
     res.status(200).json(rows);
@@ -24,17 +25,15 @@ const listarVeiculos = async (req, res) => {
 };
 
 // Função para OBTER UM VEÍCULO específico pelo ID
-const obterVeiculoPorId = async (req, res) => {
-  const { id } = req.params; // Pega o ID da URL
-
+export const obterVeiculoPorId = async (req, res) => {
+  // ... (o miolo da função continua igual)
+  const { id } = req.params;
   try {
     const query = 'SELECT * FROM veiculos WHERE id = $1';
     const { rows } = await pool.query(query, [id]);
-
     if (rows.length === 0) {
       return res.status(404).json({ error: 'Veículo não encontrado.' });
     }
-
     res.status(200).json(rows[0]);
   } catch (error) {
     console.error(`Erro ao buscar veículo com ID ${id}:`, error);
@@ -230,7 +229,7 @@ const listarPlanosManutencao = async (req, res) => {
 };
 
 // Função para ADICIONAR um novo item ao plano de manutenção
-const adicionarPlanoManutencao = async (req, res) => {
+export const adicionarPlanoManutencao = async (req, res) => {
     const { veiculoId } = req.params;
     const { descricao, intervalo_km, intervalo_meses } = req.body;
 
