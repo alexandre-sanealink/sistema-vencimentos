@@ -11,10 +11,13 @@ import { fileURLToPath } from 'url';
 import veiculoRoutes from './routes/veiculoRoutes.js'; // NOVO: Importa as rotas de veículos
 
 // --- CONFIGURAÇÕES INICIAIS ---
-const { Client } = pg;
+// NOVO: Detecta se estamos no ambiente local para ajustar a configuração do SSL
+const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
+
 const connectionConfig = {
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+    // A biblioteca irá usar as variáveis PG... do .env automaticamente
+    // USA SSL APENAS SE NÃO FOR LOCAL (ex: no Render)
+    ssl: IS_LOCAL_ENV ? false : { rejectUnauthorized: false }
 };
 
 const app = express();
@@ -61,7 +64,7 @@ app.use('/api', veiculoRoutes); // NOVO: Diz ao app para usar as rotas de veícu
 // Rota de Login
 app.post('/api/login', async (req, res) => {
     const { email, senha } = req.body;
-    const client = new Client(connectionConfig);
+    const client = new pg.Client(connectionConfig);
     try {
         await client.connect();
         const resultado = await client.query('SELECT * FROM usuarios WHERE email = $1', [email]);
@@ -81,7 +84,7 @@ app.post('/api/login', async (req, res) => {
 
 // Rota para buscar todos os documentos
 app.get('/api/documentos', verificarToken, async (req, res) => {
-    const client = new Client(connectionConfig);
+    const client = new pg.Client(connectionConfig);
     try {
         await client.connect();
         const query = `SELECT doc.*, u.nome as criado_por_nome FROM documentos doc LEFT JOIN usuarios u ON doc.criado_por_email = u.email ORDER BY doc."dataVencimento" ASC`;
@@ -97,7 +100,7 @@ app.get('/api/documentos', verificarToken, async (req, res) => {
 
 // Rota para criar um novo documento
 app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req, res) => {
-    const client = new Client(connectionConfig);
+    const client = new pg.Client(connectionConfig);
     try {
         await client.connect();
         const { nome, categoria, dataVencimento, diasAlerta } = req.body;
@@ -118,7 +121,7 @@ app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req
 
 // Rota para atualizar um documento existente
 app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (req, res) => {
-    const client = new Client(connectionConfig);
+    const client = new pg.Client(connectionConfig);
     try {
         await client.connect();
         const { id } = req.params;
@@ -152,10 +155,10 @@ app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (
 });
 
 // Rota para registrar novo usuário
-app.post('/api/register', verificarToken, async (req, res) => {
+app.post('/api/register', async (req, res) => {
     const { nome, email, senha } = req.body;
     if (!nome || !email || !senha) { return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' }); }
-    const client = new Client(connectionConfig);
+    const client = new pg.Client(connectionConfig);
     try {
         await client.connect();
         const salt = await bcrypt.genSalt(10);
@@ -177,7 +180,7 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
     const { nome } = req.body;
     const usuarioId = req.usuario.id;
     if (!nome) { return res.status(400).json({ message: 'O nome é obrigatório.' }); }
-    const client = new Client(connectionConfig);
+    const client = new pg.Client(connectionConfig);
     try {
         await client.connect();
         const query = `UPDATE usuarios SET nome = $1 WHERE id = $2 RETURNING id, email, nome`;

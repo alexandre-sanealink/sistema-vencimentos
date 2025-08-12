@@ -101,14 +101,36 @@ td { font-size: 14px; white-space: nowrap; }
 .dias-restantes { font-weight: 500; }
 .status-span { display: inline-block; padding: 5px 12px; border-radius: 15px; color: white; font-size: 12px; font-weight: 500; text-transform: uppercase; white-space: nowrap; }
 .status-em-dia { background-color: #28a745; } .status-vence-breve { background-color: #ffc107; color: #333; } .status-atrasado { background-color: #dc3545; } .status-renovado { background-color: #17a2b8; } .status-em-renovacao { background-color: #6c757d; }
-.btn-editar, .btn-anexo, .btn-deletar { background: none; border: none; cursor: pointer; padding: 5px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: background-color 0.2s, color 0.2s; }
+/* Regra base para todos os botões de ação da tabela */
+.btn-editar, .btn-anexo, .btn-deletar { 
+    background: none; 
+    border: none; 
+    cursor: pointer; 
+    padding: 5px; 
+    border-radius: 50%; 
+    display: inline-flex; 
+    align-items: center; 
+    justify-content: center; 
+    transition: background-color 0.2s, color 0.2s; 
+}
+
+/* Estilos para o botão Editar */
 .btn-editar { color: #0d6efd; }
 .btn-editar:hover { background-color: #e7f1ff; color: #0a58ca; }
+
+/* Estilos para o botão Anexo */
 .btn-anexo { color: #6c757d; }
 .btn-anexo:hover { background-color: #e9ecef; color: #212529; }
+
+/* Estilos para o botão Deletar */
 .btn-deletar { color: #dc3545; }
 .btn-deletar:hover { background-color: #f8d7da; color: #721c24; }
-.btn-editar svg, .btn-anexo svg, .btn-deletar svg { width: 16px; height: 16px; }
+
+/* Regra para o tamanho do ícone SVG dentro de TODOS os botões de ação */
+.btn-editar svg, .btn-anexo svg, .btn-deletar svg { 
+    width: 16px; 
+    height: 16px; 
+}
 
 /* NOVO: Estilo para linhas de tabela clicáveis */
 .linha-clicavel {
