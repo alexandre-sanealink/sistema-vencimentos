@@ -902,9 +902,9 @@ if (formManutencao) {
 
         const dadosManutencao = {
             data: manutencaoData.value,
-            tipo: manutencaoTipo.value, // Este é o tipo geral da manutenção (Preventiva/Corretiva)
+            tipo: manutencaoTipo.value,
             km_atual: manutencaoKm.value,
-            pecas: pecas, // Este é o array de itens, cada um com seu tipo (Peça/Serviço)
+            pecas: pecas, 
         };
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
