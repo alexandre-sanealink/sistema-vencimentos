@@ -375,27 +375,62 @@ const API_URL = IS_LOCAL
 
     // --- LÓGICA DO MÓDULO DE FROTA ---
     // --- NOVO: Funções de Manutenção ---
-
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR
 const adicionarLinhaPeca = () => {
     const div = document.createElement('div');
-    div.className = 'form-row peca-item'; // Classe para estilização e identificação
+    div.className = 'form-row peca-item';
 
+    // Adiciona o HTML da nova linha, agora com o campo de TIPO
     div.innerHTML = `
+        <div class="form-group peca-tipo">
+            <label>Tipo</label>
+            <div class="select-wrapper">
+                <select class="peca-input-tipo" required>
+                    <option value="Peca">Peça</option>
+                    <option value="Servico">Serviço</option>
+                </select>
+            </div>
+        </div>
         <div class="form-group peca-qtd">
+            <label>Qtd</label>
             <input type="number" class="peca-input-qtd" placeholder="Qtd" min="1" value="1" required>
         </div>
         <div class="form-group peca-desc">
+            <label>Descrição</label>
             <input type="text" class="peca-input-desc" placeholder="Descrição da peça ou serviço" required>
         </div>
         <div class="form-group peca-marca">
+            <label>Marca</label>
             <input type="text" class="peca-input-marca" placeholder="Marca (opcional)">
         </div>
         <div class="form-group peca-acao">
+            <label>&nbsp;</label>
             <button type="button" class="btn-remover-item">&times;</button>
         </div>
     `;
 
-    // Lógica para o botão de remover a linha
+    // --- LÓGICA INTELIGENTE PARA ESCONDER/MOSTRAR CAMPOS ---
+    const selectTipo = div.querySelector('.peca-input-tipo');
+    const grupoQtd = div.querySelector('.peca-qtd');
+    const grupoMarca = div.querySelector('.peca-marca');
+
+    const atualizarVisibilidade = () => {
+        if (selectTipo.value === 'Servico') {
+            grupoQtd.style.display = 'none';
+            grupoMarca.style.display = 'none';
+        } else { // Se for 'Peca'
+            grupoQtd.style.display = 'block';
+            grupoMarca.style.display = 'block';
+        }
+    };
+
+    // Adiciona o evento que dispara a lógica quando o tipo é alterado
+    selectTipo.addEventListener('change', atualizarVisibilidade);
+    
+    // Garante o estado inicial correto da linha
+    atualizarVisibilidade(); 
+    
+    // --- LÓGICA PARA O BOTÃO DE REMOVER A LINHA ---
     const btnRemover = div.querySelector('.btn-remover-item');
     btnRemover.addEventListener('click', () => {
         div.remove();
@@ -403,6 +438,8 @@ const adicionarLinhaPeca = () => {
 
     listaPecasContainer.appendChild(div);
 };
+// FIM DO CÓDIGO PARA SUBSTITUIR
+
     const fetchVeiculos = async () => {
         try {
             const response = await fetch(VEICULOS_URL, { headers: getAuthHeaders() });
@@ -505,11 +542,12 @@ const adicionarLinhaPeca = () => {
 };
 
 
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR
 const renderizarTabelaManutencoes = (manutencoes) => {
     if (!tbodyManutencoes) return;
     tbodyManutencoes.innerHTML = '';
 
-    if (manutencoes.length === 0) {
+    if (!manutencoes || manutencoes.length === 0) {
         tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum registro de manutenção encontrado.</td></tr>`;
         return;
     }
@@ -519,8 +557,21 @@ const renderizarTabelaManutencoes = (manutencoes) => {
     manutencoes.forEach(m => {
         const tr = document.createElement('tr');
         
-        const pecasTexto = m.pecas && m.pecas.length > 0
-            ? m.pecas.map(p => `${p.quantidade}x ${p.descricao} ${p.marca ? `(${p.marca})` : ''}`).join('<br>')
+        // LÓGICA ATUALIZADA PARA EXIBIR O TIPO (PEÇA/SERVIÇO) DE CADA ITEM
+        const pecasTexto = Array.isArray(m.pecas) && m.pecas.length > 0
+            ? m.pecas.map(p => {
+                // Verifica se o item é um Serviço
+                if (p.tipo === 'Servico') {
+                    // Retorna um formato mais simples para serviços
+                    return `<span class="item-tipo-servico">[Serviço]</span> ${p.descricao}`;
+                }
+                
+                // Se não for serviço, trata como Peça (incluindo dados antigos que não tinham o campo 'tipo')
+                const quantidade = p.quantidade || 1;
+                const marca = p.marca ? `(${p.marca})` : '';
+                return `<span class="item-tipo-peca">[Peça]</span> ${quantidade}x ${p.descricao} ${marca}`;
+
+            }).join('<br>')
             : '-';
 
         tr.innerHTML = `
@@ -531,8 +582,7 @@ const renderizarTabelaManutencoes = (manutencoes) => {
             <td></td> 
         `;
 
-        // --- CORREÇÃO APLICADA AQUI ---
-        const acoesCell = tr.children[4]; // A célula de ações é a 5ª (índice 4)
+        const acoesCell = tr.children[4];
 
         const btnDeletar = document.createElement('button');
         btnDeletar.className = 'btn-deletar';
@@ -547,7 +597,7 @@ const renderizarTabelaManutencoes = (manutencoes) => {
                         headers: getAuthHeaders()
                     });
                     if (response.ok) {
-                        exibirDetalhesDoVeiculo(veiculoSelecionado); // Atualiza a tela de detalhes
+                        exibirDetalhesDoVeiculo(veiculoSelecionado); 
                     } else {
                         const erro = await response.json();
                         alert(`Erro ao excluir registro: ${erro.error || 'Erro desconhecido'}`);
@@ -563,6 +613,7 @@ const renderizarTabelaManutencoes = (manutencoes) => {
         tbodyManutencoes.appendChild(tr);
     });
 };
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
 const abrirModalManutencao = () => {
     if (!veiculoSelecionado) return;
@@ -817,29 +868,44 @@ if (btnAbrirModalManutencao) {
     });
 }
 
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR
 if (formManutencao) {
     formManutencao.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!veiculoSelecionado) return;
 
-        // Coleta os dados de todas as linhas de peças dinâmicas
+        // Coleta os dados de todas as linhas de peças/serviços dinâmicas
         const pecas = [];
         const pecaItems = document.querySelectorAll('.peca-item');
+        
         pecaItems.forEach(item => {
-            const quantidade = item.querySelector('.peca-input-qtd').value;
+            const tipo = item.querySelector('.peca-input-tipo').value;
             const descricao = item.querySelector('.peca-input-desc').value;
-            const marca = item.querySelector('.peca-input-marca').value;
 
-            if (descricao) { // Só adiciona se a descrição for preenchida
-                pecas.push({ quantidade, descricao, marca });
+            if (descricao) { // Só adiciona o item se a descrição for preenchida
+                const itemManutencao = {
+                    tipo: tipo,
+                    descricao: descricao,
+                    // Garante que quantidade e marca sejam nulos se não aplicável
+                    quantidade: null,
+                    marca: null
+                };
+
+                // Apenas popula a quantidade e a marca se o tipo for 'Peca'
+                if (tipo === 'Peca') {
+                    itemManutencao.quantidade = item.querySelector('.peca-input-qtd').value;
+                    itemManutencao.marca = item.querySelector('.peca-input-marca').value || null;
+                }
+                
+                pecas.push(itemManutencao);
             }
         });
 
         const dadosManutencao = {
             data: manutencaoData.value,
-            tipo: manutencaoTipo.value,
+            tipo: manutencaoTipo.value, // Este é o tipo geral da manutenção (Preventiva/Corretiva)
             km_atual: manutencaoKm.value,
-            pecas: pecas, // Envia o array de objetos 'pecas'
+            pecas: pecas, // Este é o array de itens, cada um com seu tipo (Peça/Serviço)
         };
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
@@ -865,6 +931,8 @@ if (formManutencao) {
         }
     });
 }
+// FIM DO CÓDIGO PARA SUBSTITUIR
+
 // --- NOVO: Event Listeners para Abastecimento ---
 if (btnAbrirModalAbastecimento) {
     btnAbrirModalAbastecimento.addEventListener('click', abrirModalAbastecimento);

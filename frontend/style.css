@@ -349,3 +349,8 @@ td { font-size: 14px; white-space: nowrap; }
         margin-bottom: 10px;
     }
 }
+
+/* Aumento de largura específico para o modal de manutenção */
+#modal-manutencao .modal-content {
+    max-width: 800px;
+}
