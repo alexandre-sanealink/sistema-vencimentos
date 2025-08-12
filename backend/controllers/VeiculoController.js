@@ -1,13 +1,14 @@
-// Alterado: Usa 'import' em vez de 'require'
+// --- Conexão com o Banco de Dados ---
 import pg from 'pg';
 const { Pool } = pg;
 
-// Configura a conexão com o banco de dados
+// NOVO: Detecta se estamos no ambiente local para ajustar a configuração do SSL
+const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
+    // A biblioteca irá usar as variáveis PG... do .env automaticamente
+    // USA SSL APENAS SE NÃO FOR LOCAL (ex: no Render)
+    ssl: IS_LOCAL_ENV ? false : { rejectUnauthorized: false }
 });
 
 // --- FUNÇÕES DO CONTROLADOR ---
@@ -110,26 +111,24 @@ export const deletarVeiculo = async (req, res) => {
 
 // --- FUNÇÕES DE MANUTENÇÃO ---
 
-// Alterado: Adicionado 'export'
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR
 export const listarManutencoes = async (req, res) => {
     const { veiculoId } = req.params;
     try {
         const { rows } = await pool.query('SELECT * FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC', [veiculoId]);
-        const manutencoesTratadas = rows.map(m => {
-            try {
-                m.pecas = m.pecas ? JSON.parse(m.pecas) : [];
-            } catch (e) {
-                console.error('Erro ao fazer parse do JSON de peças:', e);
-                m.pecas = [];
-            }
-            return m;
-        });
-        res.status(200).json(manutencoesTratadas);
+        
+        // A biblioteca 'pg' já faz o parse automático de colunas do tipo JSON/JSONB.
+        // A propriedade 'pecas' em cada linha de 'rows' já é um array de objetos pronto para uso.
+        // Portanto, não precisamos mais fazer o JSON.parse() manualmente.
+        
+        res.status(200).json(rows);
+
     } catch (error) {
         console.error(`Erro ao listar manutenções para o veículo ID ${veiculoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
 // Alterado: Adicionado 'export'
 export const adicionarManutencao = async (req, res) => {
@@ -150,6 +149,22 @@ export const adicionarManutencao = async (req, res) => {
         res.status(201).json(rows[0]);
     } catch (error) {
         console.error(`Erro ao adicionar manutenção para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
+// NOVO: Função para deletar um registro de manutenção
+export const deletarManutencao = async (req, res) => {
+    const { manutencaoId } = req.params;
+    try {
+        const query = 'DELETE FROM manutencoes WHERE id = $1 RETURNING *;';
+        const { rows } = await pool.query(query, [manutencaoId]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Registro de manutenção não encontrado.' });
+        }
+        res.status(200).json({ message: 'Registro de manutenção deletado com sucesso.' });
+    } catch (error) {
+        console.error(`Erro ao deletar manutenção com ID ${manutencaoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };
@@ -192,17 +207,83 @@ export const adicionarAbastecimento = async (req, res) => {
 
 // --- FUNÇÕES DE PLANO DE MANUTENÇÃO ---
     
-// Alterado: Adicionado 'export'
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR
 export const listarPlanosManutencao = async (req, res) => {
     const { veiculoId } = req.params;
     try {
-        const { rows } = await pool.query('SELECT * FROM planos_manutencao WHERE veiculo_id = $1 ORDER BY id ASC', [veiculoId]);
-        res.status(200).json(rows);
+        // 1. Busca o KM mais recente do veículo a partir da última manutenção ou abastecimento
+        const kmAtualResult = await pool.query(
+            `SELECT GREATEST(
+                (SELECT km_atual FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC, id DESC LIMIT 1),
+                (SELECT km_atual FROM abastecimentos WHERE veiculo_id = $1 ORDER BY data DESC, id DESC LIMIT 1)
+            ) as km_atual`,
+            [veiculoId]
+        );
+        const kmAtual = kmAtualResult.rows.length > 0 && kmAtualResult.rows[0].km_atual ? parseInt(kmAtualResult.rows[0].km_atual) : 0;
+
+        // 2. Busca todos os itens do plano para o veículo
+        const planosResult = await pool.query('SELECT * FROM planos_manutencao WHERE veiculo_id = $1 ORDER BY id ASC', [veiculoId]);
+        const planos = planosResult.rows;
+
+        // 3. Para cada item do plano, calcula o status
+        const planosComStatus = await Promise.all(planos.map(async (plano) => {
+            // Busca a última manutenção preventiva correspondente
+            const ultimaManutencaoResult = await pool.query(
+                `SELECT data, km_atual FROM manutencoes 
+                 WHERE veiculo_id = $1 AND tipo = 'Preventiva' AND pecas::text LIKE $2 
+                 ORDER BY data DESC, id DESC LIMIT 1`, // <<< CORREÇÃO APLICADA AQUI
+                [veiculoId, `%${plano.descricao}%`]
+            );
+            const ultimaManutencao = ultimaManutencaoResult.rows.length > 0 ? ultimaManutencaoResult.rows[0] : null;
+
+            let statusKm = 'Em Dia';
+            if (plano.intervalo_km && kmAtual > 0) {
+                const kmBase = ultimaManutencao ? parseInt(ultimaManutencao.km_atual) : 0;
+                const proximaKm = kmBase + parseInt(plano.intervalo_km);
+                const kmFaltante = proximaKm - kmAtual;
+
+                if (kmFaltante <= 0) {
+                    statusKm = 'Vencido';
+                } else if (kmFaltante <= (parseInt(plano.intervalo_km) * 0.15)) { // Alerta nos últimos 15%
+                    statusKm = 'Alerta';
+                }
+            }
+
+            let statusTempo = 'Em Dia';
+            if (plano.intervalo_meses) {
+                const dataBase = ultimaManutencao ? new Date(ultimaManutencao.data) : new Date(plano.created_at);
+                const proximaData = new Date(dataBase);
+                proximaData.setMonth(proximaData.getMonth() + parseInt(plano.intervalo_meses));
+                
+                const diasFaltantes = Math.ceil((proximaData.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+
+                if (diasFaltantes <= 0) {
+                    statusTempo = 'Vencido';
+                } else if (diasFaltantes <= 30) { // Alerta nos últimos 30 dias
+                    statusTempo = 'Alerta';
+                }
+            }
+            
+            // Prioriza o status mais grave
+            let statusFinal = 'Em Dia';
+            if (statusKm === 'Alerta' || statusTempo === 'Alerta') {
+                statusFinal = 'Alerta';
+            }
+            if (statusKm === 'Vencido' || statusTempo === 'Vencido') {
+                statusFinal = 'Vencido';
+            }
+
+            return { ...plano, status: statusFinal };
+        }));
+
+        res.status(200).json(planosComStatus);
+
     } catch (error) {
         console.error(`Erro ao listar planos para o veículo ID ${veiculoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };
+// FIM DO CÓDIGO PARA SUBSTITUIR
     
 // Alterado: Adicionado 'export'
 export const adicionarPlanoManutencao = async (req, res) => {
@@ -222,6 +303,22 @@ export const adicionarPlanoManutencao = async (req, res) => {
         res.status(201).json(rows[0]);
     } catch (error) {
         console.error(`Erro ao adicionar item ao plano para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
+// NOVO: Função para deletar um item do plano de manutenção
+export const deletarPlanoManutencao = async (req, res) => {
+    const { planoId } = req.params;
+    try {
+        const query = 'DELETE FROM planos_manutencao WHERE id = $1 RETURNING *;';
+        const { rows } = await pool.query(query, [planoId]);
+        if (rows.length === 0) {
+            return res.status(404).json({ error: 'Item do plano de manutenção não encontrado.' });
+        }
+        res.status(200).json({ message: 'Item do plano de manutenção deletado com sucesso.' });
+    } catch (error) {
+        console.error(`Erro ao deletar item do plano com ID ${planoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };

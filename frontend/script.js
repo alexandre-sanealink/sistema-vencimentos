@@ -1,6 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- REFERÊNCIAS DE ELEMENTOS ---
-    const API_URL = 'https://www.controle.focodesentupidora.com.br';
+    // NOVO: Define a URL da API dinamicamente com base no ambiente
+const IS_LOCAL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+const API_URL = IS_LOCAL 
+    ? 'http://localhost:3000' // URL para testes locais
+    : 'https://www.controle.focodesentupidora.com.br'; // URL para o site online (produção)
     const LOGIN_URL = `${API_URL}/api/login`;
     const DOCS_URL = `${API_URL}/api/documentos`;
     const VEICULOS_URL = `${API_URL}/api/veiculos`;
@@ -500,7 +504,7 @@ const adicionarLinhaPeca = () => {
     });
 };
 
-    // --- NOVO: Funções de Manutenção ---
+
 const renderizarTabelaManutencoes = (manutencoes) => {
     if (!tbodyManutencoes) return;
     tbodyManutencoes.innerHTML = '';
@@ -514,14 +518,48 @@ const renderizarTabelaManutencoes = (manutencoes) => {
 
     manutencoes.forEach(m => {
         const tr = document.createElement('tr');
+        
+        const pecasTexto = m.pecas && m.pecas.length > 0
+            ? m.pecas.map(p => `${p.quantidade}x ${p.descricao} ${p.marca ? `(${p.marca})` : ''}`).join('<br>')
+            : '-';
+
         tr.innerHTML = `
             <td>${formatarData(m.data)}</td>
             <td>${m.tipo}</td>
             <td>${m.km_atual}</td>
-            <td>${m.pecas || '-'}</td>
-            <td>
-                </td>
+            <td>${pecasTexto}</td>
+            <td></td> 
         `;
+
+        // --- CORREÇÃO APLICADA AQUI ---
+        const acoesCell = tr.children[4]; // A célula de ações é a 5ª (índice 4)
+
+        const btnDeletar = document.createElement('button');
+        btnDeletar.className = 'btn-deletar';
+        btnDeletar.title = 'Excluir Registro de Manutenção';
+        btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        
+        btnDeletar.onclick = async () => {
+            if (confirm(`Tem certeza que deseja excluir o registro de manutenção do dia ${formatarData(m.data)}?`)) {
+                try {
+                    const response = await fetch(`${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes/${m.id}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+                    if (response.ok) {
+                        exibirDetalhesDoVeiculo(veiculoSelecionado); // Atualiza a tela de detalhes
+                    } else {
+                        const erro = await response.json();
+                        alert(`Erro ao excluir registro: ${erro.error || 'Erro desconhecido'}`);
+                    }
+                } catch (error) {
+                    console.error('Erro ao deletar manutenção:', error);
+                    alert('Ocorreu um erro de conexão ao tentar excluir.');
+                }
+            }
+        };
+
+        acoesCell.appendChild(btnDeletar);
         tbodyManutencoes.appendChild(tr);
     });
 };
@@ -578,32 +616,70 @@ const abrirModalAbastecimento = () => {
     abrirModal(modalAbastecimento);
 };
 
-// --- NOVO: Funções do Plano de Manutenção ---
+
 const renderizarTabelaPlanos = (planos) => {
     if (!tbodyPlanos) return;
     tbodyPlanos.innerHTML = '';
 
     if (planos.length === 0) {
-        tbodyPlanos.innerHTML = `<tr><td colspan="4" style="text-align:center;">Nenhum item cadastrado no plano.</td></tr>`;
+        tbodyPlanos.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum item cadastrado no plano.</td></tr>`;
         return;
     }
 
+    const mapaDeStatusParaClasse = {
+        'Em Dia': 'em-dia',
+        'Alerta': 'vence-breve',
+        'Vencido': 'atrasado',
+        ' indefinido': 'em-dia' // Fallback para status não reconhecido
+    };
+
     planos.forEach(plano => {
         const tr = document.createElement('tr');
+        
+        // --- CORREÇÃO DO STATUS APLICADA AQUI ---
+        const statusTexto = plano.status || ' indefinido'; // Garante que não seja "undefined"
+        const statusClasse = mapaDeStatusParaClasse[statusTexto] || 'em-dia';
+
         tr.innerHTML = `
             <td>${plano.descricao}</td>
             <td>${plano.intervalo_km || '-'}</td>
             <td>${plano.intervalo_meses || '-'}</td>
-            <td>
-                <button class="btn-deletar" title="Excluir Item do Plano">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
-                </button>
-            </td>
+            <td><span class="status-span status-${statusClasse}">${statusTexto}</span></td>
+            <td></td>
         `;
-        // A lógica para deletar o item do plano será adicionada futuramente
+
+        // --- CORREÇÃO DA LIXEIRA APLICADA AQUI ---
+        const acoesCell = tr.children[4]; // A célula de ações é a 5ª (índice 4)
+        const btnDeletar = document.createElement('button');
+        btnDeletar.className = 'btn-deletar';
+        btnDeletar.title = 'Excluir Item do Plano';
+        btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+
+        btnDeletar.onclick = async () => {
+            if (confirm(`Tem certeza que deseja excluir o item "${plano.descricao}" do plano?`)) {
+                try {
+                    const response = await fetch(`${VEICULOS_URL}/${veiculoSelecionado.id}/planos/${plano.id}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+                    if (response.ok) {
+                        exibirDetalhesDoVeiculo(veiculoSelecionado); // Atualiza a tela de detalhes
+                    } else {
+                        const erro = await response.json();
+                        alert(`Erro ao excluir item do plano: ${erro.error || 'Erro desconhecido'}`);
+                    }
+                } catch (error) {
+                    console.error('Erro ao deletar item do plano:', error);
+                    alert('Ocorreu um erro de conexão ao tentar excluir.');
+                }
+            }
+        };
+
+        acoesCell.appendChild(btnDeletar);
         tbodyPlanos.appendChild(tr);
     });
 };
+
 
     
     // --- EVENT LISTENERS ---
