@@ -9,6 +9,7 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 import veiculoRoutes from './routes/veiculoRoutes.js'; // NOVO: Importa as rotas de veículos
+import fs from 'fs/promises';
 
 
 // --- CONFIGURAÇÕES INICIAIS ---
@@ -194,6 +195,54 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
         res.status(500).json({ message: 'Erro interno do servidor' });
     } finally {
         await client.end();
+    }
+});
+
+// --- NOVO: Rota para deletar um documento ---
+app.delete('/api/documentos/:id', verificarToken, async (req, res) => {
+    const { id } = req.params;
+    const client = new pg.Client(connectionConfig);
+
+    try {
+        await client.connect();
+
+        // Passo 1: Primeiro, busca o nome do arquivo no banco antes de deletar o registro
+        const selectQuery = 'SELECT nome_arquivo FROM documentos WHERE id = $1';
+        const selectResult = await client.query(selectQuery, [id]);
+
+        if (selectResult.rowCount === 0) {
+            // Se o documento não existe, encerra a operação.
+            await client.end();
+            return res.status(404).json({ message: 'Documento não encontrado.' });
+        }
+        const nomeArquivo = selectResult.rows[0].nome_arquivo;
+
+        // Passo 2: Deleta o registro do documento do banco de dados
+        const deleteQuery = 'DELETE FROM documentos WHERE id = $1';
+        await client.query(deleteQuery, [id]);
+
+        // Passo 3: Se existia um nome de arquivo, deleta o arquivo físico do disco
+        if (nomeArquivo) {
+            // O caminho '/var/data/uploads' é o caminho do seu disco no Render
+            const caminhoArquivo = path.join('/var/data/uploads', nomeArquivo);
+            try {
+                await fs.unlink(caminhoArquivo);
+                console.log(`Arquivo físico deletado: ${caminhoArquivo}`);
+            } catch (fileError) {
+                // Se der erro ao deletar o arquivo (ex: já não existe), apenas registra no log
+                console.error(`Aviso: Falha ao deletar o arquivo físico ${caminhoArquivo}:`, fileError.message);
+            }
+        }
+
+        res.status(200).json({ message: 'Documento deletado com sucesso.' });
+
+    } catch (error) {
+        console.error('Erro ao deletar documento:', error);
+        res.status(500).json({ message: 'Erro interno do servidor' });
+    } finally {
+        if (client._connected) {
+            await client.end();
+        }
     }
 });
 
