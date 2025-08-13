@@ -225,7 +225,7 @@ export const adicionarAbastecimento = async (req, res) => {
 };
 
 // --- FUNÇÕES DE PLANO DE MANUTENÇÃO ---
-    
+
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR
 export const listarPlanosManutencao = async (req, res) => {
     const { veiculoId } = req.params;
@@ -248,9 +248,10 @@ export const listarPlanosManutencao = async (req, res) => {
         const planosComStatus = await Promise.all(planos.map(async (plano) => {
             // Busca a última manutenção preventiva correspondente
             const ultimaManutencaoResult = await pool.query(
+                // CORREÇÃO: Trocado LIKE por ILIKE para busca case-insensitive
                 `SELECT data, km_atual FROM manutencoes 
-                 WHERE veiculo_id = $1 AND tipo = 'Preventiva' AND pecas::text LIKE $2 
-                 ORDER BY data DESC, id DESC LIMIT 1`, // <<< CORREÇÃO APLICADA AQUI
+                 WHERE veiculo_id = $1 AND tipo = 'Preventiva' AND pecas::text ILIKE $2 
+                 ORDER BY data DESC, id DESC LIMIT 1`,
                 [veiculoId, `%${plano.descricao}%`]
             );
             const ultimaManutencao = ultimaManutencaoResult.rows.length > 0 ? ultimaManutencaoResult.rows[0] : null;
