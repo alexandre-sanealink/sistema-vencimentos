@@ -132,18 +132,20 @@ export const listarManutencoes = async (req, res) => {
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
-// Alterado: Adicionado 'export'
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR
 export const adicionarManutencao = async (req, res) => {
-    console.log('--- DADOS DE MANUTENÇÃO RECEBIDOS PELO BACKEND: ---', req.body); // <<< ADICIONE ESTA LINHA
+    // Opcional: pode remover esta linha de log depois que tudo funcionar
+    console.log('--- DADOS DE MANUTENÇÃO RECEBIDOS PELO BACKEND: ---', req.body); 
     const { veiculoId } = req.params;
     const { data, tipo, km_atual, pecas } = req.body;
+
     if (!data || !tipo || !km_atual) {
         return res.status(400).json({ error: 'Os campos data, tipo e km_atual são obrigatórios.' });
     }
     try {
         const query = `
             INSERT INTO manutencoes (veiculo_id, data, tipo, km_atual, pecas, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+            VALUES ($1, $2, $3, $4, $5::jsonb, NOW(), NOW())
             RETURNING *;
         `;
         const pecasJSON = JSON.stringify(pecas);
@@ -155,6 +157,7 @@ export const adicionarManutencao = async (req, res) => {
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
 // NOVO: Função para deletar um registro de manutenção
 export const deletarManutencao = async (req, res) => {
