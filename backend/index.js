@@ -45,6 +45,26 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
+// ROTA TEMPORÁRIA E SECRETA PARA GERAR HASH - REMOVER DEPOIS DO USO
+app.get('/api/gerar-hash/:senha', async (req, res) => {
+    try {
+        const { senha } = req.params;
+        const salt = await bcrypt.genSalt(10);
+        const senhaHash = await bcrypt.hash(senha, salt);
+        // Retorna uma página HTML simples com o hash gerado
+        res.status(200).send(`
+            <h1>Hash Gerado com Sucesso!</h1>
+            <p><strong>Senha:</strong> ${senha}</p>
+            <p><strong>Hash bcrypt 100% compatível:</strong></p>
+            <textarea rows="3" cols="70" readonly>${senhaHash}</textarea>
+            <p>COPIE a linha de hash acima para usarmos no pgAdmin.</p>
+        `);
+    } catch (error) {
+        console.error("Erro ao gerar hash:", error);
+        res.status(500).json({ message: 'Erro interno ao gerar hash' });
+    }
+});
+
 // --- ROTAS DA API ---
 
 // Conecta as rotas de veículos e usuários ao servidor
