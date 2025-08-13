@@ -118,12 +118,23 @@ export const listarManutencoes = async (req, res) => {
     const { veiculoId } = req.params;
     try {
         const { rows } = await pool.query('SELECT * FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC', [veiculoId]);
-        
-        // A biblioteca 'pg' já faz o parse automático de colunas do tipo JSON/JSONB.
-        // A propriedade 'pecas' em cada linha de 'rows' já é um array de objetos pronto para uso.
-        // Portanto, não precisamos mais fazer o JSON.parse() manualmente.
-        
-        res.status(200).json(rows);
+
+        // CORREÇÃO FINAL: Faz o parse manual da coluna 'pecas' para cada registro.
+        const manutencoesTratadas = rows.map(manutencao => {
+            // Garante que o parse só aconteça se 'pecas' for uma string.
+            if (typeof manutencao.pecas === 'string') {
+                try {
+                    // "Abre o pacote", transformando o texto em uma lista de objetos.
+                    manutencao.pecas = JSON.parse(manutencao.pecas);
+                } catch (e) {
+                    console.error('Erro ao fazer parse do JSON de peças:', e);
+                    manutencao.pecas = []; // Em caso de erro, define como lista vazia.
+                }
+            }
+            return manutencao;
+        });
+
+        res.status(200).json(manutencoesTratadas);
 
     } catch (error) {
         console.error(`Erro ao listar manutenções para o veículo ID ${veiculoId}:`, error);
