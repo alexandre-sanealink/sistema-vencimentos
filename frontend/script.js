@@ -874,28 +874,26 @@ if (formManutencao) {
         e.preventDefault();
         if (!veiculoSelecionado) return;
 
-        // Coleta os dados de todas as linhas de peças/serviços dinâmicas
         const pecas = [];
         const pecaItems = document.querySelectorAll('.peca-item');
-        
+
         pecaItems.forEach(item => {
             const tipo = item.querySelector('.peca-input-tipo').value;
             const descricao = item.querySelector('.peca-input-desc').value;
 
-            if (descricao) { // Só adiciona o item se a descrição for preenchida
+            if (descricao) { 
                 const itemManutencao = {
                     tipo: tipo,
                     descricao: descricao,
-                    quantidade: null, // Garante que os campos existam
+                    quantidade: null,
                     marca: null
                 };
 
-                // Apenas popula a quantidade e a marca se o tipo for 'Peca'
                 if (tipo === 'Peca') {
                     itemManutencao.quantidade = item.querySelector('.peca-input-qtd').value;
                     itemManutencao.marca = item.querySelector('.peca-input-marca').value || null;
                 }
-                
+
                 pecas.push(itemManutencao);
             }
         });
@@ -1022,21 +1020,45 @@ if (formAbastecimento) {
     btnAdicionarPeca.addEventListener('click', adicionarLinhaPeca);
 }
 
-        if (formManutencao) {
-            formManutencao.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (!veiculoSelecionado) return;
+        // INÍCIO DO CÓDIGO PARA SUBSTITUIR
+if (formManutencao) {
+    formManutencao.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!veiculoSelecionado) return;
+
+        const pecas = [];
+        const pecaItems = document.querySelectorAll('.peca-item');
+
+        pecaItems.forEach(item => {
+            const tipo = item.querySelector('.peca-input-tipo').value;
+            const descricao = item.querySelector('.peca-input-desc').value;
+
+            if (descricao) { 
+                const itemManutencao = {
+                    tipo: tipo,
+                    descricao: descricao,
+                    quantidade: null,
+                    marca: null
+                };
+
+                if (tipo === 'Peca') {
+                    itemManutencao.quantidade = item.querySelector('.peca-input-qtd').value;
+                    itemManutencao.marca = item.querySelector('.peca-input-marca').value || null;
+                }
+
+                pecas.push(itemManutencao);
+            }
+        });
 
         const dadosManutencao = {
             data: manutencaoData.value,
             tipo: manutencaoTipo.value,
             km_atual: manutencaoKm.value,
-            pecas: manutencaoPecas.value,
-            // Campos futuros: tempo_gasto, eficiencia
+            pecas: pecas, 
         };
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
-        const method = 'POST'; // Futuramente teremos 'PUT' para edição
+        const method = 'POST';
 
         try {
             const response = await fetch(url, {
@@ -1047,7 +1069,6 @@ if (formAbastecimento) {
 
             if (response.ok) {
                 fecharModal(modalManutencao);
-                // Atualiza a lista de manutenções na tela
                 exibirDetalhesDoVeiculo(veiculoSelecionado); 
             } else {
                 const erro = await response.json();
@@ -1059,6 +1080,7 @@ if (formAbastecimento) {
         }
     });
 }
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
     mobileMoreMenuWrapper.addEventListener('click', (e) => {
         e.stopPropagation();
