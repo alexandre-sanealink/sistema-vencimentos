@@ -1019,69 +1019,6 @@ if (formAbastecimento) {
         if (btnAdicionarPeca) {
     btnAdicionarPeca.addEventListener('click', adicionarLinhaPeca);
 }
-
-        // INÍCIO DO CÓDIGO PARA SUBSTITUIR
-if (formManutencao) {
-    formManutencao.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!veiculoSelecionado) return;
-
-        const pecas = [];
-        const pecaItems = document.querySelectorAll('.peca-item');
-
-        pecaItems.forEach(item => {
-            const tipo = item.querySelector('.peca-input-tipo').value;
-            const descricao = item.querySelector('.peca-input-desc').value;
-
-            if (descricao) { 
-                const itemManutencao = {
-                    tipo: tipo,
-                    descricao: descricao,
-                    quantidade: null,
-                    marca: null
-                };
-
-                if (tipo === 'Peca') {
-                    itemManutencao.quantidade = item.querySelector('.peca-input-qtd').value;
-                    itemManutencao.marca = item.querySelector('.peca-input-marca').value || null;
-                }
-
-                pecas.push(itemManutencao);
-            }
-        });
-
-        const dadosManutencao = {
-            data: manutencaoData.value,
-            tipo: manutencaoTipo.value,
-            km_atual: manutencaoKm.value,
-            pecas: pecas, 
-        };
-
-        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
-        const method = 'POST';
-
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: getAuthHeaders(),
-                body: JSON.stringify(dadosManutencao)
-            });
-
-            if (response.ok) {
-                fecharModal(modalManutencao);
-                exibirDetalhesDoVeiculo(veiculoSelecionado); 
-            } else {
-                const erro = await response.json();
-                alert(`Erro ao salvar registro: ${erro.error}`);
-            }
-        } catch (error) {
-            console.error('Erro ao salvar manutenção:', error);
-            alert('Ocorreu um erro de conexão. Tente novamente.');
-        }
-    });
-}
-// FIM DO CÓDIGO PARA SUBSTITUIR
-
     mobileMoreMenuWrapper.addEventListener('click', (e) => {
         e.stopPropagation();
         mobileMoreMenu.classList.toggle('visible');
