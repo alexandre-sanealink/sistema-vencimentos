@@ -258,81 +258,113 @@ const API_URL = IS_LOCAL
         btnProxima.disabled = paginaAtual === totalPaginas;
     };
 
-    const renderizarTabela = () => {
-        if(!tbodyDocumentos) return;
-        tbodyDocumentos.innerHTML = '';
-        if (documentosFiltrados.length === 0) {
-            if(paginationContainer) paginationContainer.classList.add('hidden');
-            tbodyDocumentos.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`;
-            return;
+    // INÍCIO DO CÓDIGO PARA SUBSTITUIR
+const renderizarTabela = () => {
+    if(!tbodyDocumentos) return;
+    tbodyDocumentos.innerHTML = '';
+    if (documentosFiltrados.length === 0) {
+        if(paginationContainer) paginationContainer.classList.add('hidden');
+        tbodyDocumentos.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`;
+        return;
+    }
+    
+    const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+    const fim = inicio + ITENS_POR_PAGINA;
+    const documentosDaPagina = documentosFiltrados.slice(inicio, fim);
+    
+    atualizarControlesPaginacao();
+    
+    const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
+    
+    documentosDaPagina.forEach(doc => {
+        const tr = document.createElement('tr');
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+        const dataVencimento = new Date(doc.dataVencimento);
+        const diffTime = dataVencimento.getTime() - hoje.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        let statusTexto, statusClasse;
+        if (doc.status === 'Renovado' || doc.status === 'Em_renovacao') { statusTexto = doc.status.replace('_', ' '); statusClasse = doc.status.toLowerCase(); }
+        else {
+            if (diffDays < 0) { statusTexto = 'Atrasado'; statusClasse = 'atrasado'; }
+            else if (diffDays <= 30) { statusTexto = 'Vence em Breve'; statusClasse = 'vence-breve'; }
+            else { statusTexto = 'Em Dia'; statusClasse = 'em-dia'; }
+        }
+        tr.innerHTML = `
+            <td>${doc.nome}</td>
+            <td>${doc.categoria || '-'}</td>
+            <td>${formatarDataParaExibicao(doc.dataVencimento)}</td>
+            <td class="dias-restantes">${doc.status === 'Renovado' ? '-' : (diffDays >= 0 ? `Faltam ${diffDays} dia(s)` : `Vencido há ${Math.abs(diffDays)} dia(s)`)}</td>
+            <td><span class="status-span status-${statusClasse}">${statusTexto}</span></td>
+            <td></td>
+            <td></td>
+        `;
+
+        const anexoCell = tr.children[5];
+        if (doc.nome_arquivo) {
+            const linkAnexo = document.createElement('a');
+            linkAnexo.href = `${API_URL}/uploads/${doc.nome_arquivo}`;
+            linkAnexo.target = '_blank';
+            linkAnexo.className = 'btn-anexo';
+            linkAnexo.title = 'Ver Anexo';
+            linkAnexo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/></svg>`;
+            anexoCell.appendChild(linkAnexo);
+        } else { 
+            anexoCell.textContent = 'N/A'; 
         }
         
-        const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
-        const fim = inicio + ITENS_POR_PAGINA;
-        const documentosDaPagina = documentosFiltrados.slice(inicio, fim);
-        
-        atualizarControlesPaginacao();
-        
-        const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
-        
-        documentosDaPagina.forEach(doc => {
-            const tr = document.createElement('tr');
-            const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
-            const dataVencimento = new Date(doc.dataVencimento);
-            const diffTime = dataVencimento.getTime() - hoje.getTime();
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            let statusTexto, statusClasse;
-            if (doc.status === 'Renovado' || doc.status === 'Em_renovacao') { statusTexto = doc.status.replace('_', ' '); statusClasse = doc.status.toLowerCase(); }
-            else {
-                if (diffDays < 0) { statusTexto = 'Atrasado'; statusClasse = 'atrasado'; }
-                else if (diffDays <= 30) { statusTexto = 'Vence em Breve'; statusClasse = 'vence-breve'; }
-                else { statusTexto = 'Em Dia'; statusClasse = 'em-dia'; }
-            }
-            tr.innerHTML = `
-                <td>${doc.nome}</td>
-                <td>${doc.categoria || '-'}</td>
-                <td>${formatarDataParaExibicao(doc.dataVencimento)}</td>
-                <td class="dias-restantes">${doc.status === 'Renovado' ? '-' : (diffDays >= 0 ? `Faltam ${diffDays} dia(s)` : `Vencido há ${Math.abs(diffDays)} dia(s)`)}</td>
-                <td><span class="status-span status-${statusClasse}">${statusTexto}</span></td>
-                <td></td>
-                <td></td>
-            `;
+        const acoesCell = tr.children[6];
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-editar';
+        btnEditar.title = 'Editar Documento';
+        btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+        btnEditar.onclick = () => {
+            formDocumento.reset();
+            docId.value = doc.id;
+            modalTitulo.textContent = 'Editar Documento';
+            docNome.value = doc.nome;
+            docCategoria.value = doc.categoria;
+            docVencimento.value = doc.dataVencimento ? doc.dataVencimento.split('T')[0] : '';
+            docAlerta.value = doc.diasAlerta;
+            anexoAtualContainer.textContent = doc.nome_arquivo ? `Anexo atual: ${doc.nome_arquivo}` : '';
+            anexoAtualContainer.classList.toggle('hidden', !doc.nome_arquivo);
+            docFileName.textContent = 'Nenhum arquivo novo';
+            abrirModal(modalDocumento);
+        };
+        acoesCell.appendChild(btnEditar);
 
-            const anexoCell = tr.children[5];
-            if (doc.nome_arquivo) {
-                const linkAnexo = document.createElement('a');
-                linkAnexo.href = `${API_URL}/uploads/${doc.nome_arquivo}`;
-                linkAnexo.target = '_blank';
-                linkAnexo.className = 'btn-anexo';
-                linkAnexo.title = 'Ver Anexo';
-                linkAnexo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/></svg>`;
-                anexoCell.appendChild(linkAnexo);
-            } else { 
-                anexoCell.textContent = 'N/A'; 
+        // --- NOVO: CÓDIGO PARA CRIAR O BOTÃO DE EXCLUIR ---
+        const btnDeletar = document.createElement('button');
+        btnDeletar.className = 'btn-deletar';
+        btnDeletar.title = 'Excluir Documento';
+        btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+
+        btnDeletar.onclick = async () => {
+            if (confirm(`Tem certeza que deseja excluir o documento "${doc.nome}"? Esta ação não pode ser desfeita.`)) {
+                try {
+                    const response = await fetch(`${DOCS_URL}/${doc.id}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+
+                    if (response.ok) {
+                        fetchDocumentos(); // Atualiza a lista de documentos na tela
+                    } else {
+                        const erro = await response.json();
+                        alert(`Erro ao excluir documento: ${erro.message || 'Erro desconhecido'}`);
+                    }
+                } catch (error) {
+                    console.error('Erro ao deletar documento:', error);
+                    alert('Ocorreu um erro de conexão ao tentar excluir.');
+                }
             }
-            
-            const acoesCell = tr.children[6];
-            const btnEditar = document.createElement('button');
-            btnEditar.className = 'btn-editar';
-            btnEditar.title = 'Editar Documento';
-            btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
-            btnEditar.onclick = () => {
-                formDocumento.reset();
-                docId.value = doc.id;
-                modalTitulo.textContent = 'Editar Documento';
-                docNome.value = doc.nome;
-                docCategoria.value = doc.categoria;
-                docVencimento.value = doc.dataVencimento ? doc.dataVencimento.split('T')[0] : '';
-                docAlerta.value = doc.diasAlerta;
-                anexoAtualContainer.textContent = doc.nome_arquivo ? `Anexo atual: ${doc.nome_arquivo}` : '';
-                anexoAtualContainer.classList.toggle('hidden', !doc.nome_arquivo);
-                docFileName.textContent = 'Nenhum arquivo novo';
-                abrirModal(modalDocumento);
-            };
-            acoesCell.appendChild(btnEditar);
-            tbodyDocumentos.appendChild(tr);
-        });
-    };
+        };
+        acoesCell.appendChild(btnDeletar);
+        // --- FIM DO NOVO CÓDIGO ---
+        
+        tbodyDocumentos.appendChild(tr);
+    });
+};
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
     const exibirDetalhesDoVeiculo = async (veiculo) => {
     veiculoSelecionado = veiculo;
