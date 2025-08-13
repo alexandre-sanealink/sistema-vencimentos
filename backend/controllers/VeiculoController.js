@@ -145,8 +145,6 @@ export const listarManutencoes = async (req, res) => {
 
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR
 export const adicionarManutencao = async (req, res) => {
-    // Opcional: pode remover esta linha de log depois que tudo funcionar
-    console.log('--- DADOS DE MANUTENÇÃO RECEBIDOS PELO BACKEND: ---', req.body); 
     const { veiculoId } = req.params;
     const { data, tipo, km_atual, pecas } = req.body;
 
@@ -162,8 +160,6 @@ export const adicionarManutencao = async (req, res) => {
         const pecasJSON = JSON.stringify(pecas);
         const values = [veiculoId, data, tipo, km_atual, pecasJSON];
         const { rows } = await pool.query(query, values);
-        // <<< ADICIONE ESTE NOVO LOG AQUI >>>
-    console.log('--- DADOS RETORNADOS PELO BANCO DE DADOS APÓS INSERT: ---', rows[0]);
         res.status(201).json(rows[0]);
     } catch (error) {
         console.error(`Erro ao adicionar manutenção para o veículo ID ${veiculoId}:`, error);
@@ -226,11 +222,10 @@ export const adicionarAbastecimento = async (req, res) => {
 
 // --- FUNÇÕES DE PLANO DE MANUTENÇÃO ---
 
-// INÍCIO DO CÓDIGO PARA SUBSTITUIR
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (listarPlanosManutencao)
 export const listarPlanosManutencao = async (req, res) => {
     const { veiculoId } = req.params;
     try {
-        // 1. Busca o KM mais recente do veículo a partir da última manutenção ou abastecimento
         const kmAtualResult = await pool.query(
             `SELECT GREATEST(
                 (SELECT km_atual FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC, id DESC LIMIT 1),
@@ -240,15 +235,11 @@ export const listarPlanosManutencao = async (req, res) => {
         );
         const kmAtual = kmAtualResult.rows.length > 0 && kmAtualResult.rows[0].km_atual ? parseInt(kmAtualResult.rows[0].km_atual) : 0;
 
-        // 2. Busca todos os itens do plano para o veículo
         const planosResult = await pool.query('SELECT * FROM planos_manutencao WHERE veiculo_id = $1 ORDER BY id ASC', [veiculoId]);
         const planos = planosResult.rows;
 
-        // 3. Para cada item do plano, calcula o status
         const planosComStatus = await Promise.all(planos.map(async (plano) => {
-            // Busca a última manutenção preventiva correspondente
             const ultimaManutencaoResult = await pool.query(
-                // CORREÇÃO: Trocado LIKE por ILIKE para busca case-insensitive
                 `SELECT data, km_atual FROM manutencoes 
                  WHERE veiculo_id = $1 AND tipo = 'Preventiva' AND pecas::text ILIKE $2 
                  ORDER BY data DESC, id DESC LIMIT 1`,
@@ -264,27 +255,27 @@ export const listarPlanosManutencao = async (req, res) => {
 
                 if (kmFaltante <= 0) {
                     statusKm = 'Vencido';
-                } else if (kmFaltante <= (parseInt(plano.intervalo_km) * 0.15)) { // Alerta nos últimos 15%
+                } else if (kmFaltante <= (parseInt(plano.intervalo_km) * 0.15)) {
                     statusKm = 'Alerta';
                 }
             }
 
+            // --- LÓGICA DE TEMPO ATUALIZADA PARA DIAS ---
             let statusTempo = 'Em Dia';
-            if (plano.intervalo_meses) {
+            if (plano.intervalo_dias) {
                 const dataBase = ultimaManutencao ? new Date(ultimaManutencao.data) : new Date(plano.created_at);
                 const proximaData = new Date(dataBase);
-                proximaData.setMonth(proximaData.getMonth() + parseInt(plano.intervalo_meses));
+                proximaData.setDate(proximaData.getDate() + parseInt(plano.intervalo_dias));
                 
                 const diasFaltantes = Math.ceil((proximaData.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
 
                 if (diasFaltantes <= 0) {
                     statusTempo = 'Vencido';
-                } else if (diasFaltantes <= 30) { // Alerta nos últimos 30 dias
+                } else if (diasFaltantes <= (parseInt(plano.intervalo_dias) * 0.15)) { // Alerta nos últimos 15% dos dias
                     statusTempo = 'Alerta';
                 }
             }
             
-            // Prioriza o status mais grave
             let statusFinal = 'Em Dia';
             if (statusKm === 'Alerta' || statusTempo === 'Alerta') {
                 statusFinal = 'Alerta';
@@ -304,21 +295,21 @@ export const listarPlanosManutencao = async (req, res) => {
     }
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
-    
-// Alterado: Adicionado 'export'
+
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (adicionarPlanoManutencao)
 export const adicionarPlanoManutencao = async (req, res) => {
     const { veiculoId } = req.params;
-    const { descricao, intervalo_km, intervalo_meses } = req.body;
-    if (!descricao || (!intervalo_km && !intervalo_meses)) {
-        return res.status(400).json({ error: 'Descrição e pelo menos um intervalo (KM ou meses) são obrigatórios.' });
+    const { descricao, intervalo_km, intervalo_dias } = req.body;
+    if (!descricao || (!intervalo_km && !intervalo_dias)) {
+        return res.status(400).json({ error: 'Descrição e pelo menos um intervalo (KM ou Dias) são obrigatórios.' });
     }
     try {
         const query = `
-            INSERT INTO planos_manutencao (veiculo_id, descricao, intervalo_km, intervalo_meses, created_at, updated_at)
+            INSERT INTO planos_manutencao (veiculo_id, descricao, intervalo_km, intervalo_dias, created_at, updated_at)
             VALUES ($1, $2, $3, $4, NOW(), NOW())
             RETURNING *;
         `;
-        const values = [veiculoId, descricao, intervalo_km || null, intervalo_meses || null];
+        const values = [veiculoId, descricao, intervalo_km || null, intervalo_dias || null];
         const { rows } = await pool.query(query, values);
         res.status(201).json(rows[0]);
     } catch (error) {
@@ -326,6 +317,7 @@ export const adicionarPlanoManutencao = async (req, res) => {
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
 // NOVO: Função para deletar um item do plano de manutenção
 export const deletarPlanoManutencao = async (req, res) => {

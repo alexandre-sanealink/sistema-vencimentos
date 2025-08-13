@@ -75,7 +75,7 @@ const API_URL = IS_LOCAL
     const formPlanoManutencao = document.getElementById('form-plano-manutencao');
     const planoDescricao = document.getElementById('plano-descricao');
     const planoKm = document.getElementById('plano-km');
-    const planoMeses = document.getElementById('plano-meses');
+    const planoDias = document.getElementById('plano-dias');
 
     // --- NOVO: Referências para o Modal de Manutenção ---
     const tbodyManutencoes = document.getElementById('tbody-manutencoes');
@@ -667,7 +667,7 @@ const abrirModalAbastecimento = () => {
     abrirModal(modalAbastecimento);
 };
 
-
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (renderizarTabelaPlanos)
 const renderizarTabelaPlanos = (planos) => {
     if (!tbodyPlanos) return;
     tbodyPlanos.innerHTML = '';
@@ -681,26 +681,24 @@ const renderizarTabelaPlanos = (planos) => {
         'Em Dia': 'em-dia',
         'Alerta': 'vence-breve',
         'Vencido': 'atrasado',
-        ' indefinido': 'em-dia' // Fallback para status não reconhecido
+        ' indefinido': 'em-dia'
     };
 
     planos.forEach(plano => {
         const tr = document.createElement('tr');
         
-        // --- CORREÇÃO DO STATUS APLICADA AQUI ---
-        const statusTexto = plano.status || ' indefinido'; // Garante que não seja "undefined"
+        const statusTexto = plano.status || ' indefinido';
         const statusClasse = mapaDeStatusParaClasse[statusTexto] || 'em-dia';
 
         tr.innerHTML = `
             <td>${plano.descricao}</td>
             <td>${plano.intervalo_km || '-'}</td>
-            <td>${plano.intervalo_meses || '-'}</td>
+            <td>${plano.intervalo_dias || '-'}</td>
             <td><span class="status-span status-${statusClasse}">${statusTexto}</span></td>
             <td></td>
         `;
 
-        // --- CORREÇÃO DA LIXEIRA APLICADA AQUI ---
-        const acoesCell = tr.children[4]; // A célula de ações é a 5ª (índice 4)
+        const acoesCell = tr.children[4];
         const btnDeletar = document.createElement('button');
         btnDeletar.className = 'btn-deletar';
         btnDeletar.title = 'Excluir Item do Plano';
@@ -714,7 +712,7 @@ const renderizarTabelaPlanos = (planos) => {
                         headers: getAuthHeaders()
                     });
                     if (response.ok) {
-                        exibirDetalhesDoVeiculo(veiculoSelecionado); // Atualiza a tela de detalhes
+                        exibirDetalhesDoVeiculo(veiculoSelecionado);
                     } else {
                         const erro = await response.json();
                         alert(`Erro ao excluir item do plano: ${erro.error || 'Erro desconhecido'}`);
@@ -730,8 +728,7 @@ const renderizarTabelaPlanos = (planos) => {
         tbodyPlanos.appendChild(tr);
     });
 };
-
-
+// FIM DO CÓDIGO PARA SUBSTITUIR
     
     // --- EVENT LISTENERS ---
     if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
@@ -1029,22 +1026,21 @@ if (formAbastecimento) {
         }
     });
 
-    // --- NOVO: Event Listener para o Formulário do Plano de Manutenção ---
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (formPlanoManutencao)
 if (formPlanoManutencao) {
     formPlanoManutencao.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!veiculoSelecionado) return;
 
-        // Validação para garantir que pelo menos um intervalo foi preenchido
-        if (!planoKm.value && !planoMeses.value) {
-            alert('Por favor, preencha pelo menos um intervalo (KM ou Meses).');
+        if (!planoKm.value && !planoDias.value) {
+            alert('Por favor, preencha pelo menos um intervalo (KM ou Dias).');
             return;
         }
 
         const dadosPlano = {
             descricao: planoDescricao.value,
             intervalo_km: planoKm.value || null,
-            intervalo_meses: planoMeses.value || null,
+            intervalo_dias: planoDias.value || null,
         };
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/planos`;
@@ -1058,7 +1054,7 @@ if (formPlanoManutencao) {
 
             if (response.ok) {
                 formPlanoManutencao.reset();
-                exibirDetalhesDoVeiculo(veiculoSelecionado); // Atualiza toda a página de detalhes
+                exibirDetalhesDoVeiculo(veiculoSelecionado);
             } else {
                 const erro = await response.json();
                 alert(`Erro ao salvar item do plano: ${erro.error}`);
@@ -1069,6 +1065,7 @@ if (formPlanoManutencao) {
         }
     });
 }
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
     verificarLogin();
 });
