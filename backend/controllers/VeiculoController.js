@@ -134,6 +134,7 @@ export const listarManutencoes = async (req, res) => {
 
 // Alterado: Adicionado 'export'
 export const adicionarManutencao = async (req, res) => {
+    console.log('--- DADOS DE MANUTENÇÃO RECEBIDOS PELO BACKEND: ---', req.body); // <<< ADICIONE ESTA LINHA
     const { veiculoId } = req.params;
     const { data, tipo, km_atual, pecas } = req.body;
     if (!data || !tipo || !km_atual) {
