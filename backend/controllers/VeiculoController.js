@@ -151,6 +151,8 @@ export const adicionarManutencao = async (req, res) => {
         const pecasJSON = JSON.stringify(pecas);
         const values = [veiculoId, data, tipo, km_atual, pecasJSON];
         const { rows } = await pool.query(query, values);
+        // <<< ADICIONE ESTE NOVO LOG AQUI >>>
+    console.log('--- DADOS RETORNADOS PELO BANCO DE DADOS APÓS INSERT: ---', rows[0]);
         res.status(201).json(rows[0]);
     } catch (error) {
         console.error(`Erro ao adicionar manutenção para o veículo ID ${veiculoId}:`, error);
