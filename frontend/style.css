@@ -354,3 +354,42 @@ td { font-size: 14px; white-space: nowrap; }
 #modal-manutencao .modal-content {
     max-width: 800px;
 }
+
+/* --- Estilização Customizada para Campos de Seleção (Dropdowns) --- */
+
+.select-wrapper {
+    position: relative;
+    display: block;
+    width: 100%;
+}
+
+/* Remove a aparência padrão do navegador e aplica nossos estilos */
+.select-wrapper select {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    
+    /* Estilos para combinar com os outros inputs do formulário */
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: pointer;
+    line-height: 1.5;
+    color: #333;
+}
+
+/* Adiciona nossa própria seta customizada no canto direito */
+.select-wrapper::after {
+    
+    font-size: 12px;
+    color: #555;
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none; /* Permite que o clique atravesse a seta e chegue no select */
+}

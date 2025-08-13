@@ -30,6 +30,15 @@ const API_URL = IS_LOCAL
     const mobileBtnPerfil = document.getElementById('mobile-btn-perfil');
     const mobileBtnAdmin = document.getElementById('mobile-btn-admin');
     const mobileBtnLogout = document.getElementById('mobile-btn-logout');
+    // Painel Admin
+    const btnAbrirModalAdminNovo = document.getElementById('btn-abrir-modal-admin-novo');
+    const tbodyUsuarios = document.getElementById('tbody-usuarios');
+    // Modal Alterar Senha de Usuário
+    const modalAlterarSenha = document.getElementById('modal-alterar-senha');
+    const formAlterarSenha = document.getElementById('form-alterar-senha');
+    const alterarSenhaUserid = document.getElementById('alterar-senha-userid');
+    const novaSenhaInput = document.getElementById('nova-senha');
+    const modalAlterarSenhaTitulo = document.getElementById('modal-alterar-senha-titulo');
     
     // Documentos
     const tbodyDocumentos = document.getElementById('tbody-documentos');
@@ -190,32 +199,67 @@ const API_URL = IS_LOCAL
         }
     };
 
-    const verificarLogin = () => {
-        const token = obterToken();
-        const userInfo = localStorage.getItem('userInfo');
-        if (token && userInfo) {
-            const { usuario } = JSON.parse(userInfo);
-            telaLogin.classList.add('hidden');
-            appContainer.classList.remove('hidden');
-            const perfilLinkText = btnAbrirPerfil.querySelector('.nav-text');
-            if (perfilLinkText) perfilLinkText.textContent = `${usuario.nome || usuario.email}`;
-            if (liAdminPanel) {
-                if (usuario.email === ADMIN_EMAIL) {
-                    liAdminPanel.classList.remove('hidden');
-                    mobileBtnAdmin.classList.remove('hidden');
-                } else {
-                    liAdminPanel.classList.add('hidden');
-                    mobileBtnAdmin.classList.add('hidden');
-                }
-            }
-            fetchDocumentos();
-            fetchVeiculos();
+    // INÍCIO DO CÓDIGO PARA SUBSTITUIR (verificarLogin)
+const verificarLogin = () => {
+    const token = obterToken();
+    const userInfo = localStorage.getItem('userInfo');
+
+    // Esconde todos os menus de módulos e de admin por padrão
+    document.querySelectorAll('.sidebar-nav li, #bottom-bar .bottom-bar-link').forEach(item => {
+        // Não esconde os botões de "Meu Perfil", "Sair", ou o menu "Mais" do mobile
+        if (!item.querySelector('#btn-abrir-perfil') && !item.querySelector('#btn-logout') && item.id !== 'mobile-more-menu-wrapper') {
+            item.classList.add('hidden');
+        }
+    });
+    liAdminPanel.classList.add('hidden');
+    mobileBtnAdmin.classList.add('hidden');
+
+
+    if (token && userInfo) {
+        const { usuario } = JSON.parse(userInfo);
+        telaLogin.classList.add('hidden');
+        appContainer.classList.remove('hidden');
+        bottomBar.classList.remove('hidden');
+
+        const perfilLinkText = btnAbrirPerfil.querySelector('.nav-text');
+        if (perfilLinkText) perfilLinkText.textContent = `${usuario.nome || usuario.email}`;
+
+        const userRole = usuario.role;
+
+        // --- LÓGICA DE VISIBILIDADE DOS MÓDULOS ---
+        if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
+            // Mostra todos os módulos
+            document.querySelectorAll('#nav-documentos, #nav-frota, #nav-colaboradores, #nav-contratos').forEach(link => link.parentElement.classList.remove('hidden'));
+            document.querySelectorAll('#mobile-nav-documentos, #mobile-nav-frota, #mobile-nav-colaboradores, #mobile-nav-contratos').forEach(link => link.classList.remove('hidden'));
+        } else if (userRole === 'ENCARREGADO' || userRole === 'MECANICO') {
+            // Mostra apenas o módulo de frota
+            document.querySelector('#nav-frota').parentElement.classList.remove('hidden');
+            document.querySelector('#mobile-nav-frota').classList.remove('hidden');
+        }
+        
+        // --- LÓGICA PARA O BOTÃO "ADICIONAR USUÁRIO" ---
+        if (userRole === 'SUPER_ADMIN') {
+            liAdminPanel.classList.remove('hidden');
+            mobileBtnAdmin.classList.remove('hidden');
+        }
+        
+        fetchDocumentos();
+        fetchVeiculos();
+        
+        // Redireciona para o módulo correto com base no papel do usuário ao logar
+        if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
             switchView('content-documentos');
         } else {
-            telaLogin.classList.remove('hidden');
-            appContainer.classList.add('hidden');
+            switchView('content-frota');
         }
-    };
+
+    } else {
+        telaLogin.classList.remove('hidden');
+        appContainer.classList.add('hidden');
+        bottomBar.classList.add('hidden');
+    }
+};
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
     // --- LÓGICA DO MÓDULO DE DOCUMENTOS ---
     const fetchDocumentos = async () => {
@@ -366,10 +410,24 @@ const renderizarTabela = () => {
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
-    const exibirDetalhesDoVeiculo = async (veiculo) => {
+    // INÍCIO DO CÓDIGO PARA SUBSTITUIR (exibirDetalhesDoVeiculo)
+const exibirDetalhesDoVeiculo = async (veiculo) => {
     veiculoSelecionado = veiculo;
     detalhesVeiculoTitulo.textContent = `Detalhes: ${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
     switchView('content-veiculo-detalhes');
+
+    // --- NOVO: LÓGICA PARA ESCONDER SEÇÃO DE ABASTECIMENTO ---
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+    const userRole = userInfo ? userInfo.usuario.role : null;
+    const secaoAbastecimento = document.getElementById('secao-abastecimento');
+
+    if (secaoAbastecimento) {
+        if (userRole === 'ENCARREGADO' || userRole === 'MECANICO') {
+            secaoAbastecimento.classList.add('hidden');
+        } else {
+            secaoAbastecimento.classList.remove('hidden');
+        }
+    }
 
     // Busca e renderiza o histórico de MANUTENÇÕES
     try {
@@ -382,15 +440,17 @@ const renderizarTabela = () => {
         tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
     }
 
-    // Busca e renderiza o histórico de ABASTECIMENTOS
-    try {
-        const resAbastecimentos = await fetch(`${VEICULOS_URL}/${veiculo.id}/abastecimentos`, { headers: getAuthHeaders() });
-        if (!resAbastecimentos.ok) throw new Error('Falha ao buscar abastecimentos');
-        const abastecimentos = await resAbastecimentos.json();
-        renderizarTabelaAbastecimentos(abastecimentos);
-    } catch (error) {
-        console.error('Erro ao buscar abastecimentos:', error);
-        tbodyAbastecimentos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
+    // Apenas busca o histórico de abastecimento se a seção for visível
+    if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
+        try {
+            const resAbastecimentos = await fetch(`${VEICULOS_URL}/${veiculo.id}/abastecimentos`, { headers: getAuthHeaders() });
+            if (!resAbastecimentos.ok) throw new Error('Falha ao buscar abastecimentos');
+            const abastecimentos = await resAbastecimentos.json();
+            renderizarTabelaAbastecimentos(abastecimentos);
+        } catch (error) {
+            console.error('Erro ao buscar abastecimentos:', error);
+            tbodyAbastecimentos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
+        }
     }
 
     // Busca e renderiza o PLANO DE MANUTENÇÃO
@@ -404,6 +464,7 @@ const renderizarTabela = () => {
         tbodyPlanos.innerHTML = `<tr><td colspan="4" style="text-align:center;">Erro ao carregar plano.</td></tr>`;
     }
 };
+// FIM DO CÓDIGO PARA SUBSTITUIR
 
     // --- LÓGICA DO MÓDULO DE FROTA ---
     // --- NOVO: Funções de Manutenção ---
@@ -811,8 +872,8 @@ const renderizarTabelaPlanos = (planos) => {
         abrirModal(modalDocumento);
     });
 
-    btnAdminPanel.addEventListener('click', acoesDeUsuario.abrirAdmin);
-    mobileBtnAdmin.addEventListener('click', acoesDeUsuario.abrirAdmin);
+    btnAdminPanel.addEventListener('click', () => carregarPainelAdmin());
+    mobileBtnAdmin.addEventListener('click', () => carregarPainelAdmin());
     
     btnAbrirPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
     mobileBtnPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
@@ -1099,5 +1160,209 @@ if (formPlanoManutencao) {
 }
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
+// INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
+
+// --- FUNÇÕES DO PAINEL DE ADMINISTRAÇÃO ---
+
+/**
+ * Busca a lista de usuários da API e manda renderizar a tabela.
+ */
+const carregarPainelAdmin = async () => {
+    switchView('content-admin-panel'); // Mostra a página do painel admin
+    
+    if (!tbodyUsuarios) return;
+    tbodyUsuarios.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando usuários...</td></tr>';
+
+    try {
+        const response = await fetch(`${API_URL}/api/usuarios`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error('Falha ao buscar usuários. Você tem permissão para acessar esta área?');
+        }
+
+        const usuarios = await response.json();
+        renderizarTabelaUsuarios(usuarios);
+
+    } catch (error) {
+        console.error('Erro ao carregar painel admin:', error);
+        tbodyUsuarios.innerHTML = `<tr><td colspan="4" style="text-align:center;">${error.message}</td></tr>`;
+    }
+}
+
+/**
+ * Renderiza a tabela de usuários com os dados recebidos.
+ * @param {Array} usuarios - A lista de usuários vinda da API.
+ */
+const renderizarTabelaUsuarios = (usuarios) => {
+    if (!tbodyUsuarios) return;
+    tbodyUsuarios.innerHTML = '';
+
+    if (usuarios.length === 0) {
+        tbodyUsuarios.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum usuário encontrado.</td></tr>';
+        return;
+    }
+
+    const rolesDisponiveis = ['SUPER_ADMIN', 'ESCRITORIO', 'ENCARREGADO', 'MECANICO'];
+
+    usuarios.forEach(usuario => {
+        const tr = document.createElement('tr');
+        
+        // Cria o seletor de Papel (Role)
+        const selectRoleOptions = rolesDisponiveis.map(role => 
+            `<option value="${role}" ${usuario.role === role ? 'selected' : ''}>${role}</option>`
+        ).join('');
+
+        const selectRoleHTML = `
+            <div class="select-wrapper">
+                <select class="select-role-usuario" data-userid="${usuario.id}">
+                    ${selectRoleOptions}
+                </select>
+            </div>
+        `;
+
+        tr.innerHTML = `
+            <td>${usuario.nome}</td>
+            <td>${usuario.email}</td>
+            <td>${selectRoleHTML}</td>
+            <td>
+                <button class="btn-secundario btn-alterar-senha" data-userid="${usuario.id}">Alterar Senha</button>
+                <button class="btn-deletar btn-deletar-usuario" data-userid="${usuario.id}" data-username="${usuario.nome}">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+            </td>
+        `;
+
+        tbodyUsuarios.appendChild(tr);
+    });
+
+    // Futuramente, aqui adicionaremos os event listeners para os botões e seletores
+}
+
+// FIM DO NOVO CÓDIGO
+
+// INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
+
+// --- LÓGICA DE EVENTOS DO PAINEL DE ADMINISTRAÇÃO ---
+
+// Abre o modal de criar usuário a partir do botão no painel
+if (btnAbrirModalAdminNovo) {
+    btnAbrirModalAdminNovo.addEventListener('click', () => {
+        formRegister.reset();
+        abrirModal(modalAdmin);
+    });
+}
+
+// Lida com as ações dentro da tabela de usuários (Alterar Role, Senha, Deletar)
+if (tbodyUsuarios) {
+    tbodyUsuarios.addEventListener('click', async (e) => {
+        const target = e.target;
+
+        // --- LÓGICA PARA DELETAR USUÁRIO ---
+        if (target.classList.contains('btn-deletar-usuario') || target.closest('.btn-deletar-usuario')) {
+            const button = target.closest('.btn-deletar-usuario');
+            const userId = button.dataset.userid;
+            const userName = button.dataset.username;
+
+            if (confirm(`Tem certeza que deseja excluir o usuário "${userName}"?`)) {
+                try {
+                    const response = await fetch(`${API_URL}/api/usuarios/${userId}`, {
+                        method: 'DELETE',
+                        headers: getAuthHeaders()
+                    });
+                    if (response.ok) {
+                        alert('Usuário excluído com sucesso!');
+                        carregarPainelAdmin(); // Recarrega a lista
+                    } else {
+                        const erro = await response.json();
+                        alert(`Erro: ${erro.error}`);
+                    }
+                } catch (error) {
+                    console.error('Erro ao deletar usuário:', error);
+                    alert('Erro de conexão ao tentar deletar usuário.');
+                }
+            }
+        }
+
+        // --- LÓGICA PARA ABRIR O MODAL DE ALTERAR SENHA ---
+        if (target.classList.contains('btn-alterar-senha')) {
+            const userId = target.dataset.userid;
+            alterarSenhaUserid.value = userId;
+            formAlterarSenha.reset();
+            abrirModal(modalAlterarSenha);
+        }
+    });
+
+    // --- LÓGICA PARA ALTERAR O PAPEL (ROLE) ---
+    tbodyUsuarios.addEventListener('change', async (e) => {
+        if (e.target.classList.contains('select-role-usuario')) {
+            const select = e.target;
+            const userId = select.dataset.userid;
+            const newRole = select.value;
+
+            try {
+                const response = await fetch(`${API_URL}/api/usuarios/${userId}/role`, {
+                    method: 'PUT',
+                    headers: getAuthHeaders(),
+                    body: JSON.stringify({ role: newRole })
+                });
+
+                if (response.ok) {
+                    alert('Papel do usuário atualizado com sucesso!');
+                    // Opcional: recarregar o painel para garantir consistência
+                    carregarPainelAdmin();
+                } else {
+                    const erro = await response.json();
+                    alert(`Erro: ${erro.error}`);
+                    carregarPainelAdmin(); // Recarrega para reverter a mudança visual
+                }
+            } catch (error) {
+                console.error('Erro ao alterar role:', error);
+                alert('Erro de conexão ao tentar alterar o papel.');
+                carregarPainelAdmin();
+            }
+        }
+    });
+}
+
+// Lógica para o formulário do modal de alterar senha
+if (formAlterarSenha) {
+    formAlterarSenha.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const userId = alterarSenhaUserid.value;
+        const novaSenha = novaSenhaInput.value;
+
+        try {
+            const response = await fetch(`${API_URL}/api/usuarios/${userId}/password`, {
+                method: 'PUT',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ novaSenha: novaSenha })
+            });
+
+            if (response.ok) {
+                alert('Senha atualizada com sucesso!');
+                fecharModal(modalAlterarSenha);
+            } else {
+                const erro = await response.json();
+                alert(`Erro: ${erro.error}`);
+            }
+        } catch (error) {
+            console.error('Erro ao atualizar senha:', error);
+            alert('Erro de conexão ao tentar atualizar a senha.');
+        }
+    });
+}
+
+// Fecha o novo modal de senha
+if(modalAlterarSenha) {
+    const closeButton = modalAlterarSenha.querySelector('.close-button');
+    if (closeButton) { closeButton.addEventListener('click', () => fecharModal(modalAlterarSenha)); }
+    modalAlterarSenha.addEventListener('click', (e) => { if (e.target === modalAlterarSenha) { fecharModal(modalAlterarSenha); } });
+}
+
+// FIM DO NOVO CÓDIGO
+
     verificarLogin();
 });
+
