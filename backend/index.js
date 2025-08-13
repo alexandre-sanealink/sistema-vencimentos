@@ -74,6 +74,7 @@ app.use('/api', usuarioRoutes); // NOVO
 
 // Rota de Login (não precisa de token)
 app.post('/api/login', async (req, res) => {
+    console.log('--- DADOS RECEBIDOS NA TENTATIVA DE LOGIN: ---', req.body); // <<< ADICIONE ESTA LINHA
     const { email, senha } = req.body;
     const client = new pg.Client(connectionConfig);
     try {
