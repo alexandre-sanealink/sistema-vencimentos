@@ -78,7 +78,7 @@ app.post('/api/login', async (req, res) => {
 
 // == ROTAS PROTEGIDAS (precisam de token) ==
 app.use('/api', verificarToken, veiculoRoutes); // Protege todas as rotas de veículos
-app.use('/api', usuarioRoutes); // Já tem proteção interna, mas adicionamos aqui por consistência
+app.use('/api/usuarios', usuarioRoutes);
 
 
 // Rotas de documentos (legado, mantidas no index.js por enquanto)
