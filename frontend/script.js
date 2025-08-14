@@ -199,21 +199,18 @@ const API_URL = IS_LOCAL
         }
     };
 
-    // INÍCIO DO CÓDIGO PARA SUBSTITUIR (verificarLogin)
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (verificarLogin)
 const verificarLogin = () => {
     const token = obterToken();
     const userInfo = localStorage.getItem('userInfo');
 
-    // Esconde todos os menus de módulos e de admin por padrão
     document.querySelectorAll('.sidebar-nav li, #bottom-bar .bottom-bar-link').forEach(item => {
-        // Não esconde os botões de "Meu Perfil", "Sair", ou o menu "Mais" do mobile
         if (!item.querySelector('#btn-abrir-perfil') && !item.querySelector('#btn-logout') && item.id !== 'mobile-more-menu-wrapper') {
             item.classList.add('hidden');
         }
     });
     liAdminPanel.classList.add('hidden');
     mobileBtnAdmin.classList.add('hidden');
-
 
     if (token && userInfo) {
         const { usuario } = JSON.parse(userInfo);
@@ -226,31 +223,31 @@ const verificarLogin = () => {
 
         const userRole = usuario.role;
 
-        // --- LÓGICA DE VISIBILIDADE DOS MÓDULOS ---
+        // --- LÓGICA DE VISIBILIDADE E CARREGAMENTO DE DADOS ---
         if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
-            // Mostra todos os módulos
             document.querySelectorAll('#nav-documentos, #nav-frota, #nav-colaboradores, #nav-contratos').forEach(link => link.parentElement.classList.remove('hidden'));
             document.querySelectorAll('#mobile-nav-documentos, #mobile-nav-frota, #mobile-nav-colaboradores, #mobile-nav-contratos').forEach(link => link.classList.remove('hidden'));
+            
+            // Apenas carrega os dados e define a view se o DOM estiver pronto
+            if (tbodyDocumentos && tbodyVeiculos) {
+                fetchDocumentos();
+                fetchVeiculos();
+                switchView('content-documentos');
+            }
         } else if (userRole === 'ENCARREGADO' || userRole === 'MECANICO') {
-            // Mostra apenas o módulo de frota
             document.querySelector('#nav-frota').parentElement.classList.remove('hidden');
             document.querySelector('#mobile-nav-frota').classList.remove('hidden');
+
+            // Apenas carrega os dados e define a view se o DOM estiver pronto
+            if (tbodyVeiculos) {
+                fetchVeiculos();
+                switchView('content-frota');
+            }
         }
         
-        // --- LÓGICA PARA O BOTÃO "ADICIONAR USUÁRIO" ---
         if (userRole === 'SUPER_ADMIN') {
             liAdminPanel.classList.remove('hidden');
             mobileBtnAdmin.classList.remove('hidden');
-        }
-        
-        fetchDocumentos();
-        fetchVeiculos();
-        
-        // Redireciona para o módulo correto com base no papel do usuário ao logar
-        if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
-            switchView('content-documentos');
-        } else {
-            switchView('content-frota');
         }
 
     } else {
