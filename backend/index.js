@@ -71,6 +71,10 @@ app.get('/api/gerar-hash/:senha', async (req, res) => {
 app.use('/api', veiculoRoutes);
 app.use('/api', usuarioRoutes); // NOVO
 
+// ROTA DE TESTE PARA VERIFICAR A VERSÃO DO DEPLOY
+app.get('/api/versao', (req, res) => {
+    res.status(200).json({ versao: '2.0-login-debug-final' });
+});
 
 // Rota de Login (não precisa de token)
 app.post('/api/login', async (req, res) => {
