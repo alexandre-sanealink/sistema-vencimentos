@@ -10,15 +10,14 @@ import jwt from 'jsonwebtoken';
 import multer from 'multer';
 import { fileURLToPath } from 'url';
 
-// --- IMPORTAÇÃO DOS NOVOS MÓDULOS ---
 import veiculoRoutes from './routes/veiculoRoutes.js';
-import usuarioRoutes from './routes/usuarioRoutes.js'; // NOVO
-import { verificarToken } from './middleware/authMiddleware.js'; // NOVO
-import './mailer.js'; // Inicia o agendador de e-mails
+import usuarioRoutes from './routes/usuarioRoutes.js';
+import { verificarToken } from './middleware/authMiddleware.js';
+import './mailer.js';
 
 
 // --- CONFIGURAÇÕES INICIAIS ---
-const { Client } = pg; // Usado apenas nas rotas antigas. O ideal é refatorar para Pool no futuro.
+const { Client } = pg;
 
 const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
 const connectionConfig = {
@@ -45,51 +44,21 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 
-// ROTA TEMPORÁRIA E SECRETA PARA GERAR HASH - REMOVER DEPOIS DO USO
-app.get('/api/gerar-hash/:senha', async (req, res) => {
-    try {
-        const { senha } = req.params;
-        const salt = await bcrypt.genSalt(10);
-        const senhaHash = await bcrypt.hash(senha, salt);
-        // Retorna uma página HTML simples com o hash gerado
-        res.status(200).send(`
-            <h1>Hash Gerado com Sucesso!</h1>
-            <p><strong>Senha:</strong> ${senha}</p>
-            <p><strong>Hash bcrypt 100% compatível:</strong></p>
-            <textarea rows="3" cols="70" readonly>${senhaHash}</textarea>
-            <p>COPIE a linha de hash acima para usarmos no pgAdmin.</p>
-        `);
-    } catch (error) {
-        console.error("Erro ao gerar hash:", error);
-        res.status(500).json({ message: 'Erro interno ao gerar hash' });
-    }
-});
-
 // --- ROTAS DA API ---
 
-// Conecta as rotas de veículos e usuários ao servidor
-app.use('/api', veiculoRoutes);
-app.use('/api', usuarioRoutes); // NOVO
-
-// ROTA DE TESTE PARA VERIFICAR A VERSÃO DO DEPLOY
-app.get('/api/versao', (req, res) => {
-    res.status(200).json({ versao: '2.0-login-debug-final' });
-});
-
-// Rota de Login (não precisa de token)
+// == ROTAS PÚBLICAS (não precisam de token) ==
 app.post('/api/login', async (req, res) => {
-    console.log('--- DADOS RECEBIDOS NA TENTATIVA DE LOGIN: ---', req.body); // <<< ADICIONE ESTA LINHA
     const { email, senha } = req.body;
     const client = new pg.Client(connectionConfig);
     try {
         await client.connect();
         const resultado = await client.query('SELECT * FROM usuarios WHERE email = $1', [email]);
-        if (resultado.rowCount === 0) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+        if (resultado.rowCount === 0) { return res.status(401).json({ message: 'Email ou senha inválidos.' }); }
         
         const usuario = resultado.rows[0];
         
         const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
-        if (!senhaValida) { return res.status(400).json({ message: 'Email ou senha inválidos.' }); }
+        if (!senhaValida) { return res.status(401).json({ message: 'Email ou senha inválidos.' }); }
         
         const tokenPayload = { id: usuario.id, email: usuario.email, nome: usuario.nome, role: usuario.role };
         const usuarioInfo = { id: usuario.id, email: usuario.email, nome: usuario.nome, role: usuario.role };
@@ -107,7 +76,12 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-// Rota para buscar todos os documentos (agora usa o middleware importado)
+// == ROTAS PROTEGIDAS (precisam de token) ==
+app.use('/api', verificarToken, veiculoRoutes); // Protege todas as rotas de veículos
+app.use('/api', usuarioRoutes); // Já tem proteção interna, mas adicionamos aqui por consistência
+
+
+// Rotas de documentos (legado, mantidas no index.js por enquanto)
 app.get('/api/documentos', verificarToken, async (req, res) => {
     const client = new Client(connectionConfig);
     try {
@@ -123,7 +97,6 @@ app.get('/api/documentos', verificarToken, async (req, res) => {
     }
 });
 
-// Rota para criar um novo documento
 app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req, res) => {
     const client = new Client(connectionConfig);
     try {
@@ -144,7 +117,6 @@ app.post('/api/documentos', verificarToken, upload.single('arquivo'), async (req
     }
 });
 
-// Rota para atualizar um documento
 app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (req, res) => {
     const client = new Client(connectionConfig);
     try {
@@ -179,7 +151,6 @@ app.put('/api/documentos/:id', verificarToken, upload.single('arquivo'), async (
     }
 });
 
-// Rota para deletar um documento
 app.delete('/api/documentos/:id', verificarToken, async (req, res) => {
     const { id } = req.params;
     const client = new pg.Client(connectionConfig);
@@ -221,7 +192,6 @@ app.delete('/api/documentos/:id', verificarToken, async (req, res) => {
     }
 });
 
-// Rota para registrar novo usuário (agora usa o middleware importado)
 app.post('/api/register', verificarToken, async (req, res) => {
     const { nome, email, senha } = req.body;
     if (!nome || !email || !senha) { return res.status(400).json({ message: 'Nome, email e senha são obrigatórios.' }); }
@@ -242,7 +212,6 @@ app.post('/api/register', verificarToken, async (req, res) => {
     }
 });
 
-// Rota para atualizar o perfil do usuário
 app.put('/api/perfil', verificarToken, async (req, res) => {
     const { nome } = req.body;
     const usuarioId = req.usuario.id;
