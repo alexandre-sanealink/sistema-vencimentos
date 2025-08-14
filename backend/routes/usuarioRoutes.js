@@ -1,3 +1,4 @@
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (usuarioRoutes.js)
 import express from 'express';
 import {
     listarUsuarios,
@@ -9,27 +10,22 @@ import { verificarToken, verificarSuperAdmin } from '../middleware/authMiddlewar
 
 const router = express.Router();
 
-// Aplica a segurança em TODAS as rotas deste arquivo.
-// Primeiro, verifica se o usuário está logado (verificarToken).
-// Depois, verifica se o usuário logado é SUPER_ADMIN (verificarSuperAdmin).
+// Aplica a segurança em TODAS as rotas deste arquivo
 router.use(verificarToken, verificarSuperAdmin);
 
 // --- ROTAS DE GERENCIAMENTO DE USUÁRIOS ---
 
-// Rota para listar todos os usuários
-// GET /api/usuarios
-router.get('/usuarios', listarUsuarios);
+// Rota para listar todos os usuários (agora em GET /)
+router.get('/', listarUsuarios);
 
-// Rota para atualizar o papel (role) de um usuário específico
-// PUT /api/usuarios/:id/role
-router.put('/usuarios/:id/role', atualizarRoleUsuario);
+// Rota para atualizar o papel (role) de um usuário (agora em PUT /:id/role)
+router.put('/:id/role', atualizarRoleUsuario);
 
-// Rota para atualizar a senha de um usuário específico
-// PUT /api/usuarios/:id/password
-router.put('/usuarios/:id/password', atualizarSenhaUsuario);
+// Rota para atualizar a senha de um usuário (agora em PUT /:id/password)
+router.put('/:id/password', atualizarSenhaUsuario);
 
-// Rota para deletar um usuário específico
-// DELETE /api/usuarios/:id
-router.delete('/usuarios/:id', deletarUsuario);
+// Rota para deletar um usuário (agora em DELETE /:id)
+router.delete('/:id', deletarUsuario);
 
 export default router;
+// FIM DO CÓDIGO PARA SUBSTITUIR
