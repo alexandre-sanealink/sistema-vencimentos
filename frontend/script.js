@@ -901,7 +901,7 @@ const renderizarTabelaPlanos = (planos) => {
     btnAbrirPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
     mobileBtnPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
 
-    [modalDocumento, modalAdmin, modalPerfil, modalVeiculo, modalManutencao, modalAbastecimento].forEach(m => {        if(m) {
+    [modalDocumento, modalAdmin, modalPerfil, modalVeiculo, modalManutencao, modalAbastecimento].forEach(m => {      if(m) {
             const closeButton = m.querySelector('.close-button');
             if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
             m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
@@ -1390,12 +1390,15 @@ if(modalAlterarSenha) {
 
 /**
 
-// INÍCIO DO CÓDIGO PARA SUBSTITUIR (renderizarTabelaSolicitacoes)
+/**
 /**
  * Renderiza a tabela do Quadro de Solicitações.
  * @param {Array} solicitacoes - A lista de solicitações vinda da API.
  */
 const renderizarTabelaSolicitacoes = (solicitacoes) => {
+    // A linha abaixo é para depuração, podemos removê-la depois
+    console.log('Dados recebidos para renderizar a tabela:', solicitacoes);
+
     if (!tbodySolicitacoes) return;
     tbodySolicitacoes.innerHTML = '';
 
@@ -1407,6 +1410,13 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     const userRole = userInfo ? userInfo.usuario.role : null;
 
+    // Dicionário para traduzir e estilizar os status
+    const mapaStatus = {
+        'ABERTO': { texto: 'Aberto', classe: 'aberto' },
+        'EM_ANDAMENTO': { texto: 'Em Andamento', classe: 'em-andamento' }
+        // Futuramente adicionaremos o 'CONCLUIDO' aqui
+    };
+
     const formatarData = (d) => new Date(d).toLocaleString('pt-BR', { 
         timeZone: 'America/Sao_Paulo',
         day: '2-digit', month: '2-digit', year: 'numeric',
@@ -1415,9 +1425,14 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
 
     solicitacoes.forEach(solicitacao => {
         const tr = document.createElement('tr');
+
+        // Lógica para pegar o texto e a classe do status do nosso dicionário
+        const statusInfo = mapaStatus[solicitacao.status] || { texto: solicitacao.status, classe: '' };
+
+        // O HTML da célula de status foi atualizado para usar a lógica acima
         tr.innerHTML = `
             <td>${formatarData(solicitacao.data_solicitacao)}</td>
-            <td><span class="status-span">${solicitacao.status}</span></td>
+            <td><span class="status-span status-${statusInfo.classe}">${statusInfo.texto}</span></td>
             <td>${solicitacao.solicitado_por_nome || 'N/A'}</td>
             <td>${solicitacao.descricao_problema}</td>
             <td>${solicitacao.mecanico_responsavel_nome || '-'}</td>
@@ -1432,40 +1447,34 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
             btnAssumir.textContent = 'Assumir';
             btnAssumir.title = 'Assumir esta solicitação de manutenção';
             
-            // Substitua toda a sua função btnAssumir.onclick por esta
-btnAssumir.onclick = async () => {
-    if (confirm('Tem certeza que deseja assumir este serviço?')) {
-        try {
-            // A declaração da URL agora está no lugar certo e sem duplicatas
-            const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/solicitacoes/${solicitacao.id}/assumir`;
-            
-            const response = await fetch(url, {
-                method: 'PATCH',
-                headers: getAuthHeaders()
-            });
+            btnAssumir.onclick = async () => {
+                if (confirm('Tem certeza que deseja assumir este serviço?')) {
+                    try {
+                        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/solicitacoes/${solicitacao.id}/assumir`;
+                        
+                        const response = await fetch(url, {
+                            method: 'PATCH',
+                            headers: getAuthHeaders()
+                        });
 
-            if (response.ok) {
-                // Se a API responder com sucesso, atualiza os dados na tela
-                exibirDetalhesDoVeiculo(veiculoSelecionado); 
-            } else {
-                // Se a API responder com erro, exibe a mensagem de erro vinda do backend
-                const erro = await response.json();
-                alert(`Erro ao assumir serviço: ${erro.error || 'Erro desconhecido.'}`);
-            }
-        } catch (error) {
-            // Se houver um erro de rede (sem conexão) ou a resposta não for JSON
-            console.error('Erro ao assumir serviço:', error);
-            alert('Ocorreu um erro de conexão ao tentar assumir o serviço.');
-        }
-    }
-};
+                        if (response.ok) {
+                            exibirDetalhesDoVeiculo(veiculoSelecionado); 
+                        } else {
+                            const erro = await response.json();
+                            alert(`Erro ao assumir serviço: ${erro.error || 'Erro desconhecido.'}`);
+                        }
+                    } catch (error) {
+                        console.error('Erro ao assumir serviço:', error);
+                        alert('Ocorreu um erro de conexão ao tentar assumir o serviço.');
+                    }
+                }
+            };
             acoesCell.appendChild(btnAssumir);
         }
 
         tbodySolicitacoes.appendChild(tr);
     });
 };
-// FIM DO CÓDIGO PARA SUBSTITUIR
 
 // INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
 
@@ -1531,4 +1540,3 @@ if (modalSolicitacao) {
 
     verificarLogin();
 });
-
