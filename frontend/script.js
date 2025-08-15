@@ -98,6 +98,13 @@ const API_URL = IS_LOCAL
     const listaPecasContainer = document.getElementById('lista-pecas-container');
     const btnAdicionarPeca = document.getElementById('btn-adicionar-peca');
 
+        // Solicitações de Manutenção
+    const btnAbrirModalSolicitacao = document.getElementById('btn-abrir-modal-solicitacao');
+    const tbodySolicitacoes = document.getElementById('tbody-solicitacoes');
+    const modalSolicitacao = document.getElementById('modal-solicitacao');
+    const formSolicitacao = document.getElementById('form-solicitacao');
+    const solicitacaoDescricao = document.getElementById('solicitacao-descricao');
+
         // --- NOVO: Referências para o Modal de Abastecimento ---
     const tbodyAbastecimentos = document.getElementById('tbody-abastecimentos');
     const btnAbrirModalAbastecimento = document.getElementById('btn-abrir-modal-abastecimento');
@@ -407,13 +414,12 @@ const renderizarTabela = () => {
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
-    // INÍCIO DO CÓDIGO PARA SUBSTITUIR (exibirDetalhesDoVeiculo)
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (exibirDetalhesDoVeiculo)
 const exibirDetalhesDoVeiculo = async (veiculo) => {
     veiculoSelecionado = veiculo;
     detalhesVeiculoTitulo.textContent = `Detalhes: ${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
     switchView('content-veiculo-detalhes');
 
-    // --- NOVO: LÓGICA PARA ESCONDER SEÇÃO DE ABASTECIMENTO ---
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     const userRole = userInfo ? userInfo.usuario.role : null;
     const secaoAbastecimento = document.getElementById('secao-abastecimento');
@@ -423,6 +429,15 @@ const exibirDetalhesDoVeiculo = async (veiculo) => {
             secaoAbastecimento.classList.add('hidden');
         } else {
             secaoAbastecimento.classList.remove('hidden');
+        }
+    }
+    
+    // --- NOVO: LÓGICA PARA EXIBIR BOTÃO DE FAZER SOLICITAÇÃO ---
+    if(btnAbrirModalSolicitacao) {
+        if (userRole === 'SUPER_ADMIN' || userRole === 'ENCARREGADO') {
+            btnAbrirModalSolicitacao.classList.remove('hidden');
+        } else {
+            btnAbrirModalSolicitacao.classList.add('hidden');
         }
     }
 
@@ -437,8 +452,8 @@ const exibirDetalhesDoVeiculo = async (veiculo) => {
         tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
     }
 
-    // Apenas busca o histórico de abastecimento se a seção for visível
-    if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
+    // Apenas busca o histórico de ABASTECIMENTO se a seção for visível
+    if (secaoAbastecimento && !secaoAbastecimento.classList.contains('hidden')) {
         try {
             const resAbastecimentos = await fetch(`${VEICULOS_URL}/${veiculo.id}/abastecimentos`, { headers: getAuthHeaders() });
             if (!resAbastecimentos.ok) throw new Error('Falha ao buscar abastecimentos');
@@ -458,7 +473,18 @@ const exibirDetalhesDoVeiculo = async (veiculo) => {
         renderizarTabelaPlanos(planos);
     } catch (error) {
         console.error('Erro ao buscar plano de manutenção:', error);
-        tbodyPlanos.innerHTML = `<tr><td colspan="4" style="text-align:center;">Erro ao carregar plano.</td></tr>`;
+        tbodyPlanos.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar plano.</td></tr>`;
+    }
+
+    // --- NOVO: BUSCA E RENDERIZA AS SOLICITAÇÕES DE MANUTENÇÃO ---
+    try {
+        const resSolicitacoes = await fetch(`${VEICULOS_URL}/${veiculo.id}/solicitacoes`, { headers: getAuthHeaders() });
+        if (!resSolicitacoes.ok) throw new Error('Falha ao buscar solicitações');
+        const solicitacoes = await resSolicitacoes.json();
+        renderizarTabelaSolicitacoes(solicitacoes);
+    } catch (error) {
+        console.error('Erro ao buscar solicitações:', error);
+        tbodySolicitacoes.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar solicitações.</td></tr>`;
     }
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
@@ -1359,6 +1385,149 @@ if(modalAlterarSenha) {
 }
 
 // FIM DO NOVO CÓDIGO
+
+// INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
+
+/**
+
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (renderizarTabelaSolicitacoes)
+/**
+ * Renderiza a tabela do Quadro de Solicitações.
+ * @param {Array} solicitacoes - A lista de solicitações vinda da API.
+ */
+const renderizarTabelaSolicitacoes = (solicitacoes) => {
+    if (!tbodySolicitacoes) return;
+    tbodySolicitacoes.innerHTML = '';
+
+    if (solicitacoes.length === 0) {
+        tbodySolicitacoes.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma solicitação encontrada.</td></tr>';
+        return;
+    }
+
+    const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+    const userRole = userInfo ? userInfo.usuario.role : null;
+
+    const formatarData = (d) => new Date(d).toLocaleString('pt-BR', { 
+        timeZone: 'America/Sao_Paulo',
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit' 
+    });
+
+    solicitacoes.forEach(solicitacao => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${formatarData(solicitacao.data_solicitacao)}</td>
+            <td><span class="status-span">${solicitacao.status}</span></td>
+            <td>${solicitacao.solicitado_por_nome || 'N/A'}</td>
+            <td>${solicitacao.descricao_problema}</td>
+            <td>${solicitacao.mecanico_responsavel_nome || '-'}</td>
+            <td></td>
+        `;
+
+        const acoesCell = tr.children[5];
+
+        if (solicitacao.status === 'ABERTO' && (userRole === 'MECANICO' || userRole === 'SUPER_ADMIN')) {
+            const btnAssumir = document.createElement('button');
+            btnAssumir.className = 'btn-secundario';
+            btnAssumir.textContent = 'Assumir';
+            btnAssumir.title = 'Assumir esta solicitação de manutenção';
+            
+            // Substitua toda a sua função btnAssumir.onclick por esta
+btnAssumir.onclick = async () => {
+    if (confirm('Tem certeza que deseja assumir este serviço?')) {
+        try {
+            // A declaração da URL agora está no lugar certo e sem duplicatas
+            const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/solicitacoes/${solicitacao.id}/assumir`;
+            
+            const response = await fetch(url, {
+                method: 'PATCH',
+                headers: getAuthHeaders()
+            });
+
+            if (response.ok) {
+                // Se a API responder com sucesso, atualiza os dados na tela
+                exibirDetalhesDoVeiculo(veiculoSelecionado); 
+            } else {
+                // Se a API responder com erro, exibe a mensagem de erro vinda do backend
+                const erro = await response.json();
+                alert(`Erro ao assumir serviço: ${erro.error || 'Erro desconhecido.'}`);
+            }
+        } catch (error) {
+            // Se houver um erro de rede (sem conexão) ou a resposta não for JSON
+            console.error('Erro ao assumir serviço:', error);
+            alert('Ocorreu um erro de conexão ao tentar assumir o serviço.');
+        }
+    }
+};
+            acoesCell.appendChild(btnAssumir);
+        }
+
+        tbodySolicitacoes.appendChild(tr);
+    });
+};
+// FIM DO CÓDIGO PARA SUBSTITUIR
+
+// INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
+
+// --- LÓGICA DE EVENTOS PARA SOLICITAÇÕES DE MANUTENÇÃO ---
+
+// Abre o modal para criar uma nova solicitação
+if (btnAbrirModalSolicitacao) {
+    btnAbrirModalSolicitacao.addEventListener('click', () => {
+        formSolicitacao.reset();
+        abrirModal(modalSolicitacao);
+    });
+}
+
+// Lida com o envio do formulário de nova solicitação
+if (formSolicitacao) {
+    formSolicitacao.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!veiculoSelecionado) {
+            alert('Erro: Nenhum veículo selecionado.');
+            return;
+        }
+
+        const dadosSolicitacao = {
+            descricao_problema: solicitacaoDescricao.value
+        };
+
+        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/solicitacoes`;
+
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(dadosSolicitacao)
+            });
+
+            if (response.ok) {
+                fecharModal(modalSolicitacao);
+                // Atualiza a página de detalhes para mostrar a nova solicitação na lista
+                exibirDetalhesDoVeiculo(veiculoSelecionado); 
+                alert('Solicitação criada com sucesso!');
+            } else {
+                const erro = await response.json();
+                alert(`Erro ao criar solicitação: ${erro.error}`);
+            }
+        } catch (error) {
+            console.error('Erro ao criar solicitação:', error);
+            alert('Ocorreu um erro de conexão. Tente novamente.');
+        }
+    });
+}
+
+// Lida com o fechamento do modal de solicitação
+if (modalSolicitacao) {
+    const closeButton = modalSolicitacao.querySelector('.close-button');
+    if (closeButton) { closeButton.addEventListener('click', () => fecharModal(modalSolicitacao)); }
+    modalSolicitacao.addEventListener('click', (e) => { 
+        if (e.target === modalSolicitacao) { fecharModal(modalSolicitacao); } 
+    });
+}
+
+// FIM DO NOVO CÓDIGO
+
 
     verificarLogin();
 });

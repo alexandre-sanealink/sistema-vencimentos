@@ -167,7 +167,7 @@
                     </div>
                 </div>
             </div>
-
+                
             <div id="content-veiculo-detalhes" class="content-module hidden">
                 <div class="container">
                     <header class="main-header">
@@ -192,6 +192,29 @@
                                 </tr>
                             </thead>
                             <tbody id="tbody-manutencoes"></tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="lista-container" style="margin-top: 30px;">
+                    <div class="lista-header">
+                        <h2>Quadro de Solicitações</h2>
+                        <button id="btn-abrir-modal-solicitacao" class="btn-principal hidden">Fazer Solicitação</button>
+                    </div>
+                    <div class="table-wrapper">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Status</th>
+                                    <th>Solicitado Por</th>
+                                    <th>Descrição do Problema</th>
+                                    <th>Mecânico Responsável</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-solicitacoes">
+                                </tbody>
                         </table>
                     </div>
                 </div>
@@ -533,24 +556,42 @@
         </div>
     </div>
     
-    <div id="modal-alterar-senha" class="modal-overlay">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 id="modal-alterar-senha-titulo">Alterar Senha</h2>
-            <button class="close-button">&times;</button>
+        <div id="modal-alterar-senha" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-alterar-senha-titulo">Alterar Senha</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="form-alterar-senha">
+                <input type="hidden" id="alterar-senha-userid">
+                <div class="form-group">
+                    <label for="nova-senha">Nova Senha (mínimo 6 caracteres)</label>
+                    <input type="password" id="nova-senha" required minlength="6">
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn-salvar">Salvar Nova Senha</button>
+                </div>
+            </form>
         </div>
-        <form id="form-alterar-senha">
-            <input type="hidden" id="alterar-senha-userid">
-            <div class="form-group">
-                <label for="nova-senha">Nova Senha (mínimo 6 caracteres)</label>
-                <input type="password" id="nova-senha" required minlength="6">
-            </div>
-            <div class="modal-footer">
-                <button type="submit" class="btn-salvar">Salvar Nova Senha</button>
-            </div>
-        </form>
     </div>
-</div>
+
+    <div id="modal-solicitacao" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Nova Solicitação de Manutenção</h2>
+                <button class="close-button">&times;</button>
+            </div>
+            <form id="form-solicitacao">
+                <div class="form-group">
+                    <label for="solicitacao-descricao">Descrição do Problema</label>
+                    <textarea id="solicitacao-descricao" rows="4" required placeholder="Descreva em detalhes o problema ou a necessidade de manutenção..."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn-salvar">Enviar Solicitação</button>
+                </div>
+            </form>
+        </div>
+    </div>
 
    <script src="script.js?v=1.2"></script>
 </body>
