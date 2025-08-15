@@ -346,10 +346,19 @@ export const deletarPlanoManutencao = async (req, res) => {
 export const listarSolicitacoesManutencao = async (req, res) => {
     const { veiculoId } = req.params;
     try {
-        // A query busca as solicitações e já junta com a tabela de usuários para pegar os nomes
+        // CORREÇÃO: A query foi alterada para selecionar explicitamente todas as colunas,
+        // garantindo que o campo 'status' seja sempre incluído no resultado.
         const query = `
             SELECT 
-                s.*, 
+                s.id,
+                s.veiculo_id,
+                s.solicitado_por_id,
+                s.mecanico_responsavel_id,
+                s.status,
+                s.data_solicitacao,
+                s.descricao_problema,
+                s.created_at,
+                s.updated_at,
                 solicitante.nome as solicitado_por_nome,
                 mecanico.nome as mecanico_responsavel_nome
             FROM 
