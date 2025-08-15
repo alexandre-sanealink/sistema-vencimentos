@@ -334,3 +334,104 @@ export const deletarPlanoManutencao = async (req, res) => {
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };
+
+// INÍCIO DO NOVO CÓDIGO (adicionar no final do VeiculoController.js)
+
+// --- FUNÇÕES DE SOLICITAÇÕES DE MANUTENÇÃO ---
+
+/**
+ * Lista todas as solicitações de manutenção para um veículo específico.
+ * Rota: GET /api/veiculos/:veiculoId/solicitacoes
+ */
+export const listarSolicitacoesManutencao = async (req, res) => {
+    const { veiculoId } = req.params;
+    try {
+        // A query busca as solicitações e já junta com a tabela de usuários para pegar os nomes
+        const query = `
+            SELECT 
+                s.*, 
+                solicitante.nome as solicitado_por_nome,
+                mecanico.nome as mecanico_responsavel_nome
+            FROM 
+                solicitacoes_manutencao s
+            LEFT JOIN 
+                usuarios solicitante ON s.solicitado_por_id = solicitante.id
+            LEFT JOIN 
+                usuarios mecanico ON s.mecanico_responsavel_id = mecanico.id
+            WHERE 
+                s.veiculo_id = $1 
+            ORDER BY 
+                s.data_solicitacao DESC;
+        `;
+        const { rows } = await pool.query(query, [veiculoId]);
+        res.status(200).json(rows);
+    } catch (error) {
+        console.error(`Erro ao listar solicitações para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+
+/**
+ * Cria uma nova solicitação de manutenção para um veículo.
+ * Rota: POST /api/veiculos/:veiculoId/solicitacoes
+ */
+export const criarSolicitacaoManutencao = async (req, res) => {
+    const { veiculoId } = req.params;
+    const { descricao_problema } = req.body;
+    const solicitado_por_id = req.usuario.id; // Pega o ID do usuário logado (que fez a solicitação)
+
+    if (!descricao_problema) {
+        return res.status(400).json({ error: 'A descrição do problema é obrigatória.' });
+    }
+
+    try {
+        const query = `
+            INSERT INTO solicitacoes_manutencao (veiculo_id, solicitado_por_id, descricao_problema)
+            VALUES ($1, $2, $3)
+            RETURNING *;
+        `;
+        const values = [veiculoId, solicitado_por_id, descricao_problema];
+        const { rows } = await pool.query(query, values);
+        res.status(201).json(rows[0]);
+    } catch (error) {
+        console.error(`Erro ao criar solicitação para o veículo ID ${veiculoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
+};
+// FIM DO NOVO CÓDIGO
+
+// INÍCIO DO NOVO CÓDIGO (adicionar no final do VeiculoController.js)
+
+/**
+ * Atualiza o status de uma solicitação para 'EM_ANDAMENTO' e atribui o mecânico logado.
+ * Rota: PATCH /api/veiculos/:veiculoId/solicitacoes/:solicitacaoId/assumir
+ */
+export const assumirSolicitacaoManutencao = async (req, res) => {
+    const { solicitacaoId } = req.params;
+    const mecanicoId = req.usuario.id; // Pega o ID do mecânico que está logado
+
+    try {
+        const query = `
+            UPDATE solicitacoes_manutencao 
+            SET 
+                status = 'EM_ANDAMENTO', 
+                mecanico_responsavel_id = $1,
+                updated_at = NOW()
+            WHERE 
+                id = $2 AND status = 'ABERTO'
+            RETURNING *;
+        `;
+        const { rows } = await pool.query(query, [mecanicoId, solicitacaoId]);
+
+        if (rows.length === 0) {
+            // Isso pode acontecer se a solicitação não foi encontrada ou se outro mecânico já assumiu.
+            return res.status(404).json({ error: 'Solicitação não encontrada ou já foi assumida.' });
+        }
+
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error(`Erro ao assumir solicitação ID ${solicitacaoId}:`, error);
+        res.status(500).json({ error: 'Erro interno no servidor.' });
+    }
+};
+// FIM DO NOVO CÓDIGO

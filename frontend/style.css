@@ -393,3 +393,19 @@ td { font-size: 14px; white-space: nowrap; }
     transform: translateY(-50%);
     pointer-events: none; /* Permite que o clique atravesse a seta e chegue no select */
 }
+
+/* --- Estilização para Campos de Texto Maiores (Textarea) --- */
+
+textarea {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fff;
+    line-height: 1.5;
+    color: #333;
+    resize: vertical; /* Permite que o usuário redimensione a altura */
+    min-height: 100px; /* Define uma altura mínima */
+}

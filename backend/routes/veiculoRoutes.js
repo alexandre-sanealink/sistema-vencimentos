@@ -1,6 +1,5 @@
-// Alterado: Usa 'import'
+// INÍCIO DO CÓDIGO PARA SUBSTITUIR (Arquivo completo: veiculoRoutes.js)
 import express from 'express';
-// Alterado: Importa as funções individualmente
 import { 
     listarVeiculos, 
     obterVeiculoPorId, 
@@ -9,38 +8,48 @@ import {
     deletarVeiculo,
     listarManutencoes,
     adicionarManutencao,
-    deletarManutencao, // NOVO: Importa a função de deletar manutenção
+    deletarManutencao,
     listarAbastecimentos,
     adicionarAbastecimento,
     listarPlanosManutencao,
     adicionarPlanoManutencao,
-    deletarPlanoManutencao // NOVO: Importa a função de deletar item do plano
-} from '../controllers/VeiculoController.js'; // Adiciona .js no final
+    deletarPlanoManutencao,
+    criarSolicitacaoManutencao,
+    listarSolicitacoesManutencao,
+    // NOVO
+    assumirSolicitacaoManutencao 
+} from '../controllers/VeiculoController.js';
 
 const router = express.Router();
 
-// --- ROTAS DE VEÍCULOS ---
-router.get('/veiculos', listarVeiculos);
-router.get('/veiculos/:id', obterVeiculoPorId);
-router.post('/veiculos', criarVeiculo);
-router.put('/veiculos/:id', atualizarVeiculo);
-router.delete('/veiculos/:id', deletarVeiculo);
+// --- ROTAS PRINCIPAIS DE VEÍCULOS ---
+router.get('/', listarVeiculos);
+router.get('/:id', obterVeiculoPorId);
+router.post('/', criarVeiculo);
+router.put('/:id', atualizarVeiculo);
+router.delete('/:id', deletarVeiculo);
 
 // --- ROTAS DE MANUTENÇÃO ---
-router.get('/veiculos/:veiculoId/manutencoes', listarManutencoes);
-router.post('/veiculos/:veiculoId/manutencoes', adicionarManutencao);
-// NOVO: Rota para deletar um registro de manutenção específico
-router.delete('/veiculos/:veiculoId/manutencoes/:manutencaoId', deletarManutencao);
+router.get('/:veiculoId/manutencoes', listarManutencoes);
+router.post('/:veiculoId/manutencoes', adicionarManutencao);
+router.delete('/:veiculoId/manutencoes/:manutencaoId', deletarManutencao);
 
 // --- ROTAS DE ABASTECIMENTO ---
-router.get('/veiculos/:veiculoId/abastecimentos', listarAbastecimentos);
-router.post('/veiculos/:veiculoId/abastecimentos', adicionarAbastecimento);
+router.get('/:veiculoId/abastecimentos', listarAbastecimentos);
+router.post('/:veiculoId/abastecimentos', adicionarAbastecimento);
 
 // --- ROTAS DE PLANO DE MANUTENÇÃO ---
-router.get('/veiculos/:veiculoId/planos', listarPlanosManutencao);
-router.post('/veiculos/:veiculoId/planos', adicionarPlanoManutencao);
-// NOVO: Rota para deletar um item do plano de manutenção
-router.delete('/veiculos/:veiculoId/planos/:planoId', deletarPlanoManutencao);
+router.get('/:veiculoId/planos', listarPlanosManutencao);
+router.post('/:veiculoId/planos', adicionarPlanoManutencao);
+router.delete('/:veiculoId/planos/:planoId', deletarPlanoManutencao);
 
-// Alterado: Usa 'export default'
+// --- ROTAS DE SOLICITAÇÕES DE MANUTENÇÃO ---
+router.get('/:veiculoId/solicitacoes', listarSolicitacoesManutencao);
+router.post('/:veiculoId/solicitacoes', criarSolicitacaoManutencao);
+
+// --- NOVO: ROTA PARA O MECÂNICO ASSUMIR UMA SOLICITAÇÃO ---
+// Usamos PATCH pois é uma atualização parcial no recurso
+router.patch('/:veiculoId/solicitacoes/:solicitacaoId/assumir', assumirSolicitacaoManutencao);
+
 export default router;
+// FIM DO CÓDIGO PARA SUBSTITUIR

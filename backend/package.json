@@ -4,7 +4,12 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon index.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "migrate": "node-pg-migrate",
+    "migrate:create": "npm run migrate create --",
+    "migrate:up": "npm run migrate up",
+    "migrate:down": "npm run migrate down"
   },
   "keywords": [],
   "author": "",
@@ -19,7 +24,17 @@
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
+    "node-pg-migrate": "^8.0.3",
     "nodemailer": "^7.0.5",
     "pg": "^8.16.3"
+  },
+  "node-pg-migrate": {
+    "dir": "migrations",
+    "migrationsTable": "pgmigrations",
+    "databaseUrl": "DATABASE_URL",
+    "ssl": false
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
   }
 }
