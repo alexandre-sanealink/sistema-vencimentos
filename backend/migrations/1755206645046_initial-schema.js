@@ -5,9 +5,10 @@ export const shorthands = undefined;
 
 // Esta é a função que será executada quando aplicarmos a migração.
 export function up(pgm) {
+    // CORREÇÃO: Adicionado "IF NOT EXISTS" em todos os CREATE TABLE
     pgm.sql(`
         -- Tabela de Usuários
-        CREATE TABLE usuarios (
+        CREATE TABLE IF NOT EXISTS usuarios (
             id SERIAL PRIMARY KEY,
             nome VARCHAR(255) NOT NULL,
             email VARCHAR(255) UNIQUE NOT NULL,
@@ -18,7 +19,7 @@ export function up(pgm) {
         );
 
         -- Tabela de Documentos
-        CREATE TABLE documentos (
+        CREATE TABLE IF NOT EXISTS documentos (
             id VARCHAR(255) PRIMARY KEY,
             nome VARCHAR(255) NOT NULL,
             categoria VARCHAR(100),
@@ -32,7 +33,7 @@ export function up(pgm) {
         );
 
         -- Tabela de Veículos
-        CREATE TABLE veiculos (
+        CREATE TABLE IF NOT EXISTS veiculos (
             id SERIAL PRIMARY KEY,
             placa VARCHAR(10) UNIQUE NOT NULL,
             marca VARCHAR(100) NOT NULL,
@@ -44,7 +45,7 @@ export function up(pgm) {
         );
 
         -- Tabela de Manutenções
-        CREATE TABLE manutencoes (
+        CREATE TABLE IF NOT EXISTS manutencoes (
             id SERIAL PRIMARY KEY,
             veiculo_id INTEGER NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
             data DATE NOT NULL,
@@ -56,7 +57,7 @@ export function up(pgm) {
         );
 
         -- Tabela de Abastecimentos
-        CREATE TABLE abastecimentos (
+        CREATE TABLE IF NOT EXISTS abastecimentos (
             id SERIAL PRIMARY KEY,
             veiculo_id INTEGER NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
             data DATE NOT NULL,
@@ -69,7 +70,7 @@ export function up(pgm) {
         );
 
         -- Tabela de Planos de Manutenção
-        CREATE TABLE planos_manutencao (
+        CREATE TABLE IF NOT EXISTS planos_manutencao (
             id SERIAL PRIMARY KEY,
             veiculo_id INTEGER NOT NULL REFERENCES veiculos(id) ON DELETE CASCADE,
             descricao VARCHAR(255) NOT NULL,
@@ -83,6 +84,7 @@ export function up(pgm) {
 
 // Esta é a função que reverte a migração, caso necessário.
 export function down(pgm) {
+    // A função down já usa "IF EXISTS", então está correta.
     pgm.sql(`
         DROP TABLE IF EXISTS planos_manutencao;
         DROP TABLE IF EXISTS abastecimentos;
