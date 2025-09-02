@@ -409,3 +409,36 @@ textarea {
     resize: vertical; /* Permite que o usuário redimensione a altura */
     min-height: 100px; /* Define uma altura mínima */
 }
+
+/* =============================================== */
+/* --- ESTILOS DAS TAGS DE STATUS (SOLICITAÇÕES) --- */
+/* =============================================== */
+
+/* Estilo base para todas as tags de status */
+.status-span {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 15px; /* Deixa a tag mais arredondada */
+    font-weight: 500;
+    font-size: 12px;
+    color: #ffffff; /* Cor do texto padrão: branca */
+    background-color: #6c757d; /* Cor de fundo padrão: cinza */
+    text-align: center;
+    min-width: 100px; /* Garante uma largura mínima para a tag */
+}
+
+/* Cor específica para o status "Aberto" */
+.status-span.status-aberto {
+    background-color: #ffc107; /* Amarelo/Laranja */
+    color: #1f1f1f; /* Texto escuro para melhor contraste com o fundo claro */
+}
+
+/* Cor específica para o status "Em Andamento" */
+.status-span.status-em-andamento {
+    background-color: #0d6efd; /* Azul */
+}
+
+/* Cor específica para o futuro status "Concluído" */
+.status-span.status-concluido {
+    background-color: #198754; /* Verde */
+}

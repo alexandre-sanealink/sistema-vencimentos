@@ -16,10 +16,15 @@ import { verificarToken } from './middleware/authMiddleware.js';
 import './mailer.js';
 
 // --- CONFIGURAÇÕES INICIAIS ---
+// Linhas ~15 a 20
 const { Pool } = pg;
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
-    ssl: process.env.PGHOST !== 'localhost' ? { rejectUnauthorized: false } : false
+    // CORREÇÃO: A lógica agora considera se PGHOST não está definido,
+    // tratando como ambiente local e desativando o SSL.
+    ssl: process.env.PGHOST && process.env.PGHOST !== 'localhost'
+        ? { rejectUnauthorized: false }
+        : false
 });
 
 const app = express();
