@@ -442,3 +442,32 @@ textarea {
 .status-span.status-concluido {
     background-color: #198754; /* Verde */
 }
+
+/* =============================================== */
+/* --- CORES DAS TAGS DE STATUS (DOCUMENTOS) --- */
+/* =============================================== */
+
+/* Define a cor de fundo para o status 'Em Dia' (Verde) */
+.status-span.status-em-dia {
+    background-color: #198754;
+    color: #ffffff;
+}
+
+/* Define a cor de fundo para o status 'Vence em Breve' (Amarelo) */
+.status-span.status-vence-breve {
+    background-color: #ffc107;
+    color: #1f1f1f; /* Texto escuro para melhor contraste */
+}
+
+/* Define a cor de fundo para o status 'Atrasado' (Vermelho) */
+.status-span.status-atrasado {
+    background-color: #dc3545;
+    color: #ffffff;
+}
+
+/* Estilos para outros status, se houver */
+.status-span.status-renovado,
+.status-span.status-em_renovacao {
+    background-color: #0d6efd; /* Azul */
+    color: #ffffff;
+}
