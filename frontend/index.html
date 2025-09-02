@@ -442,47 +442,44 @@
         </div>
     </div>
 
-    <div id="modal-manutencao" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-manutencao-titulo">Adicionar Registro de Manutenção</h2>
-                <button class="close-button">&times;</button>
+<div id="modal-manutencao" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-manutencao-titulo">Adicionar Registro de Manutenção</h2>
+            <button class="close-button">&times;</button>
+        </div>
+        <form id="form-manutencao">
+            <input type="hidden" id="manutencao-id">
+            <input type="hidden" id="manutencao-solicitacao-id">
+
+            <div class="form-row">
+                <div class="form-group half-width">
+                    <label for="manutencao-data">Data</label>
+                    <input type="date" id="manutencao-data" required>
+                </div>
+                <div class="form-group half-width">
+                    <label for="manutencao-km">KM Atual</label>
+                    <input type="number" id="manutencao-km" placeholder="Ex: 123456" required min="0">
+                </div>
             </div>
-            <form id="form-manutencao">
-                <input type="hidden" id="manutencao-id">
-                    <div class="form-row">
-                    <div class="form-group half-width">
-                        <label for="manutencao-data">Data</label>
-                        <input type="date" id="manutencao-data" required>
-                        
 
-                        <input type="hidden" id="manutencao-solicitacao-id">
+            <div class="form-group">
+                <label for="manutencao-tipo">Tipo de Manutenção</label>
+                <div class="select-wrapper">
+                    <select id="manutencao-tipo" required>
+                        <option value="" disabled selected>Selecione</option>
+                        <option value="Preventiva">Preventiva</option>
+                        <option value="Corretiva">Corretiva</option>
+                    </select>
+                </div>
+            </div>
 
-                        <div class="form-row">
-                        <div class="form-group">
+            <div class="pecas-section">
+                <h3>Peças e Serviços</h3>
+                <div id="lista-pecas-container">
                     </div>
-                    <div class="form-group half-width">
-                        <label for="manutencao-km">KM Atual</label>
-                        <input type="number" id="manutencao-km" placeholder="Ex: 123456" required min="0">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="manutencao-tipo">Tipo de Manutenção</label>
-                    <div class="select-wrapper">
-                        <select id="manutencao-tipo" required>
-                            <option value="" disabled selected>Selecione</option>
-                            <option value="Preventiva">Preventiva</option>
-                            <option value="Corretiva">Corretiva</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="pecas-section">
-                    <h3>Peças e Serviços</h3>
-                    <div id="lista-pecas-container">
-                        </div>
-                    <button type="button" id="btn-adicionar-peca" class="btn-adicionar-item">+ Adicionar Peça/Serviço</button>
-                </div>
+                <button type="button" id="btn-adicionar-peca" class="btn-adicionar-item">+ Adicionar Peça/Serviço</button>
+            </div>
 
             <div class="modal-footer">
                 <button type="submit" class="btn-salvar">Salvar</button>
