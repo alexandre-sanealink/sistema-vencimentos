@@ -731,10 +731,35 @@ const renderizarTabelaManutencoes = (manutencoes) => {
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
-const abrirModalManutencao = () => {
+const abrirModalManutencao = (solicitacao = null) => {
     if (!veiculoSelecionado) return;
+
+    // Referências dos campos do formulário
+    const solicitacaoIdInput = document.getElementById('manutencao-solicitacao-id');
+    const tipoManutencaoSelect = document.getElementById('manutencao-tipo');
+
+    // Limpa o formulário e os campos dinâmicos
     formManutencao.reset();
     manutencaoId.value = '';
+    listaPecasContainer.innerHTML = '';
+    adicionarLinhaPeca(); // Adiciona a primeira linha de peça/serviço
+
+    // Lógica de pré-preenchimento SÓ SE uma solicitação válida for passada
+    if (solicitacao && solicitacao.id) {
+        // Se uma solicitação foi passada, estamos "Finalizando um Serviço"
+        solicitacaoIdInput.value = solicitacao.id;
+        tipoManutencaoSelect.value = 'Corretiva'; // Define o tipo como Corretiva por padrão
+
+        // Pega a referência da descrição da primeira linha APÓS ela ter sido criada
+        const primeiraDescricao = document.querySelector('#lista-pecas-container .peca-input-desc');
+        if (primeiraDescricao) {
+            primeiraDescricao.value = solicitacao.descricao_problema;
+        }
+    } else {
+        // Se nenhuma solicitação foi passada, garante que o campo de ID da solicitação está vazio
+        solicitacaoIdInput.value = '';
+    }
+
     abrirModal(modalManutencao);
 };
 
@@ -982,6 +1007,7 @@ if (btnAbrirModalManutencao) {
 }
 
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR
+// Localize este bloco (por volta da linha 908)
 if (formManutencao) {
     formManutencao.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -989,11 +1015,9 @@ if (formManutencao) {
 
         const pecas = [];
         const pecaItems = document.querySelectorAll('.peca-item');
-
         pecaItems.forEach(item => {
             const tipo = item.querySelector('.peca-input-tipo').value;
             const descricao = item.querySelector('.peca-input-desc').value;
-
             if (descricao) { 
                 const itemManutencao = {
                     tipo: tipo,
@@ -1001,15 +1025,16 @@ if (formManutencao) {
                     quantidade: null,
                     marca: null
                 };
-
                 if (tipo === 'Peca') {
                     itemManutencao.quantidade = item.querySelector('.peca-input-qtd').value;
                     itemManutencao.marca = item.querySelector('.peca-input-marca').value || null;
                 }
-
                 pecas.push(itemManutencao);
             }
         });
+
+        // NOVO: Pega o ID da solicitação do campo hidden
+        const solicitacaoId = document.getElementById('manutencao-solicitacao-id').value;
 
         const dadosManutencao = {
             data: manutencaoData.value,
@@ -1017,6 +1042,11 @@ if (formManutencao) {
             km_atual: manutencaoKm.value,
             pecas: pecas, 
         };
+
+        // NOVO: Adiciona o solicitacaoId ao corpo da requisição, se ele existir
+        if (solicitacaoId) {
+            dadosManutencao.solicitacaoId = solicitacaoId;
+        }
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
         const method = 'POST';
@@ -1395,26 +1425,26 @@ if(modalAlterarSenha) {
  * Renderiza a tabela do Quadro de Solicitações.
  * @param {Array} solicitacoes - A lista de solicitações vinda da API.
  */
+// Localize esta função (por volta da linha 1137)
 const renderizarTabelaSolicitacoes = (solicitacoes) => {
     // A linha abaixo é para depuração, podemos removê-la depois
-    console.log('Dados recebidos para renderizar a tabela:', solicitacoes);
+    // console.log('Dados recebidos para renderizar a tabela:', solicitacoes);
 
     if (!tbodySolicitacoes) return;
     tbodySolicitacoes.innerHTML = '';
 
     if (solicitacoes.length === 0) {
-        tbodySolicitacoes.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma solicitação encontrada.</td></tr>';
+        tbodySolicitacoes.innerHTML = '<tr><td colspan="6" style="text-align:center;">Nenhuma solicitação em aberto.</td></tr>';
         return;
     }
 
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
     const userRole = userInfo ? userInfo.usuario.role : null;
+    const currentUserId = userInfo ? userInfo.usuario.id : null;
 
-    // Dicionário para traduzir e estilizar os status
     const mapaStatus = {
         'ABERTO': { texto: 'Aberto', classe: 'aberto' },
         'EM_ANDAMENTO': { texto: 'Em Andamento', classe: 'em-andamento' }
-        // Futuramente adicionaremos o 'CONCLUIDO' aqui
     };
 
     const formatarData = (d) => new Date(d).toLocaleString('pt-BR', { 
@@ -1425,11 +1455,8 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
 
     solicitacoes.forEach(solicitacao => {
         const tr = document.createElement('tr');
-
-        // Lógica para pegar o texto e a classe do status do nosso dicionário
         const statusInfo = mapaStatus[solicitacao.status] || { texto: solicitacao.status, classe: '' };
 
-        // O HTML da célula de status foi atualizado para usar a lógica acima
         tr.innerHTML = `
             <td>${formatarData(solicitacao.data_solicitacao)}</td>
             <td><span class="status-span status-${statusInfo.classe}">${statusInfo.texto}</span></td>
@@ -1441,21 +1468,37 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
 
         const acoesCell = tr.children[5];
 
+        // Lógica para botão "Assumir"
         if (solicitacao.status === 'ABERTO' && (userRole === 'MECANICO' || userRole === 'SUPER_ADMIN')) {
             const btnAssumir = document.createElement('button');
             btnAssumir.className = 'btn-secundario';
             btnAssumir.textContent = 'Assumir';
-            btnAssumir.title = 'Assumir esta solicitação de manutenção';
+            btnAssumir.onclick = () => { /* A lógica do botão assumir continua a mesma */ };
+            acoesCell.appendChild(btnAssumir);
+        }
+
+        // NOVO: Lógica para botão "Finalizar"
+        if (solicitacao.status === 'EM_ANDAMENTO' && (userRole === 'SUPER_ADMIN' || currentUserId === solicitacao.mecanico_responsavel_id)) {
+            const btnFinalizar = document.createElement('button');
+            btnFinalizar.className = 'btn-success'; // Usando a classe de botão principal para destaque
+            btnFinalizar.textContent = 'Finalizar';
+            btnFinalizar.title = 'Finalizar e registrar manutenção';
             
+            btnFinalizar.onclick = () => {
+                abrirModalManutencao(solicitacao); // Chama a função passando os dados da solicitação
+            };
+            acoesCell.appendChild(btnFinalizar);
+        }
+
+        // A lógica do botão "Assumir" foi movida para dentro do IF para evitar repetição.
+        // Se precisar do código completo do onclick do "Assumir", me avise, mas ele deve permanecer como estava.
+        const btnAssumir = acoesCell.querySelector('.btn-secundario');
+        if (btnAssumir) {
             btnAssumir.onclick = async () => {
                 if (confirm('Tem certeza que deseja assumir este serviço?')) {
                     try {
                         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/solicitacoes/${solicitacao.id}/assumir`;
-                        
-                        const response = await fetch(url, {
-                            method: 'PATCH',
-                            headers: getAuthHeaders()
-                        });
+                        const response = await fetch(url, { method: 'PATCH', headers: getAuthHeaders() });
 
                         if (response.ok) {
                             exibirDetalhesDoVeiculo(veiculoSelecionado); 
@@ -1469,7 +1512,6 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
                     }
                 }
             };
-            acoesCell.appendChild(btnAssumir);
         }
 
         tbodySolicitacoes.appendChild(tr);

@@ -146,24 +146,48 @@ export const listarManutencoes = async (req, res) => {
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR
 export const adicionarManutencao = async (req, res) => {
     const { veiculoId } = req.params;
-    const { data, tipo, km_atual, pecas } = req.body;
+    // ALTERAÇÃO: Adicionado 'solicitacaoId' para ser recebido do frontend
+    const { data, tipo, km_atual, pecas, solicitacaoId } = req.body;
 
     if (!data || !tipo || !km_atual) {
         return res.status(400).json({ error: 'Os campos data, tipo e km_atual são obrigatórios.' });
     }
+
+    // NOVO: Lógica de Transação para garantir consistência dos dados
+    const client = await pool.connect(); // Pega uma conexão "exclusiva" do pool
+
     try {
-        const query = `
+        await client.query('BEGIN'); // Inicia a transação
+
+        // 1. Insere o novo registro de manutenção
+        const insertManutencaoQuery = `
             INSERT INTO manutencoes (veiculo_id, data, tipo, km_atual, pecas, created_at, updated_at)
             VALUES ($1, $2, $3, $4, $5::jsonb, NOW(), NOW())
             RETURNING *;
         `;
-        const pecasJSON = JSON.stringify(pecas);
+        const pecasJSON = JSON.stringify(pecas || []);
         const values = [veiculoId, data, tipo, km_atual, pecasJSON];
-        const { rows } = await pool.query(query, values);
+        const { rows } = await client.query(insertManutencaoQuery, values);
+
+        // 2. Se um solicitacaoId foi passado, atualiza a solicitação correspondente
+        if (solicitacaoId) {
+            const updateSolicitacaoQuery = `
+                UPDATE solicitacoes_manutencao
+                SET status = 'CONCLUIDO', updated_at = NOW()
+                WHERE id = $1;
+            `;
+            await client.query(updateSolicitacaoQuery, [solicitacaoId]);
+        }
+
+        await client.query('COMMIT'); // Se tudo deu certo, confirma as alterações no banco
         res.status(201).json(rows[0]);
+
     } catch (error) {
+        await client.query('ROLLBACK'); // Se qualquer passo acima falhar, desfaz tudo
         console.error(`Erro ao adicionar manutenção para o veículo ID ${veiculoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
+    } finally {
+        client.release(); // Devolve a conexão para o pool, para que possa ser usada por outros
     }
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
@@ -343,11 +367,13 @@ export const deletarPlanoManutencao = async (req, res) => {
  * Lista todas as solicitações de manutenção para um veículo específico.
  * Rota: GET /api/veiculos/:veiculoId/solicitacoes
  */
+/**
+ * Lista todas as solicitações de manutenção para um veículo específico.
+ * Rota: GET /api/veiculos/:veiculoId/solicitacoes
+ */
 export const listarSolicitacoesManutencao = async (req, res) => {
     const { veiculoId } = req.params;
     try {
-        // CORREÇÃO: A query foi alterada para selecionar explicitamente todas as colunas,
-        // garantindo que o campo 'status' seja sempre incluído no resultado.
         const query = `
             SELECT 
                 s.id,
@@ -369,6 +395,8 @@ export const listarSolicitacoesManutencao = async (req, res) => {
                 usuarios mecanico ON s.mecanico_responsavel_id = mecanico.id
             WHERE 
                 s.veiculo_id = $1 
+                -- ALTERAÇÃO: Adicionada condição para ocultar solicitações finalizadas
+                AND s.status NOT IN ('CONCLUIDO', 'CANCELADO')
             ORDER BY 
                 s.data_solicitacao DESC;
         `;
