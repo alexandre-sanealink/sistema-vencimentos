@@ -1,4 +1,12 @@
 document.addEventListener('DOMContentLoaded', () => {
+   // INÍCIO DO CÓDIGO DE DEPURAÇÃO DE FORMULÁRIOS
+    console.log('--- Verificando Referências dos FORMULÁRIOS ---');
+    console.log('Formulário de Solicitação:', document.getElementById('form-solicitacao'));
+    console.log('Formulário de Manutenção:', document.getElementById('form-manutencao'));
+    console.log('Formulário de Abastecimento:', document.getElementById('form-abastecimento'));
+    console.log('--- Fim da Verificação ---');
+    // FIM DO CÓDIGO DE DEPURAÇÃO
+
     // --- REFERÊNCIAS DE ELEMENTOS ---
     // NOVO: Define a URL da API dinamicamente com base no ambiente
 const IS_LOCAL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
@@ -146,8 +154,23 @@ const API_URL = IS_LOCAL
         if (!isFormData) { headers['Content-Type'] = 'application/json'; }
         return headers;
     };
-    const abrirModal = (modalElement) => modalElement.classList.add('visible');
-    const fecharModal = (modalElement) => modalElement.classList.remove('visible');
+   // Localize e substitua estas duas funções (aprox. linha 110)
+
+const abrirModal = (modalElement) => {
+    // NOVO: Antes de abrir um novo modal, garante que todos os outros estejam fechados.
+    // Isso resolve o bug de sobreposição e de "cliques atrasados".
+    document.querySelectorAll('.modal-overlay.visible').forEach(modal => modal.classList.remove('visible'));
+
+    if (modalElement) {
+        modalElement.classList.add('visible');
+    }
+};
+
+const fecharModal = (modalElement) => {
+    if (modalElement) {
+        modalElement.classList.remove('visible');
+    }
+};
 
     const switchView = (targetId) => {
         contentModules.forEach(module => module.classList.add('hidden'));
