@@ -170,14 +170,99 @@ td { font-size: 14px; white-space: nowrap; }
 .file-name-display { font-size: 14px; color: #6c757d; font-style: italic; }
 .anexo-atual-display { font-size: 14px; color: #343a40; margin-bottom: 8px; font-weight: 500; word-break: break-all; }
 
-/* --- NOVO: Estilos para Formulário Dinâmico de Manutenção --- */
+/* --- ESTILOS PARA FORMULÁRIO DINÂMICO DE MANUTENÇÃO --- */
 .form-row {
     display: flex;
-    gap: 15px;
-    align-items: flex-end; /* Alinha os itens na base */
+    
+    align-items: flex-end;
 }
+
 .form-group.half-width {
     width: 50%;
+}
+
+.pecas-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #e9ecef;
+}
+
+.pecas-section h3 {
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+/* Container da linha de peça/serviço */
+.peca-item {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* Container de cada campo individual na linha (Tipo, Qtd, etc.) */
+.peca-item .form-group {
+    margin-bottom: 0;
+    flex-grow: 1;
+    flex-shrink: 1;
+}
+
+/* Larguras e crescimento dos campos específicos */
+.peca-item .form-group.peca-tipo { flex-basis: 120px; flex-grow: 0; }
+.peca-item .form-group.peca-qtd { flex-basis: 60px; flex-grow: 0; }
+.peca-item .form-group.peca-desc { flex-grow: 2; }
+.peca-item .form-group.peca-marca { flex-grow: 1; }
+.peca-item .form-group.peca-acao { flex-basis: 40px; flex-grow: 0; flex-shrink: 0; }
+
+/* Força os inputs e selects a preencherem 100% dos seus containers */
+.peca-item .form-group input,
+.peca-item .form-group select {
+    width: 100%;
+    box-sizing: border-box; /* Garante que padding e borda não quebrem o layout */
+}
+
+.btn-adicionar-item {
+    background: none;
+    border: 1px dashed #ced4da;
+    color: #6c757d;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    margin-top: 10px;
+}
+
+.btn-adicionar-item:hover {
+    background-color: #e9ecef;
+    border-color: #6c757d;
+}
+
+.btn-remover-item {
+    background: #f8f9fa;
+    border: 1px solid #ced4da;
+    color: #dc3545;
+    border-radius: 6px; /* Padronizado com outros inputs */
+    width: 100%;
+    height: 38px;     /* Mesma altura dos inputs */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    line-height: 1; /* Alinha o 'x' verticalmente */
+}
+
+.btn-remover-item:hover {
+    background-color: #f8d7da;
+    border-color: #dc3545;
+}
+
+.form-group.half-width {
+    width: 100%;
 }
 .pecas-section {
     margin-top: 25px;
@@ -470,4 +555,40 @@ textarea {
 .status-span.status-em_renovacao {
     background-color: #0d6efd; /* Azul */
     color: #ffffff;
+}
+
+.btn-principal {
+    background-color: #0d6efd; /* Azul principal do sistema */
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-principal:hover {
+    background-color: #0b5ed7; /* Azul um pouco mais escuro ao passar o mouse */
+}
+
+/* ============================================= */
+/* --- ESTILO PARA BOTÕES DE SUCESSO (VERDE) --- */
+/* ============================================= */
+
+.btn-success {
+    background-color: #198754; /* Verde sucesso */
+    color: #ffffff;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.btn-success:hover {
+    background-color: #157347; /* Verde um pouco mais escuro */
 }
