@@ -1,8 +1,11 @@
 // --- Conexão com o Banco de Dados ---
 import pg from 'pg';
 const { Pool } = pg;
+import { enviarEmail } from '../mailer.js';
 
 const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
+
+
 
 const pool = new Pool({
     // No Render, ele usará a DATABASE_URL. Localmente (onde DATABASE_URL não existe no .env),
@@ -12,6 +15,30 @@ const pool = new Pool({
     // Ativa o SSL apenas se NÃO estivermos no ambiente local.
     ssl: IS_LOCAL_ENV ? false : { rejectUnauthorized: false }
 });
+
+// =================================================================
+// --- NOVA FUNÇÃO AUXILIAR DE NOTIFICAÇÕES ---
+// =================================================================
+/**
+ * Função centralizada para criar uma notificação no banco e enviar um e-mail.
+ * @param {object} client - O cliente de conexão do banco para usar na transação.
+ * @param {object} dados - Contém { usuarioId, mensagem, link, email, assuntoEmail, corpoEmail }.
+ */
+const criarNotificacaoEEnviarEmail = async (client, { usuarioId, mensagem, link, email, assuntoEmail, corpoEmail }) => {
+    try {
+        const queryNotificacao = `
+            INSERT INTO notificacoes (usuario_id, mensagem, link) VALUES ($1, $2, $3);
+        `;
+        await client.query(queryNotificacao, [usuarioId, mensagem, link]);
+
+        if (email) {
+            enviarEmail(email, assuntoEmail, corpoEmail)
+                .catch(err => console.error(`Falha ao enviar e-mail de notificação para ${email}:`, err));
+        }
+    } catch (error) {
+        console.error(`Erro ao criar notificação para o usuário ${usuarioId}:`, error);
+    }
+};
 
 // --- FUNÇÕES DO CONTROLADOR ---
 
@@ -143,54 +170,87 @@ export const listarManutencoes = async (req, res) => {
 };
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
-// INÍCIO DO CÓDIGO PARA SUBSTITUIR
+// ARQUIVO: /controllers/VeiculoController.js
+
+// SUBSTITUA a função 'adicionarManutencao' inteira por esta versão final
 export const adicionarManutencao = async (req, res) => {
     const { veiculoId } = req.params;
-    // ALTERAÇÃO: Adicionado 'solicitacaoId' para ser recebido do frontend
-    const { data, tipo, km_atual, pecas, solicitacaoId } = req.body;
+    // (NOVO) Recebe também o planoItemId do corpo da requisição
+    const { data, tipo, km_atual, pecas, solicitacaoId, planoItemId } = req.body;
 
     if (!data || !tipo || !km_atual) {
         return res.status(400).json({ error: 'Os campos data, tipo e km_atual são obrigatórios.' });
     }
 
-    // NOVO: Lógica de Transação para garantir consistência dos dados
-    const client = await pool.connect(); // Pega uma conexão "exclusiva" do pool
+    // (NOVO) Validação adicional: Se for Preventiva, planoItemId é obrigatório
+    if (tipo === 'Preventiva' && !planoItemId) {
+         return res.status(400).json({ error: 'Para manutenção preventiva, é obrigatório selecionar o item do plano executado.' });
+    }
 
+    const client = await pool.connect();
     try {
-        await client.query('BEGIN'); // Inicia a transação
+        await client.query('BEGIN');
 
-        // 1. Insere o novo registro de manutenção
+        // (NOVO) A query INSERT agora inclui a coluna plano_manutencao_id
         const insertManutencaoQuery = `
-            INSERT INTO manutencoes (veiculo_id, data, tipo, km_atual, pecas, created_at, updated_at)
-            VALUES ($1, $2, $3, $4, $5::jsonb, NOW(), NOW())
+            INSERT INTO manutencoes (
+                veiculo_id, data, tipo, km_atual, pecas, 
+                plano_manutencao_id, -- Nova coluna
+                created_at, updated_at 
+            )
+            VALUES ($1, $2, $3, $4, $5::jsonb, $6, NOW(), NOW()) -- Adicionado $6
             RETURNING *;
         `;
         const pecasJSON = JSON.stringify(pecas || []);
-        const values = [veiculoId, data, tipo, km_atual, pecasJSON];
+        // (NOVO) O valor de planoItemId é adicionado aos 'values'. Se não for Preventiva, será null.
+        const values = [
+            veiculoId, 
+            data, 
+            tipo, 
+            km_atual, 
+            pecasJSON, 
+            tipo === 'Preventiva' ? planoItemId : null // Só salva o ID se for Preventiva
+        ]; 
+        
         const { rows } = await client.query(insertManutencaoQuery, values);
+        const novaManutencao = rows[0];
 
-        // 2. Se um solicitacaoId foi passado, atualiza a solicitação correspondente
+        // --- Lógica de finalização de solicitação e notificação (permanece a mesma) ---
         if (solicitacaoId) {
-            const updateSolicitacaoQuery = `
-                UPDATE solicitacoes_manutencao
-                SET status = 'CONCLUIDO', updated_at = NOW()
-                WHERE id = $1;
-            `;
-            await client.query(updateSolicitacaoQuery, [solicitacaoId]);
+            const updateResult = await client.query("UPDATE solicitacoes_manutencao SET status = 'CONCLUIDO', updated_at = NOW() WHERE id = $1 RETURNING *", [solicitacaoId]);
+            if (updateResult.rows.length > 0) {
+                const solicitacaoFinalizada = updateResult.rows[0];
+                const infoQuery = `
+                    SELECT v.placa, v.modelo, u_solicitante.nome as solicitante_nome, u_mecanico.nome as mecanico_nome
+                    FROM veiculos v JOIN usuarios u_solicitante ON u_solicitante.id = $1 LEFT JOIN usuarios u_mecanico ON u_mecanico.id = $2 WHERE v.id = $3;
+                `;
+                const infoResult = await client.query(infoQuery, [solicitacaoFinalizada.solicitado_por_id, solicitacaoFinalizada.mecanico_responsavel_id, veiculoId]);
+                const { placa, modelo, solicitante_nome, mecanico_nome } = infoResult.rows[0];
+                const queryDestinatarios = `SELECT id, email FROM usuarios WHERE role IN ('SUPER_ADMIN', 'ESCRITORIO') OR id = $1`;
+                const destinatariosResult = await client.query(queryDestinatarios, [solicitacaoFinalizada.solicitado_por_id]);
+                const mensagem = `O serviço no veículo ${modelo} (${placa}), solicitado por ${solicitante_nome}, foi finalizado por ${mecanico_nome || 'Mecânico'}.`;
+                const link = `/veiculo/${veiculoId}`;
+                for (const user of destinatariosResult.rows) {
+                    await criarNotificacaoEEnviarEmail(client, {
+                        usuarioId: user.id, mensagem, link, email: user.email,
+                        assuntoEmail: `Serviço Finalizado: Veículo ${placa}`,
+                        corpoEmail: `Olá,\n\n${mensagem}\n\nPor favor, acesse o sistema para visualizar o registro de manutenção.`
+                    });
+                }
+            }
         }
+        // --- Fim da lógica de notificação ---
 
-        await client.query('COMMIT'); // Se tudo deu certo, confirma as alterações no banco
-        res.status(201).json(rows[0]);
-
+        await client.query('COMMIT');
+        res.status(201).json(novaManutencao);
     } catch (error) {
-        await client.query('ROLLBACK'); // Se qualquer passo acima falhar, desfaz tudo
+        await client.query('ROLLBACK');
         console.error(`Erro ao adicionar manutenção para o veículo ID ${veiculoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
     } finally {
-        client.release(); // Devolve a conexão para o pool, para que possa ser usada por outros
+        client.release();
     }
 };
-// FIM DO CÓDIGO PARA SUBSTITUIR
 
 // NOVO: Função para deletar um registro de manutenção
 export const deletarManutencao = async (req, res) => {
@@ -412,30 +472,70 @@ export const listarSolicitacoesManutencao = async (req, res) => {
  * Cria uma nova solicitação de manutenção para um veículo.
  * Rota: POST /api/veiculos/:veiculoId/solicitacoes
  */
+// SUBSTITUA a função 'criarSolicitacaoManutencao' inteira por esta
 export const criarSolicitacaoManutencao = async (req, res) => {
     const { veiculoId } = req.params;
     const { descricao_problema } = req.body;
-    const solicitado_por_id = req.usuario.id; // Pega o ID do usuário logado (que fez a solicitação)
+    const solicitado_por_id = req.usuario.id;
 
     if (!descricao_problema) {
         return res.status(400).json({ error: 'A descrição do problema é obrigatória.' });
     }
 
+    const client = await pool.connect();
     try {
-        const query = `
+        await client.query('BEGIN');
+
+        const querySolicitacao = `
             INSERT INTO solicitacoes_manutencao (veiculo_id, solicitado_por_id, descricao_problema)
             VALUES ($1, $2, $3)
             RETURNING *;
         `;
-        const values = [veiculoId, solicitado_por_id, descricao_problema];
-        const { rows } = await pool.query(query, values);
-        res.status(201).json(rows[0]);
+        const { rows } = await client.query(querySolicitacao, [veiculoId, solicitado_por_id, descricao_problema]);
+        const novaSolicitacao = rows[0];
+
+        // --- LÓGICA DE NOTIFICAÇÃO ATUALIZADA ---
+        const queryInfo = `
+            SELECT v.placa, v.modelo, u.nome as solicitante_nome
+            FROM veiculos v, usuarios u
+            WHERE v.id = $1 AND u.id = $2;
+        `;
+        const infoResult = await client.query(queryInfo, [veiculoId, solicitado_por_id]);
+        const { placa, modelo, solicitante_nome } = infoResult.rows[0];
+
+        // Busca MECÂNICOS, SUPER_ADMINS e ESCRITÓRIO
+        const queryDestinatarios = `SELECT id, email FROM usuarios WHERE role IN ('MECANICO', 'SUPER_ADMIN', 'ESCRITORIO')`;
+        const destinatariosResult = await client.query(queryDestinatarios);
+
+        if (destinatariosResult.rows.length > 0) {
+            const mensagem = `${solicitante_nome} abriu uma solicitação para o veículo ${modelo} (${placa}): "${descricao_problema}"`;
+            const link = `/veiculo/${veiculoId}`;
+
+            for (const user of destinatariosResult.rows) {
+                // Não notificar a pessoa que criou a solicitação
+                if (user.id !== solicitado_por_id) {
+                    await criarNotificacaoEEnviarEmail(client, {
+                        usuarioId: user.id,
+                        mensagem: mensagem,
+                        link: link,
+                        email: user.email,
+                        assuntoEmail: `Nova Solicitação de Serviço: Veículo ${placa}`,
+                        corpoEmail: `Olá,\n\n${mensagem}\n\nPor favor, acesse o sistema para mais detalhes.`
+                    });
+                }
+            }
+        }
+
+        await client.query('COMMIT');
+        res.status(201).json(novaSolicitacao);
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error(`Erro ao criar solicitação para o veículo ID ${veiculoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
+    } finally {
+        client.release();
     }
 };
-// FIM DO NOVO CÓDIGO
 
 // INÍCIO DO NOVO CÓDIGO (adicionar no final do VeiculoController.js)
 
@@ -443,32 +543,66 @@ export const criarSolicitacaoManutencao = async (req, res) => {
  * Atualiza o status de uma solicitação para 'EM_ANDAMENTO' e atribui o mecânico logado.
  * Rota: PATCH /api/veiculos/:veiculoId/solicitacoes/:solicitacaoId/assumir
  */
+// SUBSTITUA a função 'assumirSolicitacaoManutencao' inteira por esta
 export const assumirSolicitacaoManutencao = async (req, res) => {
     const { solicitacaoId } = req.params;
-    const mecanicoId = req.usuario.id; // Pega o ID do mecânico que está logado
+    const mecanicoId = req.usuario.id;
+    const mecanicoNome = req.usuario.nome;
 
+    const client = await pool.connect();
     try {
-        const query = `
+        await client.query('BEGIN');
+
+        const updateQuery = `
             UPDATE solicitacoes_manutencao 
-            SET 
-                status = 'EM_ANDAMENTO', 
-                mecanico_responsavel_id = $1,
-                updated_at = NOW()
-            WHERE 
-                id = $2 AND status = 'ABERTO'
+            SET status = 'EM_ANDAMENTO', mecanico_responsavel_id = $1, updated_at = NOW()
+            WHERE id = $2 AND status = 'ABERTO'
             RETURNING *;
         `;
-        const { rows } = await pool.query(query, [mecanicoId, solicitacaoId]);
+        const updateResult = await client.query(updateQuery, [mecanicoId, solicitacaoId]);
 
-        if (rows.length === 0) {
-            // Isso pode acontecer se a solicitação não foi encontrada ou se outro mecânico já assumiu.
+        if (updateResult.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Solicitação não encontrada ou já foi assumida.' });
         }
+        const solicitacaoAtualizada = updateResult.rows[0];
 
-        res.status(200).json(rows[0]);
+        // --- INÍCIO DA LÓGICA DE NOTIFICAÇÃO ---
+        const infoQuery = `
+            SELECT v.placa, v.modelo
+            FROM veiculos v WHERE v.id = $1;
+        `;
+        const infoResult = await client.query(infoQuery, [solicitacaoAtualizada.veiculo_id]);
+        const { placa, modelo } = infoResult.rows[0];
+
+        // Notificar o solicitante original, SUPER_ADMINS e ESCRITÓRIO
+        const queryDestinatarios = `SELECT id, email FROM usuarios WHERE role IN ('SUPER_ADMIN', 'ESCRITORIO') OR id = $1`;
+        const destinatariosResult = await client.query(queryDestinatarios, [solicitacaoAtualizada.solicitado_por_id]);
+        
+        const mensagem = `${mecanicoNome} assumiu o serviço para o veículo ${modelo} (${placa}).`;
+        const link = `/veiculo/${solicitacaoAtualizada.veiculo_id}`;
+
+        for (const user of destinatariosResult.rows) {
+            // Não notificar o próprio mecânico que assumiu
+            if (user.id !== mecanicoId) {
+                await criarNotificacaoEEnviarEmail(client, {
+                    usuarioId: user.id,
+                    mensagem: mensagem,
+                    link: link,
+                    email: user.email,
+                    assuntoEmail: `Serviço Assumido: Veículo ${placa}`,
+                    corpoEmail: `Olá,\n\n${mensagem}\n\nPor favor, acesse o sistema para mais detalhes.`
+                });
+            }
+        }
+
+        await client.query('COMMIT');
+        res.status(200).json(solicitacaoAtualizada);
     } catch (error) {
+        await client.query('ROLLBACK');
         console.error(`Erro ao assumir solicitação ID ${solicitacaoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor.' });
+    } finally {
+        client.release();
     }
 };
-// FIM DO NOVO CÓDIGO

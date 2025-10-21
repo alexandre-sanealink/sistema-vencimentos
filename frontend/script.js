@@ -1,1458 +1,2907 @@
 document.addEventListener('DOMContentLoaded', () => {
-   // INÍCIO DO CÓDIGO DE DEPURAÇÃO DE FORMULÁRIOS
-    console.log('--- Verificando Referências dos FORMULÁRIOS ---');
-    console.log('Formulário de Solicitação:', document.getElementById('form-solicitacao'));
-    console.log('Formulário de Manutenção:', document.getElementById('form-manutencao'));
-    console.log('Formulário de Abastecimento:', document.getElementById('form-abastecimento'));
-    console.log('--- Fim da Verificação ---');
-    // FIM DO CÓDIGO DE DEPURAÇÃO
+
+
+
+
+
+    console.log('--- Verificando Referências dos Elementos ---');
+
+console.log('Botão Solicitação:', document.getElementById('btn-abrir-modal-solicitacao'));
+
+console.log('Botão Manutenção:', document.getElementById('btn-abrir-modal-manutencao'));
+
+console.log('Botão Abastecimento:', document.getElementById('btn-abrir-modal-abastecimento'));
+
+console.log('Painel de Notificações:', document.getElementById('painel-notificacoes')); // <-- ADICIONE/VERIFIQUE ESTA LINHA
+
+console.log('--- Fim da Verificação ---');
+
+
 
     // --- REFERÊNCIAS DE ELEMENTOS ---
+
     // NOVO: Define a URL da API dinamicamente com base no ambiente
+
 const IS_LOCAL = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+
 const API_URL = IS_LOCAL 
+
     ? 'http://localhost:3000' // URL para testes locais
+
     : 'https://www.controle.focodesentupidora.com.br'; // URL para o site online (produção)
+
     const LOGIN_URL = `${API_URL}/api/login`;
+
     const DOCS_URL = `${API_URL}/api/documentos`;
+
     const VEICULOS_URL = `${API_URL}/api/veiculos`;
+
     const REGISTER_URL = `${API_URL}/api/register`;
+
     const PERFIL_URL = `${API_URL}/api/perfil`;
+
     const ADMIN_EMAIL = 'alexandre@solucoesfoco.com.br';
 
+
+
     const telaLogin = document.getElementById('tela-login');
+
     const appContainer = document.getElementById('app-container');
+
     const contentModules = document.querySelectorAll('.content-module');
+
     const sidebar = document.getElementById('sidebar');
+
     const navLinks = document.querySelectorAll('#sidebar .nav-link');
+
     const btnLogout = document.getElementById('btn-logout');
+
     const btnAdminPanel = document.getElementById('btn-admin-panel');
+
     const liAdminPanel = document.getElementById('li-admin-panel');
+
     const btnAbrirPerfil = document.getElementById('btn-abrir-perfil');
+
     const hamburgerBtn = document.getElementById('hamburger-btn');
+
     const menuOverlay = document.getElementById('menu-overlay');
+
     const bottomBar = document.getElementById('bottom-bar');
+
     const mobileNavLinks = document.querySelectorAll('#bottom-bar .bottom-bar-link');
+
     const mobileMoreMenuWrapper = document.getElementById('mobile-more-menu-wrapper');
+
     const mobileMoreMenu = document.getElementById('mobile-more-menu');
+
     const mobileBtnPerfil = document.getElementById('mobile-btn-perfil');
+
     const mobileBtnAdmin = document.getElementById('mobile-btn-admin');
+
     const mobileBtnLogout = document.getElementById('mobile-btn-logout');
+
     // Painel Admin
+
     const btnAbrirModalAdminNovo = document.getElementById('btn-abrir-modal-admin-novo');
+
     const tbodyUsuarios = document.getElementById('tbody-usuarios');
+
     // Modal Alterar Senha de Usuário
+
     const modalAlterarSenha = document.getElementById('modal-alterar-senha');
+
     const formAlterarSenha = document.getElementById('form-alterar-senha');
+
     const alterarSenhaUserid = document.getElementById('alterar-senha-userid');
+
     const novaSenhaInput = document.getElementById('nova-senha');
+
     const modalAlterarSenhaTitulo = document.getElementById('modal-alterar-senha-titulo');
+
     
+
     // Documentos
+
     const tbodyDocumentos = document.getElementById('tbody-documentos');
+
     const filtrosContainer = document.getElementById('filtros-categoria');
+
     const inputBusca = document.getElementById('input-busca');
+
     const btnAbrirModalCadastro = document.getElementById('btn-abrir-modal-cadastro');
+
     const listaContainer = document.querySelector('.lista-container');
+
     const paginationContainer = document.getElementById('pagination-container');
+
     const pageInfo = document.getElementById('page-info');
+
     const btnAnterior = document.getElementById('btn-anterior');
+
     const btnProxima = document.getElementById('btn-proxima');
+
     const modalDocumento = document.getElementById('modal-documento');
+
     const formDocumento = document.getElementById('form-documento');
+
     const modalTitulo = document.getElementById('modal-titulo');
+
     const docId = document.getElementById('documento-id');
+
     const docNome = document.getElementById('documento-nome');
+
     const docCategoria = document.getElementById('documento-categoria');
+
     const docVencimento = document.getElementById('documento-vencimento');
+
     const docAlerta = document.getElementById('documento-alerta');
+
     const docArquivo = document.getElementById('documento-arquivo');
+
     const docFileName = document.getElementById('file-name-documento');
+
     const anexoAtualContainer = document.getElementById('anexo-atual-container');
 
+
+
     // Frota
+
     const tbodyVeiculos = document.getElementById('tbody-veiculos');
+
     const modalVeiculo = document.getElementById('modal-veiculo');
+
     const btnAbrirModalVeiculo = document.getElementById('btn-abrir-modal-veiculo');
+
     const formVeiculo = document.getElementById('form-veiculo');
+
     const modalVeiculoTitulo = document.getElementById('modal-veiculo-titulo');
+
     const veiculoId = document.getElementById('veiculo-id');
+
     const veiculoPlaca = document.getElementById('veiculo-placa');
+
     const veiculoMarca = document.getElementById('veiculo-marca');
+
     const veiculoModelo = document.getElementById('veiculo-modelo');
+
     const veiculoAno = document.getElementById('veiculo-ano');
+
     const veiculoTipo = document.getElementById('veiculo-tipo');
+
     const inputBuscaVeiculo = document.getElementById('input-busca-veiculo');
+
+    // Notificações
+
+    const btnNotificacoes = document.getElementById('btn-notificacoes');
+
+    const contadorNotificacoes = document.getElementById('contador-notificacoes');
+
+    const painelNotificacoes = document.getElementById('painel-notificacoes');
+
+    const listaNotificacoes = document.getElementById('lista-notificacoes');
+
     // --- NOVO: Referências para Detalhes do Veículo ---
+
     const contentVeiculoDetalhes = document.getElementById('content-veiculo-detalhes');
+
     const detalhesVeiculoTitulo = document.getElementById('detalhes-veiculo-titulo');
+
     const btnVoltarParaFrota = document.getElementById('btn-voltar-para-frota');
+
     // --- NOVO: Referências para o Plano de Manutenção ---
+
     const tbodyPlanos = document.getElementById('tbody-planos');
+
     const formPlanoManutencao = document.getElementById('form-plano-manutencao');
+
     const planoDescricao = document.getElementById('plano-descricao');
+
     const planoKm = document.getElementById('plano-km');
+
     const planoDias = document.getElementById('plano-dias');
 
+
+
     // --- NOVO: Referências para o Modal de Manutenção ---
+
     const tbodyManutencoes = document.getElementById('tbody-manutencoes');
+
     const btnAbrirModalManutencao = document.getElementById('btn-abrir-modal-manutencao');
+
     const modalManutencao = document.getElementById('modal-manutencao');
+
     const formManutencao = document.getElementById('form-manutencao');
+
     const manutencaoId = document.getElementById('manutencao-id');
+
     const manutencaoData = document.getElementById('manutencao-data');
+
     const manutencaoKm = document.getElementById('manutencao-km');
+
     const manutencaoTipo = document.getElementById('manutencao-tipo');
+
     const listaPecasContainer = document.getElementById('lista-pecas-container');
+
     const btnAdicionarPeca = document.getElementById('btn-adicionar-peca');
 
+    const formGroupPlanoItem = document.getElementById('form-group-plano-item');
+    const manutencaoPlanoItem = document.getElementById('manutencao-plano-item');
+
+
+
         // Solicitações de Manutenção
+
     const btnAbrirModalSolicitacao = document.getElementById('btn-abrir-modal-solicitacao');
+
     const tbodySolicitacoes = document.getElementById('tbody-solicitacoes');
+
     const modalSolicitacao = document.getElementById('modal-solicitacao');
+
     const formSolicitacao = document.getElementById('form-solicitacao');
+
     const solicitacaoDescricao = document.getElementById('solicitacao-descricao');
 
+
+
         // --- NOVO: Referências para o Modal de Abastecimento ---
+
     const tbodyAbastecimentos = document.getElementById('tbody-abastecimentos');
+
     const btnAbrirModalAbastecimento = document.getElementById('btn-abrir-modal-abastecimento');
+
     const modalAbastecimento = document.getElementById('modal-abastecimento');
+
     const formAbastecimento = document.getElementById('form-abastecimento');
+
     const abastecimentoData = document.getElementById('abastecimento-data');
+
     const abastecimentoKm = document.getElementById('abastecimento-km');
+
     const abastecimentoLitros = document.getElementById('abastecimento-litros');
+
     const abastecimentoValor = document.getElementById('abastecimento-valor');
+
     const abastecimentoPosto = document.getElementById('abastecimento-posto');
 
+
+
     
+
     // Admin e Perfil
+
     const modalAdmin = document.getElementById('modal-admin');
+
     const formRegister = document.getElementById('form-register');
+
     const modalPerfil = document.getElementById('modal-perfil');
+
     const formPerfil = document.getElementById('form-perfil');
+
     const perfilNome = document.getElementById('perfil-nome');
+
     const formLogin = document.getElementById('form-login');
+
     const loginErrorMessage = document.getElementById('login-error-message');
+
     
+
     // Variáveis de estado
+
     let todosOsDocumentos = [];
+
     let documentosFiltrados = [];
+
     let todosOsVeiculos = [];
+
     let veiculosFiltrados = [];
+
     let veiculoSelecionado = null; // Guarda o veículo que está sendo visualizado nos detalhes
+
     let filtroCategoriaAtual = 'todos';
+
     let termoDeBusca = '';
+
     let termoDeBuscaVeiculo = '';
+
     let paginaAtual = 1;
+
     const ITENS_POR_PAGINA = 15;
 
+
+
     const salvarToken = (token) => localStorage.setItem('authToken', token);
+
     const obterToken = () => localStorage.getItem('authToken');
+
     const limparToken = () => { localStorage.removeItem('authToken'); localStorage.removeItem('userInfo'); };
+
     const getAuthHeaders = (isFormData = false) => {
+
         const headers = { 'Authorization': `Bearer ${obterToken()}` };
+
         if (!isFormData) { headers['Content-Type'] = 'application/json'; }
+
         return headers;
+
     };
-   // Localize e substitua estas duas funções (aprox. linha 110)
+
+   
+
+
 
 const abrirModal = (modalElement) => {
+
     // NOVO: Antes de abrir um novo modal, garante que todos os outros estejam fechados.
+
     // Isso resolve o bug de sobreposição e de "cliques atrasados".
+
     document.querySelectorAll('.modal-overlay.visible').forEach(modal => modal.classList.remove('visible'));
 
+
+
     if (modalElement) {
+
         modalElement.classList.add('visible');
+
     }
+
 };
+
+
 
 const fecharModal = (modalElement) => {
+
     if (modalElement) {
+
         modalElement.classList.remove('visible');
+
+    }
+
+};
+
+
+
+    // Encontre e substitua esta função (aprox. linha 248)
+const switchView = (targetId) => {
+    contentModules.forEach(module => module.classList.add('hidden'));
+    const targetContent = document.getElementById(targetId);
+    if (targetContent) targetContent.classList.remove('hidden');
+
+    // --- ADIÇÃO IMPORTANTE ---
+    // Se o alvo for a página de notificações, chamamos a função para carregar os dados.
+    if (targetId === 'content-notificacoes') {
+        carregarPaginaNotificacoes();
+    }
+    // --- FIM DA ADIÇÃO ---
+
+    let activeModuleName = '';
+    if (targetId.startsWith('content-')) {
+        activeModuleName = targetId.split('-')[1];
+    }
+    if (targetId === 'content-veiculo-detalhes') {
+        activeModuleName = 'frota';
+    }
+
+    if (activeModuleName) {
+        navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${activeModuleName}`));
+        mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${activeModuleName}`));
     }
 };
 
-    const switchView = (targetId) => {
-        contentModules.forEach(module => module.classList.add('hidden'));
-        const targetContent = document.getElementById(targetId);
-        if (targetContent) targetContent.classList.remove('hidden');
     
-        // Lógica para manter o menu principal ativo corretamente
-        let activeModuleName = '';
-        if (targetId.startsWith('content-')) {
-        activeModuleName = targetId.split('-')[1];
-        }
-        // Caso especial: se estamos na página de detalhes, o módulo ativo ainda é 'frota'
-        if (targetId === 'content-veiculo-detalhes') {
-        activeModuleName = 'frota';
+
+    document.querySelectorAll('.nav-link, .bottom-bar-link').forEach(link => {
+
+        if (link.id !== 'mobile-more-menu-wrapper') { 
+
+            link.addEventListener('click', (e) => {
+
+                e.preventDefault();
+
+                const moduleName = link.id.split('-')[link.id.split('-').length - 1];
+
+                switchView(`content-${moduleName}`);
+
+                if (sidebar.classList.contains('sidebar-visible')) {
+
+                    toggleMobileMenu();
+
+                }
+
+            });
+
         }
 
-        if (activeModuleName) {
-        navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${activeModuleName}`));
-        mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${activeModuleName}`));
-        }
-    };
-    
-    document.querySelectorAll('.nav-link, .bottom-bar-link').forEach(link => {
-        if (link.id !== 'mobile-more-menu-wrapper') { 
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                const moduleName = link.id.split('-')[link.id.split('-').length - 1];
-                switchView(`content-${moduleName}`);
-                if (sidebar.classList.contains('sidebar-visible')) {
-                    toggleMobileMenu();
-                }
-            });
-        }
     });
+
+
 
     const toggleMobileMenu = () => {
+
         sidebar.classList.toggle('sidebar-visible');
+
         menuOverlay.classList.toggle('visible');
+
     };
+
+
 
     const acoesDeUsuario = {
+
         abrirPerfil: () => {
+
             const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+
             if (userInfo && userInfo.usuario) {
+
                 perfilNome.value = userInfo.usuario.nome;
+
                 abrirModal(modalPerfil);
+
             }
+
         },
+
         abrirAdmin: () => {
+
             formRegister.reset();
+
             abrirModal(modalAdmin);
+
         },
+
         fazerLogout: () => {
+
             limparToken();
+
             verificarLogin();
+
         }
+
     };
 
+
+
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR (verificarLogin)
+
 const verificarLogin = () => {
+
     const token = obterToken();
+
     const userInfo = localStorage.getItem('userInfo');
 
+
+
     document.querySelectorAll('.sidebar-nav li, #bottom-bar .bottom-bar-link').forEach(item => {
+
         if (!item.querySelector('#btn-abrir-perfil') && !item.querySelector('#btn-logout') && item.id !== 'mobile-more-menu-wrapper') {
+
             item.classList.add('hidden');
+
         }
+
     });
+
     liAdminPanel.classList.add('hidden');
+
     mobileBtnAdmin.classList.add('hidden');
 
+
+
     if (token && userInfo) {
+
         const { usuario } = JSON.parse(userInfo);
+
         telaLogin.classList.add('hidden');
+
         appContainer.classList.remove('hidden');
+
         bottomBar.classList.remove('hidden');
 
+
+
+        fetchNotificacoes();
+
+
+
         const perfilLinkText = btnAbrirPerfil.querySelector('.nav-text');
+
         if (perfilLinkText) perfilLinkText.textContent = `${usuario.nome || usuario.email}`;
+
+
 
         const userRole = usuario.role;
 
+
+
         // --- LÓGICA DE VISIBILIDADE E CARREGAMENTO DE DADOS ---
+
         if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
+
             document.querySelectorAll('#nav-documentos, #nav-frota, #nav-colaboradores, #nav-contratos').forEach(link => link.parentElement.classList.remove('hidden'));
+
             document.querySelectorAll('#mobile-nav-documentos, #mobile-nav-frota, #mobile-nav-colaboradores, #mobile-nav-contratos').forEach(link => link.classList.remove('hidden'));
+
             
+
             // Apenas carrega os dados e define a view se o DOM estiver pronto
+
             if (tbodyDocumentos && tbodyVeiculos) {
+
                 fetchDocumentos();
+
                 fetchVeiculos();
+
                 switchView('content-documentos');
+
             }
+
         } else if (userRole === 'ENCARREGADO' || userRole === 'MECANICO') {
+
             document.querySelector('#nav-frota').parentElement.classList.remove('hidden');
+
             document.querySelector('#mobile-nav-frota').classList.remove('hidden');
 
+
+
             // Apenas carrega os dados e define a view se o DOM estiver pronto
+
             if (tbodyVeiculos) {
+
                 fetchVeiculos();
+
                 switchView('content-frota');
+
             }
+
         }
+
         
+
         if (userRole === 'SUPER_ADMIN') {
+
             liAdminPanel.classList.remove('hidden');
+
             mobileBtnAdmin.classList.remove('hidden');
+
         }
+
+
 
     } else {
+
         telaLogin.classList.remove('hidden');
+
         appContainer.classList.add('hidden');
+
         bottomBar.classList.add('hidden');
+
     }
+
 };
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
+
+
 
     // --- LÓGICA DO MÓDULO DE DOCUMENTOS ---
+
     const fetchDocumentos = async () => {
+
         try {
+
             const response = await fetch(DOCS_URL, { headers: getAuthHeaders() });
+
             if (!response.ok) {
+
                 if (response.status === 401 || response.status === 403) {
+
                     limparToken();
+
                     verificarLogin();
+
                 }
+
                 throw new Error('Falha na busca de documentos');
+
             }
+
             todosOsDocumentos = await response.json();
+
             aplicarFiltrosEBusca();
+
         } catch (error) {
+
             console.error('Erro ao buscar docs:', error);
+
             if(tbodyDocumentos) tbodyDocumentos.innerHTML = `<tr><td colspan="7" style="text-align:center;">Erro ao carregar dados.</td></tr>`;
+
         }
+
     };
+
     
+
     const aplicarFiltrosEBusca = () => {
+
         let docs = [...todosOsDocumentos];
+
         if (filtroCategoriaAtual !== 'todos') docs = docs.filter(d => d.categoria === filtroCategoriaAtual);
+
         if (termoDeBusca.length > 0) docs = docs.filter(d => d.nome.toLowerCase().includes(termoDeBusca.toLowerCase()));
+
         documentosFiltrados = docs;
+
         paginaAtual = 1;
+
         renderizarTabela();
+
     };
+
     
+
     const atualizarControlesPaginacao = () => {
+
         if (!pageInfo || !paginationContainer) return;
+
         const totalPaginas = Math.ceil(documentosFiltrados.length / ITENS_POR_PAGINA);
+
         if (totalPaginas <= 1) {
+
             paginationContainer.classList.add('hidden');
+
         } else {
+
             paginationContainer.classList.remove('hidden');
+
         }
+
         pageInfo.textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+
         btnAnterior.disabled = paginaAtual === 1;
+
         btnProxima.disabled = paginaAtual === totalPaginas;
+
     };
+
+
 
     // INÍCIO DO CÓDIGO PARA SUBSTITUIR
+
 const renderizarTabela = () => {
+
     if(!tbodyDocumentos) return;
+
     tbodyDocumentos.innerHTML = '';
+
     if (documentosFiltrados.length === 0) {
+
         if(paginationContainer) paginationContainer.classList.add('hidden');
+
         tbodyDocumentos.innerHTML = `<tr><td colspan="7" style="text-align:center;">Nenhum documento encontrado.</td></tr>`;
+
         return;
+
     }
+
     
+
     const inicio = (paginaAtual - 1) * ITENS_POR_PAGINA;
+
     const fim = inicio + ITENS_POR_PAGINA;
+
     const documentosDaPagina = documentosFiltrados.slice(inicio, fim);
+
     
+
     atualizarControlesPaginacao();
+
     
+
     const formatarDataParaExibicao = (d) => { if (!d) return 'N/A'; const [a, m, dia] = d.split('T')[0].split('-'); return `${dia}/${m}/${a}`; };
+
     
+
     documentosDaPagina.forEach(doc => {
+
         const tr = document.createElement('tr');
+
         const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
+
         const dataVencimento = new Date(doc.dataVencimento);
+
         const diffTime = dataVencimento.getTime() - hoje.getTime();
+
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
         let statusTexto, statusClasse;
+
         if (doc.status === 'Renovado' || doc.status === 'Em_renovacao') { statusTexto = doc.status.replace('_', ' '); statusClasse = doc.status.toLowerCase(); }
+
         else {
+
             if (diffDays < 0) { statusTexto = 'Atrasado'; statusClasse = 'atrasado'; }
+
             else if (diffDays <= 30) { statusTexto = 'Vence em Breve'; statusClasse = 'vence-breve'; }
+
             else { statusTexto = 'Em Dia'; statusClasse = 'em-dia'; }
+
         }
+
         tr.innerHTML = `
+
             <td>${doc.nome}</td>
+
             <td>${doc.categoria || '-'}</td>
+
             <td>${formatarDataParaExibicao(doc.dataVencimento)}</td>
+
             <td class="dias-restantes">${doc.status === 'Renovado' ? '-' : (diffDays >= 0 ? `Faltam ${diffDays} dia(s)` : `Vencido há ${Math.abs(diffDays)} dia(s)`)}</td>
+
             <td><span class="status-span status-${statusClasse}">${statusTexto}</span></td>
+
             <td></td>
+
             <td></td>
+
         `;
+
+
 
         const anexoCell = tr.children[5];
+
         if (doc.nome_arquivo) {
+
             const linkAnexo = document.createElement('a');
+
             linkAnexo.href = `${API_URL}/uploads/${doc.nome_arquivo}`;
+
             linkAnexo.target = '_blank';
+
             linkAnexo.className = 'btn-anexo';
+
             linkAnexo.title = 'Ver Anexo';
+
             linkAnexo.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-paperclip" viewBox="0 0 16 16"><path d="M4.5 3a2.5 2.5 0 0 1 5 0v9a1.5 1.5 0 0 1-3 0V5a.5.5 0 0 1 1 0v7a.5.5 0 0 0 1 0V3a1.5 1.5 0 1 0-3 0v9a2.5 2.5 0 0 0 5 0V5a.5.5 0 0 1 1 0v7a3.5 3.5 0 1 1-7 0z"/></svg>`;
+
             anexoCell.appendChild(linkAnexo);
+
         } else { 
+
             anexoCell.textContent = 'N/A'; 
+
         }
+
         
+
         const acoesCell = tr.children[6];
+
         const btnEditar = document.createElement('button');
+
         btnEditar.className = 'btn-editar';
+
         btnEditar.title = 'Editar Documento';
+
         btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+
         btnEditar.onclick = () => {
+
             formDocumento.reset();
+
             docId.value = doc.id;
+
             modalTitulo.textContent = 'Editar Documento';
+
             docNome.value = doc.nome;
+
             docCategoria.value = doc.categoria;
+
             docVencimento.value = doc.dataVencimento ? doc.dataVencimento.split('T')[0] : '';
+
             docAlerta.value = doc.diasAlerta;
+
             anexoAtualContainer.textContent = doc.nome_arquivo ? `Anexo atual: ${doc.nome_arquivo}` : '';
+
             anexoAtualContainer.classList.toggle('hidden', !doc.nome_arquivo);
+
             docFileName.textContent = 'Nenhum arquivo novo';
+
             abrirModal(modalDocumento);
+
         };
+
         acoesCell.appendChild(btnEditar);
+
+
 
         // --- NOVO: CÓDIGO PARA CRIAR O BOTÃO DE EXCLUIR ---
+
         const btnDeletar = document.createElement('button');
+
         btnDeletar.className = 'btn-deletar';
+
         btnDeletar.title = 'Excluir Documento';
+
         btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+
+
 
         btnDeletar.onclick = async () => {
+
             if (confirm(`Tem certeza que deseja excluir o documento "${doc.nome}"? Esta ação não pode ser desfeita.`)) {
+
                 try {
+
                     const response = await fetch(`${DOCS_URL}/${doc.id}`, {
+
                         method: 'DELETE',
+
                         headers: getAuthHeaders()
+
                     });
 
+
+
                     if (response.ok) {
+
                         fetchDocumentos(); // Atualiza a lista de documentos na tela
+
                     } else {
+
                         const erro = await response.json();
+
                         alert(`Erro ao excluir documento: ${erro.message || 'Erro desconhecido'}`);
+
                     }
+
                 } catch (error) {
+
                     console.error('Erro ao deletar documento:', error);
+
                     alert('Ocorreu um erro de conexão ao tentar excluir.');
+
                 }
+
             }
+
         };
+
         acoesCell.appendChild(btnDeletar);
+
         // --- FIM DO NOVO CÓDIGO ---
+
         
+
         tbodyDocumentos.appendChild(tr);
+
     });
+
 };
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
+
+
 
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR (exibirDetalhesDoVeiculo)
+
 const exibirDetalhesDoVeiculo = async (veiculo) => {
+
     veiculoSelecionado = veiculo;
+
     detalhesVeiculoTitulo.textContent = `Detalhes: ${veiculo.marca} ${veiculo.modelo} - ${veiculo.placa}`;
+
     switchView('content-veiculo-detalhes');
 
+
+
     const userInfo = JSON.parse(localStorage.getItem('userInfo'));
+
     const userRole = userInfo ? userInfo.usuario.role : null;
+
     const secaoAbastecimento = document.getElementById('secao-abastecimento');
 
+
+
     if (secaoAbastecimento) {
+
         if (userRole === 'ENCARREGADO' || userRole === 'MECANICO') {
+
             secaoAbastecimento.classList.add('hidden');
+
         } else {
+
             secaoAbastecimento.classList.remove('hidden');
+
         }
+
     }
+
     
+
     // --- NOVO: LÓGICA PARA EXIBIR BOTÃO DE FAZER SOLICITAÇÃO ---
+
     if(btnAbrirModalSolicitacao) {
+
         if (userRole === 'SUPER_ADMIN' || userRole === 'ENCARREGADO') {
+
             btnAbrirModalSolicitacao.classList.remove('hidden');
+
         } else {
+
             btnAbrirModalSolicitacao.classList.add('hidden');
+
         }
+
     }
+
+
 
     // Busca e renderiza o histórico de MANUTENÇÕES
+
     try {
+
         const resManutencoes = await fetch(`${VEICULOS_URL}/${veiculo.id}/manutencoes`, { headers: getAuthHeaders() });
+
         if (!resManutencoes.ok) throw new Error('Falha ao buscar manutenções');
+
         const manutencoes = await resManutencoes.json();
+
         renderizarTabelaManutencoes(manutencoes);
+
     } catch (error) {
+
         console.error('Erro ao buscar manutenções:', error);
+
         tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
+
     }
+
+
 
     // Apenas busca o histórico de ABASTECIMENTO se a seção for visível
+
     if (secaoAbastecimento && !secaoAbastecimento.classList.contains('hidden')) {
+
         try {
+
             const resAbastecimentos = await fetch(`${VEICULOS_URL}/${veiculo.id}/abastecimentos`, { headers: getAuthHeaders() });
+
             if (!resAbastecimentos.ok) throw new Error('Falha ao buscar abastecimentos');
+
             const abastecimentos = await resAbastecimentos.json();
+
             renderizarTabelaAbastecimentos(abastecimentos);
+
         } catch (error) {
+
             console.error('Erro ao buscar abastecimentos:', error);
+
             tbodyAbastecimentos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
+
         }
+
     }
+
+
 
     // Busca e renderiza o PLANO DE MANUTENÇÃO
+
     try {
+
         const resPlanos = await fetch(`${VEICULOS_URL}/${veiculo.id}/planos`, { headers: getAuthHeaders() });
+
         if (!resPlanos.ok) throw new Error('Falha ao buscar plano de manutenção');
+
         const planos = await resPlanos.json();
+
         renderizarTabelaPlanos(planos);
+
     } catch (error) {
+
         console.error('Erro ao buscar plano de manutenção:', error);
+
         tbodyPlanos.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar plano.</td></tr>`;
+
     }
+
+
 
     // --- NOVO: BUSCA E RENDERIZA AS SOLICITAÇÕES DE MANUTENÇÃO ---
+
     try {
+
         const resSolicitacoes = await fetch(`${VEICULOS_URL}/${veiculo.id}/solicitacoes`, { headers: getAuthHeaders() });
+
         if (!resSolicitacoes.ok) throw new Error('Falha ao buscar solicitações');
+
         const solicitacoes = await resSolicitacoes.json();
+
         renderizarTabelaSolicitacoes(solicitacoes);
+
     } catch (error) {
+
         console.error('Erro ao buscar solicitações:', error);
+
         tbodySolicitacoes.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar solicitações.</td></tr>`;
+
     }
+
 };
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
+
+
 
     // --- LÓGICA DO MÓDULO DE FROTA ---
+
     // --- NOVO: Funções de Manutenção ---
+
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR
+
 const adicionarLinhaPeca = () => {
+
     const div = document.createElement('div');
+
     div.className = 'form-row peca-item';
 
+
+
     // Adiciona o HTML da nova linha, agora com o campo de TIPO
+
     div.innerHTML = `
+
         <div class="form-group peca-tipo">
+
             <label>Tipo</label>
+
             <div class="select-wrapper">
+
                 <select class="peca-input-tipo" required>
+
                     <option value="Peca">Peça</option>
+
                     <option value="Servico">Serviço</option>
+
                 </select>
+
             </div>
+
         </div>
+
         <div class="form-group peca-qtd">
+
             <label>Qtd</label>
+
             <input type="number" class="peca-input-qtd" placeholder="Qtd" min="1" value="1" required>
+
         </div>
+
         <div class="form-group peca-desc">
+
             <label>Descrição</label>
+
             <input type="text" class="peca-input-desc" placeholder="Descrição da peça ou serviço" required>
+
         </div>
+
         <div class="form-group peca-marca">
+
             <label>Marca</label>
+
             <input type="text" class="peca-input-marca" placeholder="Marca (opcional)">
+
         </div>
+
         <div class="form-group peca-acao">
+
             <label>&nbsp;</label>
+
             <button type="button" class="btn-remover-item">&times;</button>
+
         </div>
+
     `;
 
+
+
     // --- LÓGICA INTELIGENTE PARA ESCONDER/MOSTRAR CAMPOS ---
+
     const selectTipo = div.querySelector('.peca-input-tipo');
+
     const grupoQtd = div.querySelector('.peca-qtd');
+
     const grupoMarca = div.querySelector('.peca-marca');
 
+
+
     const atualizarVisibilidade = () => {
+
         if (selectTipo.value === 'Servico') {
+
             grupoQtd.style.display = 'none';
+
             grupoMarca.style.display = 'none';
+
         } else { // Se for 'Peca'
+
             grupoQtd.style.display = 'block';
+
             grupoMarca.style.display = 'block';
+
         }
+
     };
+
+
 
     // Adiciona o evento que dispara a lógica quando o tipo é alterado
+
     selectTipo.addEventListener('change', atualizarVisibilidade);
+
     
+
     // Garante o estado inicial correto da linha
+
     atualizarVisibilidade(); 
+
     
+
     // --- LÓGICA PARA O BOTÃO DE REMOVER A LINHA ---
+
     const btnRemover = div.querySelector('.btn-remover-item');
+
     btnRemover.addEventListener('click', () => {
+
         div.remove();
+
     });
+
+
 
     listaPecasContainer.appendChild(div);
+
 };
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
+
+
     const fetchVeiculos = async () => {
+
         try {
+
             const response = await fetch(VEICULOS_URL, { headers: getAuthHeaders() });
+
             if (!response.ok) throw new Error('Falha na busca de veículos');
+
             todosOsVeiculos = await response.json();
+
             aplicarFiltroBuscaVeiculos();
+
         } catch (error) {
+
             console.error('Erro ao buscar veículos:', error);
+
             if(tbodyVeiculos) tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar veículos.</td></tr>`;
+
         }
+
     };
+
+
 
     const aplicarFiltroBuscaVeiculos = () => {
+
         let veiculos = [...todosOsVeiculos];
+
         const termo = termoDeBuscaVeiculo.toLowerCase();
 
+
+
         if (termo.length > 0) {
+
             veiculos = veiculos.filter(v => 
+
                 v.placa.toLowerCase().includes(termo) ||
+
                 v.marca.toLowerCase().includes(termo) ||
+
                 v.modelo.toLowerCase().includes(termo)
+
             );
+
         }
+
         veiculosFiltrados = veiculos;
+
         renderizarTabelaVeiculos();
+
     };
 
+
+
     const renderizarTabelaVeiculos = () => {
+
     if (!tbodyVeiculos) return;
+
     tbodyVeiculos.innerHTML = '';
 
+
+
     if (veiculosFiltrados.length === 0) {
+
         tbodyVeiculos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum veículo encontrado.</td></tr>`;
+
         return;
+
     }
 
+
+
     veiculosFiltrados.forEach(veiculo => {
+
         const tr = document.createElement('tr');
+
         tr.className = 'linha-clicavel'; // Adiciona a classe para o estilo do cursor
+
         tr.onclick = () => exibirDetalhesDoVeiculo(veiculo); // Adiciona o evento de clique na linha
 
+
+
         tr.innerHTML = `
+
             <td>${veiculo.placa}</td>
+
             <td>${veiculo.marca}</td>
+
             <td>${veiculo.modelo}</td>
+
             <td>${veiculo.ano}</td>
+
             <td>${veiculo.tipo}</td>
+
             <td></td> 
+
         `;
+
         
+
         const acoesCell = tr.children[5];
+
         acoesCell.onclick = (e) => e.stopPropagation(); // Impede que o clique nos botões ative o clique da linha
 
+
+
         const btnEditar = document.createElement('button');
+
         btnEditar.className = 'btn-editar';
+
         btnEditar.title = 'Editar Veículo';
+
         btnEditar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`;
+
         btnEditar.onclick = (e) => {
+
             e.stopPropagation();
+
             formVeiculo.reset();
+
             veiculoId.value = veiculo.id;
+
             modalVeiculoTitulo.textContent = 'Editar Veículo';
+
             veiculoPlaca.value = veiculo.placa;
+
             veiculoMarca.value = veiculo.marca;
+
             veiculoModelo.value = veiculo.modelo;
+
             veiculoAno.value = veiculo.ano;
+
             veiculoTipo.value = veiculo.tipo;
+
             abrirModal(modalVeiculo);
+
         };
 
+
+
         const btnDeletar = document.createElement('button');
+
         btnDeletar.className = 'btn-deletar';
+
         btnDeletar.title = 'Excluir Veículo';
+
         btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+
         btnDeletar.onclick = async (e) => {
+
             e.stopPropagation();
+
             if (confirm(`Tem certeza que deseja excluir o veículo de placa ${veiculo.placa}?`)) {
+
                 try {
+
                     const response = await fetch(`${VEICULOS_URL}/${veiculo.id}`, {
+
                         method: 'DELETE',
+
                         headers: getAuthHeaders()
+
                     });
+
                     if (response.ok) {
+
                         fetchVeiculos();
+
                     } else {
+
                         const erro = await response.json();
+
                         alert(`Erro ao excluir veículo: ${erro.error}`);
+
                     }
+
                 } catch (error) {
+
                     console.error('Erro ao deletar veículo:', error);
+
                     alert('Ocorreu um erro de conexão ao tentar excluir.');
+
                 }
+
             }
+
         };
+
         
+
         acoesCell.appendChild(btnEditar);
+
         acoesCell.appendChild(btnDeletar);
+
         tbodyVeiculos.appendChild(tr);
+
     });
+
 };
+
+
+
 
 
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR
+
 const renderizarTabelaManutencoes = (manutencoes) => {
+
     if (!tbodyManutencoes) return;
+
     tbodyManutencoes.innerHTML = '';
 
+
+
     if (!manutencoes || manutencoes.length === 0) {
+
         tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum registro de manutenção encontrado.</td></tr>`;
+
         return;
+
     }
+
+
 
     const formatarData = (d) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 
+
+
     manutencoes.forEach(m => {
+
         const tr = document.createElement('tr');
+
         
+
         // LÓGICA ATUALIZADA PARA EXIBIR O TIPO (PEÇA/SERVIÇO) DE CADA ITEM
+
         const pecasTexto = Array.isArray(m.pecas) && m.pecas.length > 0
+
             ? m.pecas.map(p => {
+
                 // Verifica se o item é um Serviço
+
                 if (p.tipo === 'Servico') {
+
                     // Retorna um formato mais simples para serviços
+
                     return `<span class="item-tipo-servico">[Serviço]</span> ${p.descricao}`;
+
                 }
+
                 
+
                 // Se não for serviço, trata como Peça (incluindo dados antigos que não tinham o campo 'tipo')
+
                 const quantidade = p.quantidade || 1;
+
                 const marca = p.marca ? `(${p.marca})` : '';
+
                 return `<span class="item-tipo-peca">[Peça]</span> ${quantidade}x ${p.descricao} ${marca}`;
 
+
+
             }).join('<br>')
+
             : '-';
 
+
+
         tr.innerHTML = `
+
             <td>${formatarData(m.data)}</td>
+
             <td>${m.tipo}</td>
+
             <td>${m.km_atual}</td>
+
             <td>${pecasTexto}</td>
+
             <td></td> 
+
         `;
+
+
 
         const acoesCell = tr.children[4];
 
+
+
         const btnDeletar = document.createElement('button');
+
         btnDeletar.className = 'btn-deletar';
+
         btnDeletar.title = 'Excluir Registro de Manutenção';
+
         btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+
         
+
         btnDeletar.onclick = async () => {
+
             if (confirm(`Tem certeza que deseja excluir o registro de manutenção do dia ${formatarData(m.data)}?`)) {
+
                 try {
+
                     const response = await fetch(`${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes/${m.id}`, {
+
                         method: 'DELETE',
+
                         headers: getAuthHeaders()
+
                     });
+
                     if (response.ok) {
+
                         exibirDetalhesDoVeiculo(veiculoSelecionado); 
+
                     } else {
+
                         const erro = await response.json();
+
                         alert(`Erro ao excluir registro: ${erro.error || 'Erro desconhecido'}`);
+
                     }
+
                 } catch (error) {
+
                     console.error('Erro ao deletar manutenção:', error);
+
                     alert('Ocorreu um erro de conexão ao tentar excluir.');
+
                 }
+
             }
+
         };
 
+
+
         acoesCell.appendChild(btnDeletar);
+
         tbodyManutencoes.appendChild(tr);
+
     });
+
 };
+
+/**
+ * (FASE 4) Controla a visibilidade dos campos com base no tipo de manutenção selecionado.
+ */
+const handleTipoManutencaoChange = () => {
+    if (!manutencaoTipo || !formGroupPlanoItem) return;
+
+    if (manutencaoTipo.value === 'Preventiva') {
+        formGroupPlanoItem.classList.remove('hidden');
+    } else {
+        formGroupPlanoItem.classList.add('hidden');
+    }
+};
+
+/**
+ * (FASE 4) Busca os itens do plano de manutenção do veículo e popula o select.
+ */
+const popularPlanoManutencaoSelect = async () => {
+    if (!veiculoSelecionado || !manutencaoPlanoItem) return;
+
+    try {
+        const response = await fetch(`${VEICULOS_URL}/${veiculoSelecionado.id}/planos`, { headers: getAuthHeaders() });
+        if (!response.ok) throw new Error('Falha ao buscar itens do plano.');
+        
+        const planos = await response.json();
+        
+        manutencaoPlanoItem.innerHTML = '<option value="" disabled selected>Selecione o item executado...</option>';
+        
+        planos.forEach(plano => {
+            const option = document.createElement('option');
+            option.value = plano.id; // O valor será o ID do item do plano
+            option.textContent = plano.descricao; // O texto será a descrição
+            manutencaoPlanoItem.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error('Erro ao popular o select de itens do plano:', error);
+        manutencaoPlanoItem.innerHTML = '<option value="">Erro ao carregar itens</option>';
+    }
+};
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
+
+
+// CÓDIGO ATUALIZADO (SUBSTITUIR A FUNÇÃO EXISTENTE)
+
+// SUBSTITUA A FUNÇÃO 'abrirModalManutencao' INTEIRA POR ESTA VERSÃO
 const abrirModalManutencao = (solicitacao = null) => {
     if (!veiculoSelecionado) return;
+    if (!formManutencao) return;
 
-    // Referências dos campos do formulário
-    const solicitacaoIdInput = document.getElementById('manutencao-solicitacao-id');
-    const tipoManutencaoSelect = document.getElementById('manutencao-tipo');
-
-    // Limpa o formulário e os campos dinâmicos
+    // --- LÓGICA DE RESET E PREPARAÇÃO ---
     formManutencao.reset();
-    manutencaoId.value = '';
-    listaPecasContainer.innerHTML = '';
-    adicionarLinhaPeca(); // Adiciona a primeira linha de peça/serviço
+    formManutencao.removeEventListener('submit', handleManutencaoSubmit);
+    formManutencao.addEventListener('submit', handleManutencaoSubmit);
 
-    // Lógica de pré-preenchimento SÓ SE uma solicitação válida for passada
+    if (listaPecasContainer) {
+        listaPecasContainer.innerHTML = '';
+        adicionarLinhaPeca();
+    }
+    
+    // --- INÍCIO DAS NOVAS INTEGRAÇÕES (FASE 4) ---
+
+    // 1. Esconde o campo do plano por padrão ao abrir o modal.
+    if (formGroupPlanoItem) formGroupPlanoItem.classList.add('hidden');
+
+    // 2. Prepara o listener para o campo "Tipo de Manutenção".
+    if (manutencaoTipo) {
+        manutencaoTipo.removeEventListener('change', handleTipoManutencaoChange); // Limpa listener antigo
+        manutencaoTipo.addEventListener('change', handleTipoManutencaoChange);
+    }
+    
+    // 3. Busca e popula os itens do plano para o novo campo de select.
+    popularPlanoManutencaoSelect();
+
+    // --- FIM DAS NOVAS INTEGRAÇÕES ---
+
+    // Lógica para pré-preenchimento SE uma solicitação for passada (continua a mesma)
+    const solicitacaoIdInput = document.getElementById('manutencao-solicitacao-id');
     if (solicitacao && solicitacao.id) {
-        // Se uma solicitação foi passada, estamos "Finalizando um Serviço"
-        solicitacaoIdInput.value = solicitacao.id;
-        tipoManutencaoSelect.value = 'Corretiva'; // Define o tipo como Corretiva por padrão
-
-        // Pega a referência da descrição da primeira linha APÓS ela ter sido criada
+        if (solicitacaoIdInput) solicitacaoIdInput.value = solicitacao.id;
+        if (manutencaoTipo) {
+            manutencaoTipo.value = 'Corretiva';
+            handleTipoManutencaoChange(); // Garante que o campo do plano fique escondido
+        }
+        
         const primeiraDescricao = document.querySelector('#lista-pecas-container .peca-input-desc');
         if (primeiraDescricao) {
             primeiraDescricao.value = solicitacao.descricao_problema;
         }
     } else {
-        // Se nenhuma solicitação foi passada, garante que o campo de ID da solicitação está vazio
-        solicitacaoIdInput.value = '';
+        if (solicitacaoIdInput) solicitacaoIdInput.value = '';
     }
 
     abrirModal(modalManutencao);
 };
 
+
+
 // --- NOVO: Funções de Abastecimento ---
+
 const renderizarTabelaAbastecimentos = (abastecimentos) => {
+
     if (!tbodyAbastecimentos) return;
+
     tbodyAbastecimentos.innerHTML = '';
 
+
+
     if (abastecimentos.length === 0) {
+
         tbodyAbastecimentos.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum abastecimento registrado.</td></tr>`;
+
         return;
+
     }
+
     
+
     // Ordena os abastecimentos por KM para calcular o consumo corretamente
+
     const abastecimentosOrdenados = [...abastecimentos].sort((a, b) => a.km_atual - b.km_atual);
 
+
+
     abastecimentosOrdenados.forEach((abastecimento, index) => {
+
         const tr = document.createElement('tr');
+
         let consumoKML = '-';
 
+
+
         // Calcula o consumo com base no abastecimento anterior
+
         if (index > 0) {
+
             const anterior = abastecimentosOrdenados[index - 1];
+
             const kmRodados = abastecimento.km_atual - anterior.km_atual;
+
             const litrosConsumidos = parseFloat(anterior.litros_abastecidos);
+
             if (litrosConsumidos > 0 && kmRodados > 0) {
+
                 consumoKML = (kmRodados / litrosConsumidos).toFixed(2).replace('.', ',');
+
             }
+
         }
 
+
+
         tr.innerHTML = `
+
             <td>${new Date(abastecimento.data).toLocaleDateString('pt-BR', {timeZone: 'UTC'})}</td>
+
             <td>${abastecimento.km_atual}</td>
+
             <td>${parseFloat(abastecimento.litros_abastecidos).toFixed(2).replace('.', ',')} L</td>
+
             <td>R$ ${abastecimento.valor_total ? parseFloat(abastecimento.valor_total).toFixed(2).replace('.', ',') : '-'}</td>
+
             <td>${abastecimento.posto || '-'}</td>
+
             <td>${consumoKML}</td>
+
         `;
+
         tbodyAbastecimentos.appendChild(tr);
+
     });
+
 };
+
+
 
 const abrirModalAbastecimento = () => {
+
     if (!veiculoSelecionado) return;
+
     formAbastecimento.reset();
+
     abrirModal(modalAbastecimento);
+
 };
+
+
 
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR (renderizarTabelaPlanos)
+
 const renderizarTabelaPlanos = (planos) => {
+
     if (!tbodyPlanos) return;
+
     tbodyPlanos.innerHTML = '';
 
+
+
     if (planos.length === 0) {
+
         tbodyPlanos.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum item cadastrado no plano.</td></tr>`;
+
         return;
+
     }
 
+
+
     const mapaDeStatusParaClasse = {
+
         'Em Dia': 'em-dia',
+
         'Alerta': 'vence-breve',
+
         'Vencido': 'atrasado',
+
         ' indefinido': 'em-dia'
+
     };
 
+
+
     planos.forEach(plano => {
+
         const tr = document.createElement('tr');
+
         
+
         const statusTexto = plano.status || ' indefinido';
+
         const statusClasse = mapaDeStatusParaClasse[statusTexto] || 'em-dia';
 
+
+
         tr.innerHTML = `
+
             <td>${plano.descricao}</td>
+
             <td>${plano.intervalo_km || '-'}</td>
+
             <td>${plano.intervalo_dias || '-'}</td>
+
             <td><span class="status-span status-${statusClasse}">${statusTexto}</span></td>
+
             <td></td>
+
         `;
 
+
+
         const acoesCell = tr.children[4];
+
         const btnDeletar = document.createElement('button');
+
         btnDeletar.className = 'btn-deletar';
+
         btnDeletar.title = 'Excluir Item do Plano';
+
         btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
 
+
+
         btnDeletar.onclick = async () => {
+
             if (confirm(`Tem certeza que deseja excluir o item "${plano.descricao}" do plano?`)) {
+
                 try {
+
                     const response = await fetch(`${VEICULOS_URL}/${veiculoSelecionado.id}/planos/${plano.id}`, {
+
                         method: 'DELETE',
+
                         headers: getAuthHeaders()
+
                     });
+
                     if (response.ok) {
+
                         exibirDetalhesDoVeiculo(veiculoSelecionado);
+
                     } else {
+
                         const erro = await response.json();
+
                         alert(`Erro ao excluir item do plano: ${erro.error || 'Erro desconhecido'}`);
+
                     }
+
                 } catch (error) {
+
                     console.error('Erro ao deletar item do plano:', error);
+
                     alert('Ocorreu um erro de conexão ao tentar excluir.');
+
                 }
+
             }
+
         };
+
+
 
         acoesCell.appendChild(btnDeletar);
+
         tbodyPlanos.appendChild(tr);
+
     });
+
 };
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
+
     
+
     // --- EVENT LISTENERS ---
+
     if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
+
     if (menuOverlay) menuOverlay.addEventListener('click', toggleMobileMenu);
 
+
+
     if (btnAnterior) btnAnterior.addEventListener('click', () => {
+
         if (paginaAtual > 1) {
+
             paginaAtual--;
+
             renderizarTabela();
+
             if (listaContainer) listaContainer.scrollIntoView({ behavior: 'smooth' });
+
+        }
+
+    });
+
+
+    // --- NOVO EVENT LISTENER PARA A FASE 4 ---
+if (manutencaoPlanoItem) {
+    manutencaoPlanoItem.addEventListener('change', () => {
+        // Pega o texto do item selecionado no dropdown
+        const itemSelecionadoTexto = manutencaoPlanoItem.options[manutencaoPlanoItem.selectedIndex].text;
+        
+        // Encontra o primeiro campo de descrição na lista de peças
+        const primeiraDescricao = document.querySelector('#lista-pecas-container .peca-input-desc');
+        
+        if (primeiraDescricao) {
+            // Preenche o campo de descrição com o nome do item do plano
+            primeiraDescricao.value = itemSelecionadoTexto;
         }
     });
+}
+
 
     if (btnProxima) btnProxima.addEventListener('click', () => {
+
         const totalPaginas = Math.ceil(documentosFiltrados.length / ITENS_POR_PAGINA);
+
         if (paginaAtual < totalPaginas) {
+
             paginaAtual++;
+
             renderizarTabela();
+
             if (listaContainer) listaContainer.scrollIntoView({ behavior: 'smooth' });
+
         }
+
     });
+
+
 
     if (formLogin) formLogin.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         loginErrorMessage.style.display = 'none';
+
         const email = document.getElementById('email').value;
+
         const senha = document.getElementById('senha').value;
+
         try {
+
             const response = await fetch(LOGIN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, senha }) });
+
             if (response.ok) {
+
                 const { token, usuario } = await response.json();
+
                 salvarToken(token);
+
                 localStorage.setItem('userInfo', JSON.stringify({ usuario }));
+
                 verificarLogin();
+
             } else { loginErrorMessage.textContent = 'Email ou senha inválidos.'; loginErrorMessage.style.display = 'block'; }
+
         } catch (error) { loginErrorMessage.textContent = 'Erro de conexão com o servidor.'; loginErrorMessage.style.display = 'block'; }  
+
 });
+
     
+
     btnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
+
     mobileBtnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
+
     
+
     if (btnAbrirModalCadastro) btnAbrirModalCadastro.addEventListener('click', () => {
+
         formDocumento.reset();
+
         docId.value = '';
+
         modalTitulo.textContent = 'Cadastrar Novo Documento';
+
         anexoAtualContainer.classList.add('hidden');
+
         docFileName.textContent = 'Nenhum arquivo escolhido';
+
         abrirModal(modalDocumento);
+
     });
+
+
 
     btnAdminPanel.addEventListener('click', () => carregarPainelAdmin());
+
     mobileBtnAdmin.addEventListener('click', () => carregarPainelAdmin());
+
     
+
     btnAbrirPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
+
     mobileBtnPerfil.addEventListener('click', acoesDeUsuario.abrirPerfil);
 
+
+
     [modalDocumento, modalAdmin, modalPerfil, modalVeiculo, modalManutencao, modalAbastecimento].forEach(m => {      if(m) {
+
             const closeButton = m.querySelector('.close-button');
+
             if (closeButton) { closeButton.addEventListener('click', () => fecharModal(m)); }
+
             m.addEventListener('click', (e) => { if (e.target === m) { fecharModal(m); } });
+
         }
+
     });
+
+
 
     if (formDocumento) formDocumento.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         const id = docId.value;
+
         const formData = new FormData();
+
         formData.append('nome', docNome.value);
+
         formData.append('categoria', docCategoria.value);
+
         formData.append('dataVencimento', docVencimento.value);
+
         formData.append('diasAlerta', docAlerta.value);
+
         if (docArquivo.files.length > 0) { formData.append('arquivo', docArquivo.files[0]); }
+
         const url = id ? `${DOCS_URL}/${id}` : DOCS_URL;
+
         const method = id ? 'PUT' : 'POST';
+
         try {
+
             const response = await fetch(url, { method: method, headers: getAuthHeaders(true), body: formData });
+
             if (response.ok) { fecharModal(modalDocumento); fetchDocumentos(); }
+
             else { alert('Erro ao salvar documento.'); }
+
         } catch (error) { console.error('Erro ao salvar:', error); }
+
     });
+
+
 
     if (btnAbrirModalVeiculo) btnAbrirModalVeiculo.addEventListener('click', () => {
+
         formVeiculo.reset();
+
         veiculoId.value = '';
+
         if(modalVeiculoTitulo) modalVeiculoTitulo.textContent = 'Cadastrar Novo Veículo';
+
         abrirModal(modalVeiculo);
+
     });
+
+
 
     if (formVeiculo) formVeiculo.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         const dadosVeiculo = {
+
             placa: veiculoPlaca.value,
+
             marca: veiculoMarca.value,
+
             modelo: veiculoModelo.value,
+
             ano: veiculoAno.value,
+
             tipo: veiculoTipo.value,
+
         };
+
+
 
         const id = veiculoId.value;
+
         const url = id ? `${VEICULOS_URL}/${id}` : VEICULOS_URL;
+
         const method = id ? 'PUT' : 'POST';
 
+
+
         try {
+
             const response = await fetch(url, {
+
                 method: method,
+
                 headers: getAuthHeaders(),
+
                 body: JSON.stringify(dadosVeiculo)
+
             });
 
+
+
             if (response.ok) {
+
                 fecharModal(modalVeiculo);
+
                 fetchVeiculos();
+
             } else {
+
                 const erro = await response.json();
+
                 alert(`Erro ao salvar veículo: ${erro.error}`);
+
             }
+
         } catch (error) {
+
             console.error('Erro ao salvar veículo:', error);
+
             alert('Ocorreu um erro de conexão. Tente novamente.');
+
         }
+
     });
+
+
 
     // --- NOVO: Event Listeners para Manutenção ---
+
 if (btnAbrirModalManutencao) {
+
     btnAbrirModalManutencao.addEventListener('click', () => {
+
         formManutencao.reset();
+
         manutencaoId.value = '';
+
         
+
         // Limpa as linhas de peças antigas e adiciona uma nova em branco para começar
+
         listaPecasContainer.innerHTML = '';
+
         adicionarLinhaPeca(); 
 
+
+
         abrirModal(modalManutencao);
+
     });
+
 }
 
-// INÍCIO DO CÓDIGO PARA SUBSTITUIR
-// Localize este bloco (por volta da linha 908)
-if (formManutencao) {
-    formManutencao.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        if (!veiculoSelecionado) return;
 
-        const pecas = [];
-        const pecaItems = document.querySelectorAll('.peca-item');
-        pecaItems.forEach(item => {
-            const tipo = item.querySelector('.peca-input-tipo').value;
-            const descricao = item.querySelector('.peca-input-desc').value;
-            if (descricao) { 
-                const itemManutencao = {
-                    tipo: tipo,
-                    descricao: descricao,
-                    quantidade: null,
-                    marca: null
-                };
-                if (tipo === 'Peca') {
-                    itemManutencao.quantidade = item.querySelector('.peca-input-qtd').value;
-                    itemManutencao.marca = item.querySelector('.peca-input-marca').value || null;
-                }
-                pecas.push(itemManutencao);
+
+// CÓDIGO ATUALIZADO (SUBSTITUIR A FUNÇÃO 'handleManutencaoSubmit')
+
+/**
+ * Função nomeada para lidar com o salvamento do registro de manutenção.
+ * Centralizar a lógica aqui torna o código mais limpo e reutilizável.
+ * @param {Event} e - O objeto do evento de submit.
+ */
+// ARQUIVO: script.js
+// Confirme que esta é a sua função `handleManutencaoSubmit`
+
+// SUBSTITUA a função 'handleManutencaoSubmit' inteira por esta versão final
+const handleManutencaoSubmit = async (e) => {
+    e.preventDefault();
+    if (!veiculoSelecionado) return;
+
+    const manutencaoDataInput = document.getElementById('manutencao-data');
+    const manutencaoTipoInput = document.getElementById('manutencao-tipo');
+    const manutencaoKmInput = document.getElementById('manutencao-km');
+    const solicitacaoIdInput = document.getElementById('manutencao-solicitacao-id');
+    // (NOVO) Busca a referência ao select do item do plano
+    const manutencaoPlanoItemSelect = document.getElementById('manutencao-plano-item'); 
+
+    const pecas = [];
+    document.querySelectorAll('.peca-item').forEach(item => {
+        //... (lógica de coleta das peças permanece a mesma) ...
+        const tipo = item.querySelector('.peca-input-tipo').value;
+        const descricao = item.querySelector('.peca-input-desc').value;
+        if (descricao) {
+            const itemManutencao = { tipo, descricao, quantidade: null, marca: null };
+            if (tipo === 'Peca') {
+                itemManutencao.quantidade = item.querySelector('.peca-input-qtd').value;
+                itemManutencao.marca = item.querySelector('.peca-input-marca').value || null;
             }
+            pecas.push(itemManutencao);
+        }
+    });
+
+    const dadosManutencao = {
+        data: manutencaoDataInput.value,
+        tipo: manutencaoTipoInput.value,
+        km_atual: manutencaoKmInput.value,
+        pecas: pecas,
+    };
+
+    // Adiciona o ID da solicitação se existir
+    if (solicitacaoIdInput && solicitacaoIdInput.value) {
+        dadosManutencao.solicitacaoId = solicitacaoIdInput.value;
+    }
+
+    // (NOVO) Adiciona o ID do item do plano SE o tipo for Preventiva e um item foi selecionado
+    if (dadosManutencao.tipo === 'Preventiva' && manutencaoPlanoItemSelect && manutencaoPlanoItemSelect.value) {
+        dadosManutencao.planoItemId = manutencaoPlanoItemSelect.value;
+    }
+
+    const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
+
+    try {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(dadosManutencao) // Envia todos os dados coletados
         });
-
-        // NOVO: Pega o ID da solicitação do campo hidden
-        const solicitacaoId = document.getElementById('manutencao-solicitacao-id').value;
-
-        const dadosManutencao = {
-            data: manutencaoData.value,
-            tipo: manutencaoTipo.value,
-            km_atual: manutencaoKm.value,
-            pecas: pecas, 
-        };
-
-        // NOVO: Adiciona o solicitacaoId ao corpo da requisição, se ele existir
-        if (solicitacaoId) {
-            dadosManutencao.solicitacaoId = solicitacaoId;
-        }
-
-        const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes`;
-        const method = 'POST';
-
-        try {
-            const response = await fetch(url, {
-                method: method,
-                headers: getAuthHeaders(),
-                body: JSON.stringify(dadosManutencao)
-            });
-
-            if (response.ok) {
-                fecharModal(modalManutencao);
-                exibirDetalhesDoVeiculo(veiculoSelecionado); 
+        if (response.ok) {
+            fecharModal(modalManutencao);
+            exibirDetalhesDoVeiculo(veiculoSelecionado);
+        } else {
+            const erro = await response.json();
+            // (NOVO) Tratamento de erro específico para item do plano obrigatório
+            if (erro.error === 'Para manutenção preventiva, é obrigatório selecionar o item do plano executado.') {
+                alert(erro.error); // Mostra a mensagem de erro específica
             } else {
-                const erro = await response.json();
-                alert(`Erro ao salvar registro: ${erro.error}`);
+                alert(`Erro ao salvar registro: ${erro.error || 'Erro desconhecido.'}`);
             }
-        } catch (error) {
-            console.error('Erro ao salvar manutenção:', error);
-            alert('Ocorreu um erro de conexão. Tente novamente.');
         }
-    });
-}
-// FIM DO CÓDIGO PARA SUBSTITUIR
+    } catch (error) {
+        console.error('Erro ao salvar manutenção:', error);
+        alert('Ocorreu um erro de conexão. Tente novamente.');
+    }
+};
+
+
 
 // --- NOVO: Event Listeners para Abastecimento ---
+
 if (btnAbrirModalAbastecimento) {
+
     btnAbrirModalAbastecimento.addEventListener('click', abrirModalAbastecimento);
+
 }
 
+
+
 if (formAbastecimento) {
+
     formAbastecimento.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         if (!veiculoSelecionado) return;
 
+
+
         const dadosAbastecimento = {
+
             data: abastecimentoData.value,
+
             km_atual: abastecimentoKm.value,
+
             litros_abastecidos: abastecimentoLitros.value,
+
             valor_total: abastecimentoValor.value || null,
+
             posto: abastecimentoPosto.value,
+
         };
+
+
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/abastecimentos`;
 
+
+
         try {
+
             const response = await fetch(url, {
+
                 method: 'POST',
+
                 headers: getAuthHeaders(),
+
                 body: JSON.stringify(dadosAbastecimento)
+
             });
+
+
 
             if (response.ok) {
+
                 fecharModal(modalAbastecimento);
+
                 exibirDetalhesDoVeiculo(veiculoSelecionado); 
+
             } else {
+
                 const erro = await response.json();
+
                 alert(`Erro ao salvar registro: ${erro.error}`);
+
             }
+
         } catch (error) {
+
             console.error('Erro ao salvar abastecimento:', error);
+
             alert('Ocorreu um erro de conexão. Tente novamente.');
+
         }
+
     });
+
 }
+
+
 
     if (docArquivo) docArquivo.addEventListener('change', () => {
+
         docFileName.textContent = docArquivo.files.length > 0 ? docArquivo.files[0].name : 'Nenhum arquivo';
+
     });
+
     const cadastrarUsuario = async (nome, email, senha) => {
+
         try {
+
             const response = await fetch(REGISTER_URL, { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ nome, email, senha }) });
+
             const result = await response.json();
+
             if (response.ok) { alert(`Usuário "${result.usuario.email}" criado com sucesso!`); formRegister.reset(); fecharModal(modalAdmin); }
+
             else { alert(`Erro: ${result.message}`); }
+
         } catch (error) { console.error('Erro ao cadastrar usuário:', error); alert('Erro de conexão.'); }
+
     };
+
     if (formRegister) formRegister.addEventListener('submit', (e) => { e.preventDefault(); const nome = document.getElementById('register-nome').value; const email = document.getElementById('register-email').value; const senha = document.getElementById('register-senha').value; cadastrarUsuario(nome, email, senha); });
+
     if (formPerfil) formPerfil.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         const nome = perfilNome.value;
+
         try {
+
             const response = await fetch(PERFIL_URL, { method: 'PUT', headers: getAuthHeaders(), body: JSON.stringify({ nome }) });
+
             if(response.ok) {
+
                 const usuarioAtualizado = await response.json();
+
                 let userInfo = JSON.parse(localStorage.getItem('userInfo'));
+
                 userInfo.usuario = usuarioAtualizado;
+
                 localStorage.setItem('userInfo', JSON.stringify(userInfo));
+
                 verificarLogin();
+
                 fecharModal(modalPerfil);
+
             } else { alert('Erro ao atualizar o nome.'); }
+
         } catch (error) { console.error('Erro ao atualizar perfil:', error); }
+
     });
+
     if (filtrosContainer) filtrosContainer.addEventListener('click', (e) => { if (e.target.tagName === 'BUTTON') { document.querySelector('.filtro-btn.active').classList.remove('active'); e.target.classList.add('active'); filtroCategoriaAtual = e.target.dataset.categoria; aplicarFiltrosEBusca(); } });
+
     
+
     if (inputBusca) inputBusca.addEventListener('input', (e) => { termoDeBusca = e.target.value; aplicarFiltrosEBusca(); });
+
     if (inputBuscaVeiculo) inputBuscaVeiculo.addEventListener('input', (e) => { termoDeBuscaVeiculo = e.target.value; aplicarFiltroBuscaVeiculos(); });
+
     
+
         
+
     // --- NOVO: Event Listener para o botão "Voltar" ---
+
         if (btnVoltarParaFrota) {
+
             btnVoltarParaFrota.addEventListener('click', () => {
+
             switchView('content-frota');
+
             });
+
         }
+
+
 
         // --- NOVO: Event Listeners para Manutenção ---
+
         if (btnAbrirModalManutencao) {
+
             btnAbrirModalManutencao.addEventListener('click', abrirModalManutencao);
+
         }
+
+
 
         if (btnAdicionarPeca) {
+
     btnAdicionarPeca.addEventListener('click', adicionarLinhaPeca);
+
 }
+
     mobileMoreMenuWrapper.addEventListener('click', (e) => {
+
         e.stopPropagation();
+
         mobileMoreMenu.classList.toggle('visible');
+
     });
+
     document.addEventListener('click', () => {
+
         if (mobileMoreMenu.classList.contains('visible')) {
+
             mobileMoreMenu.classList.remove('visible');
+
         }
+
     });
+
+
 
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR (formPlanoManutencao)
+
 if (formPlanoManutencao) {
+
     formPlanoManutencao.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         if (!veiculoSelecionado) return;
 
+
+
         if (!planoKm.value && !planoDias.value) {
+
             alert('Por favor, preencha pelo menos um intervalo (KM ou Dias).');
+
             return;
+
         }
 
+
+
         const dadosPlano = {
+
             descricao: planoDescricao.value,
+
             intervalo_km: planoKm.value || null,
+
             intervalo_dias: planoDias.value || null,
+
         };
+
+
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/planos`;
 
+
+
         try {
+
             const response = await fetch(url, {
+
                 method: 'POST',
+
                 headers: getAuthHeaders(),
+
                 body: JSON.stringify(dadosPlano)
+
             });
 
+
+
             if (response.ok) {
+
                 formPlanoManutencao.reset();
+
                 exibirDetalhesDoVeiculo(veiculoSelecionado);
+
             } else {
+
                 const erro = await response.json();
+
                 alert(`Erro ao salvar item do plano: ${erro.error}`);
+
             }
+
         } catch (error) {
+
             console.error('Erro ao salvar item do plano:', error);
+
             alert('Ocorreu um erro de conexão. Tente novamente.');
+
         }
+
     });
+
 }
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
+
+
 // INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
+
+
 
 // --- FUNÇÕES DO PAINEL DE ADMINISTRAÇÃO ---
 
+
+
 /**
+
  * Busca a lista de usuários da API e manda renderizar a tabela.
+
  */
+
 const carregarPainelAdmin = async () => {
+
     switchView('content-admin-panel'); // Mostra a página do painel admin
+
     
+
     if (!tbodyUsuarios) return;
+
     tbodyUsuarios.innerHTML = '<tr><td colspan="4" style="text-align:center;">Carregando usuários...</td></tr>';
 
+
+
     try {
+
         const response = await fetch(`${API_URL}/api/usuarios`, {
+
             headers: getAuthHeaders()
+
         });
 
+
+
         if (!response.ok) {
+
             throw new Error('Falha ao buscar usuários. Você tem permissão para acessar esta área?');
+
         }
 
+
+
         const usuarios = await response.json();
+
         renderizarTabelaUsuarios(usuarios);
 
+
+
     } catch (error) {
+
         console.error('Erro ao carregar painel admin:', error);
+
         tbodyUsuarios.innerHTML = `<tr><td colspan="4" style="text-align:center;">${error.message}</td></tr>`;
+
     }
+
 }
 
+
+
 /**
+
  * Renderiza a tabela de usuários com os dados recebidos.
+
  * @param {Array} usuarios - A lista de usuários vinda da API.
+
  */
+
 const renderizarTabelaUsuarios = (usuarios) => {
+
     if (!tbodyUsuarios) return;
+
     tbodyUsuarios.innerHTML = '';
 
+
+
     if (usuarios.length === 0) {
+
         tbodyUsuarios.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhum usuário encontrado.</td></tr>';
+
         return;
+
     }
+
+
 
     const rolesDisponiveis = ['SUPER_ADMIN', 'ESCRITORIO', 'ENCARREGADO', 'MECANICO'];
 
+
+
     usuarios.forEach(usuario => {
+
         const tr = document.createElement('tr');
+
         
+
         // Cria o seletor de Papel (Role)
+
         const selectRoleOptions = rolesDisponiveis.map(role => 
+
             `<option value="${role}" ${usuario.role === role ? 'selected' : ''}>${role}</option>`
+
         ).join('');
 
+
+
         const selectRoleHTML = `
+
             <div class="select-wrapper">
+
                 <select class="select-role-usuario" data-userid="${usuario.id}">
+
                     ${selectRoleOptions}
+
                 </select>
+
             </div>
+
         `;
+
+
 
         tr.innerHTML = `
+
             <td>${usuario.nome}</td>
+
             <td>${usuario.email}</td>
+
             <td>${selectRoleHTML}</td>
+
             <td>
+
                 <button class="btn-secundario btn-alterar-senha" data-userid="${usuario.id}">Alterar Senha</button>
+
                 <button class="btn-deletar btn-deletar-usuario" data-userid="${usuario.id}" data-username="${usuario.nome}">
+
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+
                 </button>
+
             </td>
+
         `;
 
+
+
         tbodyUsuarios.appendChild(tr);
+
     });
 
+
+
     // Futuramente, aqui adicionaremos os event listeners para os botões e seletores
+
 }
+
+
 
 // FIM DO NOVO CÓDIGO
 
+
+
 // INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
+
+
 
 // --- LÓGICA DE EVENTOS DO PAINEL DE ADMINISTRAÇÃO ---
 
+
+
 // Abre o modal de criar usuário a partir do botão no painel
+
 if (btnAbrirModalAdminNovo) {
+
     btnAbrirModalAdminNovo.addEventListener('click', () => {
+
         formRegister.reset();
+
         abrirModal(modalAdmin);
+
     });
+
 }
+
+
 
 // Lida com as ações dentro da tabela de usuários (Alterar Role, Senha, Deletar)
+
 if (tbodyUsuarios) {
+
     tbodyUsuarios.addEventListener('click', async (e) => {
+
         const target = e.target;
 
+
+
         // --- LÓGICA PARA DELETAR USUÁRIO ---
+
         if (target.classList.contains('btn-deletar-usuario') || target.closest('.btn-deletar-usuario')) {
+
             const button = target.closest('.btn-deletar-usuario');
+
             const userId = button.dataset.userid;
+
             const userName = button.dataset.username;
 
+
+
             if (confirm(`Tem certeza que deseja excluir o usuário "${userName}"?`)) {
+
                 try {
+
                     const response = await fetch(`${API_URL}/api/usuarios/${userId}`, {
+
                         method: 'DELETE',
+
                         headers: getAuthHeaders()
+
                     });
+
                     if (response.ok) {
+
                         alert('Usuário excluído com sucesso!');
+
                         carregarPainelAdmin(); // Recarrega a lista
+
                     } else {
+
                         const erro = await response.json();
+
                         alert(`Erro: ${erro.error}`);
+
                     }
+
                 } catch (error) {
+
                     console.error('Erro ao deletar usuário:', error);
+
                     alert('Erro de conexão ao tentar deletar usuário.');
+
                 }
+
             }
+
         }
+
+
 
         // --- LÓGICA PARA ABRIR O MODAL DE ALTERAR SENHA ---
+
         if (target.classList.contains('btn-alterar-senha')) {
+
             const userId = target.dataset.userid;
+
             alterarSenhaUserid.value = userId;
+
             formAlterarSenha.reset();
+
             abrirModal(modalAlterarSenha);
+
         }
+
     });
+
+
 
     // --- LÓGICA PARA ALTERAR O PAPEL (ROLE) ---
+
     tbodyUsuarios.addEventListener('change', async (e) => {
+
         if (e.target.classList.contains('select-role-usuario')) {
+
             const select = e.target;
+
             const userId = select.dataset.userid;
+
             const newRole = select.value;
 
+
+
             try {
+
                 const response = await fetch(`${API_URL}/api/usuarios/${userId}/role`, {
+
                     method: 'PUT',
+
                     headers: getAuthHeaders(),
+
                     body: JSON.stringify({ role: newRole })
+
                 });
 
+
+
                 if (response.ok) {
+
                     alert('Papel do usuário atualizado com sucesso!');
+
                     // Opcional: recarregar o painel para garantir consistência
+
                     carregarPainelAdmin();
+
                 } else {
+
                     const erro = await response.json();
+
                     alert(`Erro: ${erro.error}`);
+
                     carregarPainelAdmin(); // Recarrega para reverter a mudança visual
+
                 }
+
             } catch (error) {
+
                 console.error('Erro ao alterar role:', error);
+
                 alert('Erro de conexão ao tentar alterar o papel.');
+
                 carregarPainelAdmin();
+
             }
+
         }
+
     });
+
 }
+
+
 
 // Lógica para o formulário do modal de alterar senha
+
 if (formAlterarSenha) {
+
     formAlterarSenha.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         const userId = alterarSenhaUserid.value;
+
         const novaSenha = novaSenhaInput.value;
 
+
+
         try {
+
             const response = await fetch(`${API_URL}/api/usuarios/${userId}/password`, {
+
                 method: 'PUT',
+
                 headers: getAuthHeaders(),
+
                 body: JSON.stringify({ novaSenha: novaSenha })
+
             });
 
+
+
             if (response.ok) {
+
                 alert('Senha atualizada com sucesso!');
+
                 fecharModal(modalAlterarSenha);
+
             } else {
+
                 const erro = await response.json();
+
                 alert(`Erro: ${erro.error}`);
+
             }
+
         } catch (error) {
+
             console.error('Erro ao atualizar senha:', error);
+
             alert('Erro de conexão ao tentar atualizar a senha.');
+
         }
+
     });
+
 }
 
+
+
 // Fecha o novo modal de senha
+
 if(modalAlterarSenha) {
+
     const closeButton = modalAlterarSenha.querySelector('.close-button');
+
     if (closeButton) { closeButton.addEventListener('click', () => fecharModal(modalAlterarSenha)); }
+
     modalAlterarSenha.addEventListener('click', (e) => { if (e.target === modalAlterarSenha) { fecharModal(modalAlterarSenha); } });
+
 }
+
+
 
 // FIM DO NOVO CÓDIGO
 
+
+
 // INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
 
+
+
+/**
+
+
+
 /**
 
 /**
-/**
+
  * Renderiza a tabela do Quadro de Solicitações.
- * @param {Array} solicitacoes - A lista de solicitações vinda da API.
- */
-// Localize esta função (por volta da linha 1137)
-const renderizarTabelaSolicitacoes = (solicitacoes) => {
-    // A linha abaixo é para depuração, podemos removê-la depois
-    // console.log('Dados recebidos para renderizar a tabela:', solicitacoes);
 
+ * @param {Array} solicitacoes - A lista de solicitações vinda da API.
+
+ */
+
+// Localize esta função (por volta da linha 1137)
+
+const renderizarTabelaSolicitacoes = (solicitacoes) => {
     if (!tbodySolicitacoes) return;
     tbodySolicitacoes.innerHTML = '';
 
@@ -1491,32 +2940,15 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
 
         const acoesCell = tr.children[5];
 
+    
+
         // Lógica para botão "Assumir"
         if (solicitacao.status === 'ABERTO' && (userRole === 'MECANICO' || userRole === 'SUPER_ADMIN')) {
             const btnAssumir = document.createElement('button');
             btnAssumir.className = 'btn-secundario';
             btnAssumir.textContent = 'Assumir';
-            btnAssumir.onclick = () => { /* A lógica do botão assumir continua a mesma */ };
-            acoesCell.appendChild(btnAssumir);
-        }
-
-        // NOVO: Lógica para botão "Finalizar"
-        if (solicitacao.status === 'EM_ANDAMENTO' && (userRole === 'SUPER_ADMIN' || currentUserId === solicitacao.mecanico_responsavel_id)) {
-            const btnFinalizar = document.createElement('button');
-            btnFinalizar.className = 'btn-success'; // Usando a classe de botão principal para destaque
-            btnFinalizar.textContent = 'Finalizar';
-            btnFinalizar.title = 'Finalizar e registrar manutenção';
+            btnAssumir.title = 'Assumir esta solicitação de manutenção';
             
-            btnFinalizar.onclick = () => {
-                abrirModalManutencao(solicitacao); // Chama a função passando os dados da solicitação
-            };
-            acoesCell.appendChild(btnFinalizar);
-        }
-
-        // A lógica do botão "Assumir" foi movida para dentro do IF para evitar repetição.
-        // Se precisar do código completo do onclick do "Assumir", me avise, mas ele deve permanecer como estava.
-        const btnAssumir = acoesCell.querySelector('.btn-secundario');
-        if (btnAssumir) {
             btnAssumir.onclick = async () => {
                 if (confirm('Tem certeza que deseja assumir este serviço?')) {
                     try {
@@ -1535,73 +2967,488 @@ const renderizarTabelaSolicitacoes = (solicitacoes) => {
                     }
                 }
             };
+            acoesCell.appendChild(btnAssumir);
+        }
+
+        // Lógica para botão "Finalizar"
+        if (solicitacao.status === 'EM_ANDAMENTO' && (userRole === 'SUPER_ADMIN' || currentUserId === solicitacao.mecanico_responsavel_id)) {
+            const btnFinalizar = document.createElement('button');
+            btnFinalizar.className = 'btn-success';
+            btnFinalizar.textContent = 'Finalizar';
+            btnFinalizar.title = 'Finalizar e registrar manutenção';
+            
+            btnFinalizar.onclick = () => {
+                abrirModalManutencao(solicitacao); // Chama a função passando os dados da solicitação
+            };
+            acoesCell.appendChild(btnFinalizar);
         }
 
         tbodySolicitacoes.appendChild(tr);
     });
 };
 
+
+
 // INÍCIO DO NOVO CÓDIGO (adicionar no final do script.js)
+
+
 
 // --- LÓGICA DE EVENTOS PARA SOLICITAÇÕES DE MANUTENÇÃO ---
 
+
+
 // Abre o modal para criar uma nova solicitação
+
 if (btnAbrirModalSolicitacao) {
+
     btnAbrirModalSolicitacao.addEventListener('click', () => {
+
         formSolicitacao.reset();
+
         abrirModal(modalSolicitacao);
+
     });
+
 }
 
+
+
 // Lida com o envio do formulário de nova solicitação
+
 if (formSolicitacao) {
+
     formSolicitacao.addEventListener('submit', async (e) => {
+
         e.preventDefault();
+
         if (!veiculoSelecionado) {
+
             alert('Erro: Nenhum veículo selecionado.');
+
             return;
+
         }
 
+
+
         const dadosSolicitacao = {
+
             descricao_problema: solicitacaoDescricao.value
+
         };
+
+
 
         const url = `${VEICULOS_URL}/${veiculoSelecionado.id}/solicitacoes`;
 
+
+
         try {
+
             const response = await fetch(url, {
+
                 method: 'POST',
+
                 headers: getAuthHeaders(),
+
                 body: JSON.stringify(dadosSolicitacao)
+
             });
 
+
+
             if (response.ok) {
+
                 fecharModal(modalSolicitacao);
+
                 // Atualiza a página de detalhes para mostrar a nova solicitação na lista
+
                 exibirDetalhesDoVeiculo(veiculoSelecionado); 
+
                 alert('Solicitação criada com sucesso!');
+
             } else {
+
                 const erro = await response.json();
+
                 alert(`Erro ao criar solicitação: ${erro.error}`);
+
             }
+
         } catch (error) {
+
             console.error('Erro ao criar solicitação:', error);
+
             alert('Ocorreu um erro de conexão. Tente novamente.');
+
         }
+
     });
+
 }
 
+
+
 // Lida com o fechamento do modal de solicitação
+
 if (modalSolicitacao) {
+
     const closeButton = modalSolicitacao.querySelector('.close-button');
+
     if (closeButton) { closeButton.addEventListener('click', () => fecharModal(modalSolicitacao)); }
+
     modalSolicitacao.addEventListener('click', (e) => { 
+
         if (e.target === modalSolicitacao) { fecharModal(modalSolicitacao); } 
+
     });
+
 }
+
+
+
+// --- LÓGICA DO SISTEMA DE NOTIFICAÇÕES ---
+
+
+
+/**
+
+ * Busca as notificações não lidas da API.
+
+ */
+
+const fetchNotificacoes = async () => {
+
+    try {
+
+        const response = await fetch(`${API_URL}/api/notificacoes`, { headers: getAuthHeaders() });
+
+        if (!response.ok) {
+
+            console.error('Falha ao buscar notificações.');
+
+            return;
+
+        }
+
+        const notificacoes = await response.json();
+
+        renderizarNotificacoes(notificacoes);
+
+    } catch (error) {
+
+        console.error('Erro de conexão ao buscar notificações:', error);
+
+    }
+
+};
+
+
+
+/**
+
+ * Atualiza a UI com as notificações recebidas.
+
+ * @param {Array} notificacoes - A lista de notificações vinda da API.
+
+ */
+
+const renderizarNotificacoes = (notificacoes) => {
+
+    // Atualiza o contador
+
+    if (notificacoes.length > 0) {
+
+        contadorNotificacoes.textContent = notificacoes.length;
+
+        contadorNotificacoes.classList.remove('hidden');
+
+    } else {
+
+        contadorNotificacoes.classList.add('hidden');
+
+    }
+
+
+
+    // Limpa a lista atual
+
+    listaNotificacoes.innerHTML = '';
+
+
+
+    // Preenche a lista com as novas notificações
+
+    if (notificacoes.length === 0) {
+
+        const li = document.createElement('li');
+
+        li.className = 'no-notifications';
+
+        li.textContent = 'Nenhuma notificação nova.';
+
+        listaNotificacoes.appendChild(li);
+
+    } else {
+
+        notificacoes.forEach(notificacao => {
+
+            const li = document.createElement('li');
+
+            const a = document.createElement('a');
+
+            a.href = '#'; // O link real será tratado no clique
+
+            a.textContent = notificacao.mensagem;
+
+            a.onclick = (e) => {
+
+                e.preventDefault();
+
+                marcarNotificacaoComoLida(notificacao.id, notificacao.link);
+
+            };
+
+            li.appendChild(a);
+
+            listaNotificacoes.appendChild(li);
+
+        });
+
+    }
+
+};
+
+
+
+/**
+
+ * Marca uma notificação como lida e lida com o redirecionamento.
+
+ * @param {number} notificacaoId - O ID da notificação a ser marcada como lida.
+
+ * @param {string} link - O link para onde o usuário deve ser redirecionado.
+
+ */
+
+const marcarNotificacaoComoLida = async (notificacaoId, link) => {
+
+    try {
+
+        await fetch(`${API_URL}/api/notificacoes/${notificacaoId}/read`, {
+
+            method: 'PATCH',
+
+            headers: getAuthHeaders()
+
+        });
+
+        
+
+        // Após marcar como lida, busca as notificações restantes para atualizar o contador
+
+        fetchNotificacoes(); 
+
+        
+
+        // Esconde o painel de notificações
+
+        painelNotificacoes.classList.add('hidden');
+
+
+
+        // Lógica de redirecionamento futuro (ainda a ser implementada com mais detalhes)
+
+        alert(`Notificação marcada como lida. A navegação para o link (${link}) será implementada a seguir.`);
+
+
+
+    } catch (error) {
+
+        console.error('Erro ao marcar notificação como lida:', error);
+
+    }
+
+};
+
+
+
+// Event listener para o botão de sino, para abrir/fechar o painel
+
+// Event listener para o botão de sino
+
+if (btnNotificacoes) {
+
+    btnNotificacoes.addEventListener('click', (e) => {
+
+        e.preventDefault();
+
+        e.stopPropagation();
+
+        
+
+        // ALTERAÇÃO: Em vez de usar classes, vamos controlar o estilo diretamente.
+
+        // O CSS para .notifications-panel define 'display: flex', então usamos isso para mostrar.
+
+        if (painelNotificacoes.style.display === 'flex') {
+
+            painelNotificacoes.style.display = 'none';
+
+        } else {
+
+            painelNotificacoes.style.display = 'flex';
+
+        }
+
+    });
+
+}
+
+
+
+// Fecha o painel de notificações se clicar fora dele
+
+document.addEventListener('click', (e) => {
+
+    // ALTERAÇÃO: A verificação agora usa o estilo 'display' em vez da classe 'hidden'
+
+    if (painelNotificacoes && painelNotificacoes.style.display === 'flex') {
+
+        if (!painelNotificacoes.contains(e.target) && !btnNotificacoes.contains(e.target)) {
+
+            painelNotificacoes.style.display = 'none';
+
+        }
+
+    }
+
+});
+
+
 
 // FIM DO NOVO CÓDIGO
 
 
+// =================================================================
+// --- LÓGICA DA PÁGINA DE NOTIFICAÇÕES (FASE 2) ---
+// =================================================================
+
+/**
+ * Orquestrador principal: busca os dados e chama a função de renderização.
+ */
+const carregarPaginaNotificacoes = async () => {
+    const container = document.getElementById('container-todas-notificacoes');
+    if (!container) return;
+
+    container.innerHTML = '<p>Carregando notificações...</p>';
+
+    try {
+        // Faz a chamada para o NOVO endpoint que busca TODAS as notificações
+        const response = await fetch(`${API_URL}/api/notificacoes/todas`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            throw new Error('Falha ao buscar notificações.');
+        }
+        const notificacoes = await response.json();
+        renderizarPaginaNotificacoes(notificacoes);
+
+    } catch (error) {
+        console.error('Erro ao carregar página de notificações:', error);
+        container.innerHTML = '<p class="error-message">Não foi possível carregar as notificações. Tente novamente mais tarde.</p>';
+    }
+};
+
+/**
+ * Renderiza a lista de notificações na página.
+ * @param {Array} notificacoes - A lista de notificações vinda do backend.
+ */
+const renderizarPaginaNotificacoes = (notificacoes) => {
+    const container = document.getElementById('container-todas-notificacoes');
+    if (!container) return;
+
+    container.innerHTML = ''; // Limpa o container
+
+    if (notificacoes.length === 0) {
+        container.innerHTML = '<p>Nenhuma notificação encontrada.</p>';
+        return;
+    }
+
+    notificacoes.forEach(notificacao => {
+        const item = document.createElement('div');
+        item.className = 'notification-item';
+        // Adiciona uma classe especial se a notificação já foi lida
+        if (notificacao.lida) {
+            item.classList.add('notificacao-lida');
+        }
+
+        const dataFormatada = new Date(notificacao.created_at).toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+
+        item.innerHTML = `
+            <div class="notification-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </div>
+            <div class="notification-content">
+                <p class="notification-message">${notificacao.mensagem}</p>
+                <span class="notification-timestamp">${dataFormatada}</span>
+            </div>
+        `;
+
+        // Adiciona o evento de clique para navegar
+        item.addEventListener('click', () => navegarParaNotificacao(notificacao));
+
+        container.appendChild(item);
+    });
+};
+
+/**
+ * Lida com o clique em uma notificação: marca como lida e navega.
+ * @param {object} notificacao - O objeto da notificação clicada.
+ */
+const navegarParaNotificacao = async (notificacao) => {
+    try {
+        // Passo 1: Marca a notificação como lida no backend (mesmo que já esteja)
+        await fetch(`${API_URL}/api/notificacoes/${notificacao.id}/read`, {
+            method: 'PATCH',
+            headers: getAuthHeaders()
+        });
+
+        // Atualiza a contagem de notificações no sino em tempo real
+        fetchNotificacoes();
+
+        // Passo 2: Analisa o link para extrair o ID do veículo
+        const linkParts = notificacao.link.split('/'); // Ex: "/veiculo/2" se torna ["", "veiculo", "2"]
+        if (linkParts[1] === 'veiculo' && linkParts[2]) {
+            const veiculoId = parseInt(linkParts[2], 10);
+            
+            // Passo 3: Encontra o objeto completo do veículo na lista que já temos em memória
+            const veiculoAlvo = todosOsVeiculos.find(v => v.id === veiculoId);
+            
+            if (veiculoAlvo) {
+                // Passo 4: Usa a função existente para navegar até a página de detalhes
+                exibirDetalhesDoVeiculo(veiculoAlvo);
+            } else {
+                console.error(`Veículo com ID ${veiculoId} não encontrado na lista local.`);
+                // Se não encontrar, como fallback, recarregamos a lista e tentamos de novo
+                await fetchVeiculos();
+                const veiculoAtualizado = todosOsVeiculos.find(v => v.id === veiculoId);
+                if(veiculoAtualizado) exibirDetalhesDoVeiculo(veiculoAtualizado);
+            }
+        }
+    } catch (error) {
+        console.error('Erro ao processar clique na notificação:', error);
+        alert('Ocorreu um erro ao processar a notificação.');
+    }
+};
+
+// =================================================================
+// --- FIM DA LÓGICA DA PÁGINA DE NOTIFICAÇÕES ---
+// =================================================================
+
+
+
     verificarLogin();
+
 });
