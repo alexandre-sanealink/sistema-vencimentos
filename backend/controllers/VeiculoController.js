@@ -7,14 +7,15 @@ const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
 
 
 
-const pool = new Pool({
-    // No Render, ele usará a DATABASE_URL. Localmente (onde DATABASE_URL não existe no .env),
-    // a biblioteca 'pg' usará automaticamente as variáveis PGHOST, PGUSER, etc.
-    connectionString: process.env.DATABASE_URL,
-
-    // Ativa o SSL apenas se NÃO estivermos no ambiente local.
-    ssl: IS_LOCAL_ENV ? false : { rejectUnauthorized: false }
-});
+// Arquivo: VeiculoController.js
+const pool = new Pool(
+    process.env.DATABASE_URL 
+    ? { 
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } 
+      } 
+    : {} 
+);
 
 // =================================================================
 // --- NOVA FUNÇÃO AUXILIAR DE NOTIFICAÇÕES ---
