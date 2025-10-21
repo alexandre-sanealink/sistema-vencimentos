@@ -1,21 +1,23 @@
-import pg from 'pg';
+import pg from 'pg'; // Importa a biblioteca pg
+const { Pool } = pg; // Extrai a classe Pool
 import 'dotenv/config';
 
-// Configuração da conexão com o banco de dados
-const { Pool } = pg;
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.PGHOST && process.env.PGHOST !== 'localhost'
-        ? { rejectUnauthorized: false }
-        : false,
-});
+// Configuração da conexão (agora com a lógica condicional)
+const pool = new Pool(
+    process.env.DATABASE_URL 
+    ? { 
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } 
+      } 
+    : {} 
+);
 
 /**
  * Busca as notificações não lidas para o usuário logado.
  * Rota: GET /api/notificacoes
  */
 export const listarNotificacoes = async (req, res) => {
-    const usuarioId = req.usuario.id; // O ID do usuário vem do token que já foi verificado
+    const usuarioId = req.usuario.id; 
 
     try {
         const query = `
@@ -36,8 +38,8 @@ export const listarNotificacoes = async (req, res) => {
  * Rota: PATCH /api/notificacoes/:id/read
  */
 export const marcarComoLida = async (req, res) => {
-    const { id: notificacaoId } = req.params; // Pega o ID da notificação pela URL
-    const usuarioId = req.usuario.id; // Pega o ID do usuário logado pelo token
+    const { id: notificacaoId } = req.params; 
+    const usuarioId = req.usuario.id; 
 
     try {
         const query = `

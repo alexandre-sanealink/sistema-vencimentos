@@ -1,10 +1,10 @@
-// INÍCIO DO CÓDIGO FINAL PARA SUBSTITUIR (Arquivo completo: backend/index.js)
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import 'dotenv/config';
 import fs from 'fs/promises';
-import pg from 'pg';
+import pg from 'pg'; // <--- Importação necessária
+const { Pool } = pg; // <--- Extração da classe Pool
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import multer from 'multer';
@@ -15,19 +15,20 @@ import usuarioRoutes from './routes/usuarioRoutes.js';
 import notificacaoRoutes from './routes/notificacaoRoutes.js';
 import { verificarToken } from './middleware/authMiddleware.js';
 import './mailer.js';
-import { iniciarScheduler } from './scheduler.js';
+import { iniciarScheduler } from './scheduler.js'; 
+
 
 // --- CONFIGURAÇÕES INICIAIS ---
-// Linhas ~15 a 20
-const { Pool } = pg;
-const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    // CORREÇÃO: A lógica agora considera se PGHOST não está definido,
-    // tratando como ambiente local e desativando o SSL.
-    ssl: process.env.PGHOST && process.env.PGHOST !== 'localhost'
-        ? { rejectUnauthorized: false }
-        : false
-});
+const pool = new Pool( // <--- Agora o Pool será reconhecido
+    process.env.DATABASE_URL 
+    ? { 
+        connectionString: process.env.DATABASE_URL,
+        ssl: { rejectUnauthorized: false } 
+      } 
+    : {} 
+);
+
+
 
 const app = express();
 app.use(express.json());
