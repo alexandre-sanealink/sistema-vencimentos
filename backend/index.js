@@ -12,8 +12,10 @@ import { fileURLToPath } from 'url';
 
 import veiculoRoutes from './routes/veiculoRoutes.js';
 import usuarioRoutes from './routes/usuarioRoutes.js';
+import notificacaoRoutes from './routes/notificacaoRoutes.js';
 import { verificarToken } from './middleware/authMiddleware.js';
 import './mailer.js';
+import { iniciarScheduler } from './scheduler.js';
 
 // --- CONFIGURAÇÕES INICIAIS ---
 // Linhas ~15 a 20
@@ -83,6 +85,7 @@ app.post('/api/login', async (req, res) => {
 // A ordem aqui é importante. Rotas mais específicas primeiro.
 app.use('/api/usuarios', usuarioRoutes); // Já tem proteção interna de Super Admin
 app.use('/api/veiculos', verificarToken, veiculoRoutes); 
+app.use('/api/notificacoes', notificacaoRoutes);
 
 
 // Rotas de documentos (legado, agora usando o pool)
@@ -200,6 +203,9 @@ app.put('/api/perfil', verificarToken, async (req, res) => {
 
 // --- INICIALIZAÇÃO DO SERVIDOR ---
 const PORTA = process.env.PORT || 3000;
+
+iniciarScheduler();
+
 app.listen(PORTA, '0.0.0.0', () => {
     console.log(`🚀 Servidor rodando na porta ${PORTA}.`);
 });

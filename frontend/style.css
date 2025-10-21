@@ -592,3 +592,211 @@ textarea {
 .btn-success:hover {
     background-color: #157347; /* Verde um pouco mais escuro */
 }
+
+/* ======================================= */
+/* --- SISTEMA DE NOTIFICAÇÕES --- */
+/* ======================================= */
+
+/* Posicionamento relativo para o item da sidebar que contém as notificações */
+#sidebar .sidebar-footer li:has(#btn-notificacoes) {
+    position: relative;
+}
+
+/* Estilo do contador (a "bolinha" vermelha) */
+.notification-badge {
+    position: absolute;
+    top: 12px;
+    left: 40px; /* Posição na sidebar expandida */
+    background-color: #dc3545; /* Vermelho para destaque */
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    border: 2px solid var(--sidebar-bg); /* Borda da cor da sidebar para criar um espaçamento */
+}
+
+/* Esconde o contador quando estiver zerado (controlado pelo JS) */
+.notification-badge.hidden {
+    display: none;
+}
+
+/* Painel de notificações */
+.notifications-panel {
+    position: fixed; /* MUDANÇA: de 'absolute' para 'fixed' */
+    bottom: 120px;   /* Posição acima do menu do rodapé */
+    left: 15px;      /* Posição a partir da esquerda */
+    width: 350px;
+    max-height: 400px;
+    background-color: #ffffff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    z-index: 2000; /* Z-index bem alto para ficar acima de tudo */
+    display: none; /* ALTERAÇÃO: Começa escondido por padrão */
+    flex-direction: column;
+}
+
+/* Esconde o painel por padrão */
+.notifications-panel.hidden {
+    display: none;
+}
+
+.notifications-header {
+    padding: 15px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.notifications-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+#lista-notificacoes {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto; /* Adiciona scroll se a lista for longa */
+}
+
+#lista-notificacoes li {
+    border-bottom: 1px solid #e9ecef;
+}
+
+#lista-notificacoes li:last-child {
+    border-bottom: none;
+}
+
+#lista-notificacoes a {
+    text-decoration: none;
+    color: #495057;
+    display: block;
+    padding: 15px;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+#lista-notificacoes a:hover {
+    background-color: #f8f9fa;
+}
+
+#lista-notificacoes .no-notifications {
+    color: #6c757d;
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+
+
+/* =========================================== */
+/* --- ESTILOS DA PÁGINA DE NOTIFICAÇÕES --- */
+/* =========================================== */
+
+.notifications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.notification-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    background-color: #ffffff;
+    cursor: pointer;
+    transition: background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.notification-item:hover {
+    background-color: #f9f9f9;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.notification-icon svg {
+    color: #007bff; /* Cor do ícone para não lidas */
+}
+
+.notification-content {
+    flex-grow: 1;
+}
+
+.notification-message {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #333;
+    font-weight: 500;
+}
+
+.notification-timestamp {
+    font-size: 0.8rem;
+    color: #777;
+    margin-top: 4px;
+}
+
+/* Estilo para notificações que já foram lidas */
+.notification-item.notificacao-lida {
+    opacity: 0.7;
+    background-color: #f8f9fa;
+}
+
+.notification-item.notificacao-lida .notification-icon svg {
+    color: #6c757d; /* Cor do ícone para lidas */
+}
+
+.notification-item.notificacao-lida .notification-message {
+    font-weight: 400; /* Texto mais leve para lidas */
+}
+
+/* =========================================== */
+/* --- AJUSTE DE POSIÇÃO DO BADGE DE NOTIFICAÇÃO --- */
+/* =========================================== */
+
+/* PASSO 1: Transforma o link da notificação em uma "âncora" de posicionamento
+  para o contador que está dentro dele.
+*/
+#sidebar .nav-link {
+    position: relative;
+}
+
+/* PASSO 2: Estiliza e posiciona o contador em relação à sua nova âncora.
+  Isso substitui o estilo antigo para garantir o posicionamento correto.
+*/
+#contador-notificacoes {
+    position: absolute; /* "Solta" o contador */
+    top: 8px;           /* Distância do topo da âncora */
+    right: 12px;        /* Distância da direita da âncora */
+    
+    /* Estilos visuais para criar o círculo vermelho */
+    background-color: #dc3545; /* Vermelho */
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    border-radius: 50%; /* Deixa redondo */
+    width: 18px;
+    height: 18px;
+    
+    /* Centraliza o número dentro do círculo */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Garante que ele não comece escondido por engano */
+    transform: scale(1); 
+    transition: transform 0.2s ease;
+}
+
+/* PASSO 3: Garante que a classe .hidden funcione corretamente.
+  Quando não há notificações, o JS adiciona esta classe.
+*/
+#contador-notificacoes.hidden {
+    transform: scale(0); /* Efeito de "desaparecer" */
+}
