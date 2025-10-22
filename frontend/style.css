@@ -43,6 +43,48 @@ body { font-family: 'Poppins', sans-serif; background-color: #f0f2f5; color: #49
     font-size: 24px;
     white-space: nowrap;
 }
+
+/* =========================================== */
+/* --- SEPARADORES VISUAIS SIDEBAR --- */
+/* =========================================== */
+
+/* Define um estilo padrão para os itens, sem margem inferior */
+#sidebar .sidebar-nav li,
+#sidebar .sidebar-footer li {
+    margin-bottom: 0; 
+}
+
+/* Adiciona uma borda inferior sutil APÓS itens específicos para criar a separação */
+#sidebar .sidebar-nav #li-nav-dashboard,  /* Após o Dashboard */
+#sidebar .sidebar-nav li:has(#nav-contratos), /* Após Contratos (último módulo) */
+#sidebar .sidebar-footer li:has(#nav-notificacoes) /* Após Notificações */ 
+{
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1); /* Linha sutil branca/transparente */
+    padding-bottom: 10px; /* Espaço abaixo do item antes da linha */
+    margin-bottom: 10px; /* Espaço abaixo da linha, antes do próximo item */
+}
+
+/* Ajuste para o último grupo (Conta/Admin/Sair), se necessário */
+#sidebar .sidebar-footer li:has(#btn-abrir-perfil),
+#sidebar .sidebar-footer #li-admin-panel {
+     /* Pode adicionar margem ou padding aqui se quiser mais espaço antes de "Sair" */
+    margin-bottom: 5px; 
+}
+
+/* Garante que o último item (Sair) não tenha margem/borda extra */
+#sidebar .sidebar-footer li:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0; /* Remove padding extra do último item */
+}
+
+/* Garante que os links mantenham o padding interno correto */
+#sidebar .nav-link,
+#sidebar .sidebar-footer a {
+    padding-top: 10px;
+    padding-bottom: 10px; 
+}
+
 #sidebar ul { list-style: none; padding: 0; margin: 0; }
 #sidebar .sidebar-nav { flex-grow: 1; }
 #sidebar ul li a { display: flex; align-items: center; padding: 15px 25px; color: #ced4da; text-decoration: none; white-space: nowrap; transition: background-color 0.2s, color 0.2s; }
@@ -399,6 +441,7 @@ td { font-size: 14px; white-space: nowrap; }
 #mobile-more-menu-wrapper {
     position: relative;
 }
+
 
 /* --- RESPONSIVIDADE --- */
 @media (max-width: 820px) {
@@ -800,3 +843,216 @@ textarea {
 #contador-notificacoes.hidden {
     transform: scale(0); /* Efeito de "desaparecer" */
 }
+
+/* =========================================== */
+/* --- ESTILOS DO DASHBOARD (FASE 5) --- */
+/* =========================================== */
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Cria colunas responsivas */
+    gap: 20px; /* Espaçamento entre os cards */
+}
+
+.dashboard-card {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-card h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    font-size: 1.1rem;
+    color: #333;
+}
+
+/* Estilos para o conteúdo dentro dos cards (números, listas, etc.) - a serem adicionados depois */
+#dashboard-documentos-content p, 
+#dashboard-frota-content p {
+    color: #666;
+    font-style: italic;
+}
+
+/* Garante um padding padrão para todos os containers principais dentro do main-content */
+#main-content > .content-module > .container {
+    padding: 20px; /* Ajuste este valor se necessário para combinar com os outros módulos */
+}
+
+/* Remove margem superior do header principal dentro dos módulos, se houver */
+#main-content .main-header {
+    margin-top: 0; 
+    padding-top: 0; /* Garante que não haja padding interno empurrando o H1 para baixo */
+}
+
+#content-dashboard .main-content-body {
+    padding-top: 10px; /* Adiciona um pequeno espaço entre o header e os cards */
+}
+
+/* =========================================== */
+/* --- AJUSTE TAMANHO ÍCONES SIDEBAR --- */
+/* =========================================== */
+
+#sidebar .nav-link svg,
+#sidebar .nav-link .nav-icon { /* .nav-icon é a classe que usei para o <img> da Frota */
+    width: 20px;   /* Novo tamanho (ajuste conforme preferir) */
+    height: 20px;  /* Novo tamanho (ajuste conforme preferir) */
+    margin-right: 12px; /* Espaço entre o ícone e o texto (ajuste se necessário) */
+    flex-shrink: 0; /* Impede que o ícone encolha se o texto for longo */
+}
+
+#content-dashboard .main-header {
+   /* Adicione ajustes específicos aqui se o estilo geral não resolver */
+    margin-bottom: 20px;
+}
+
+/* =========================================== */
+/* --- AJUSTES DE LAYOUT DASHBOARD (TENTATIVA 2) --- */
+/* =========================================== */
+
+/* Garante que o container principal não tenha padding superior extra */
+#main-content > #content-dashboard > .container {
+    padding-top: 20px; /* Mantém o padding lateral e inferior, mas define o superior */
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
+}
+
+/* Zera margens e paddings do header e do H1 DENTRO do dashboard */
+#content-dashboard .main-header {
+    margin: 0;
+    padding: 0;
+    /* Adiciona um espaço abaixo do header, antes dos cards */
+    margin-bottom: 20px; 
+}
+
+#content-dashboard .main-header h1 {
+    margin: 0;
+    padding: 0;
+    font-size: 1.5rem; /* Pode ajustar o tamanho do título se necessário */
+    line-height: 1.2; /* Ajusta a altura da linha */
+}
+
+/* Garante que o corpo do dashboard não adicione padding superior indesejado */
+#content-dashboard .main-content-body {
+    padding: 0;
+    margin: 0;
+}
+
+/* =========================================== */
+/* --- AJUSTE FONTE E ALINHAMENTO SIDEBAR --- */
+/* =========================================== */
+
+#sidebar .nav-link .nav-text {
+    font-size: 0.9rem; /* Novo tamanho da fonte (ex: 14px ou 0.9rem - ajuste conforme preferir) */
+    /* Opcional: Ajusta o alinhamento vertical se necessário */
+    vertical-align: middle; 
+}
+
+/* Garante alinhamento vertical consistente para SVGs e IMGs */
+#sidebar .nav-link svg,
+#sidebar .nav-link .nav-icon {
+    vertical-align: middle; 
+    width: 20px;   
+    height: 20px;  
+    margin-right: 12px; 
+    flex-shrink: 0; 
+}
+
+/* Garante que o link ocupe toda a altura e centralize o conteúdo */
+#sidebar .nav-link {
+    display: flex; /* Usa flexbox para alinhar ícone e texto */
+    align-items: center; /* Centraliza verticalmente */
+    padding-top: 10px; /* Ajuste o padding vertical se necessário */
+    padding-bottom: 10px; /* Ajuste o padding vertical se necessário */
+}
+
+/* =========================================== */
+/* --- ESTILOS MELHORADOS DASHBOARD (FASE 5) --- */
+/* =========================================== */
+
+.dashboard-counts {
+    display: flex;
+    flex-wrap: wrap; /* Permite que os itens quebrem a linha em telas menores */
+    gap: 15px; /* Espaço entre os itens de contagem */
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee; /* Linha separadora */
+}
+
+.dashboard-counts div {
+    display: flex;
+    flex-direction: column; /* Coloca o rótulo acima do número */
+    align-items: center; /* Centraliza */
+    background-color: #f8f9fa; /* Fundo leve */
+    padding: 10px 15px;
+    border-radius: 5px;
+    min-width: 80px; /* Largura mínima */
+    text-align: center;
+}
+
+.dashboard-counts span {
+    font-size: 0.8rem;
+    color: #6c757d; /* Cinza para o rótulo */
+    margin-bottom: 3px;
+}
+
+.dashboard-counts strong {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #343a40; /* Cor principal para o número */
+}
+
+/* Cores específicas para alertas */
+.dashboard-counts .text-danger { color: #dc3545; }
+.dashboard-counts .text-warning { color: #ffc107; }
+
+/* Título das listas */
+.dashboard-card h4 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Estilo básico para as listas */
+.dashboard-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.dashboard-list li {
+    margin-bottom: 8px;
+}
+
+/* Estilo para links clicáveis nas listas */
+.clickable-list a {
+    display: block; /* Ocupa toda a largura */
+    padding: 5px 8px;
+    text-decoration: none;
+    color: #007bff; /* Cor do link */
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.clickable-list a:hover {
+    background-color: #e9ecef; /* Fundo no hover */
+    color: #0056b3;
+}
+
+.clickable-list .list-date,
+.clickable-list .list-status {
+    font-size: 0.8rem;
+    color: #6c757d; /* Cinza para info adicional */
+    margin-left: 5px;
+}
+
+/* Cores específicas para status na lista de veículos */
+.clickable-list .list-status.manutenção-vencida { color: #dc3545; font-weight: 500;}
+.clickable-list .list-status.manutenção-em-alerta { color: #ffc107; font-weight: 500;}
+.clickable-list .list-status.solicitação-aberta { color: #17a2b8; font-weight: 500;}

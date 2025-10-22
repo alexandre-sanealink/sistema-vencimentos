@@ -30,6 +30,17 @@
                 <span class="nav-text">Sistema</span>
             </div>
             <ul class="sidebar-nav">
+    <li id="li-nav-dashboard" class="hidden"> 
+        <a href="#" class="nav-link" id="nav-dashboard">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+            <span class="nav-text">Dashboard</span>
+        </a>
+    </li>
+
+    
+
+            <ul class="sidebar-nav">
+                
                 <li>
                     <a href="#" id="nav-documentos" class="nav-link active">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
@@ -92,6 +103,33 @@
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
             </button>
             
+            <div id="content-dashboard" class="content-module hidden">
+    <div class="container">
+        <header class="main-header">
+            <h1>Dashboard Gerencial</h1>
+        </header>
+        <div class="main-content-body">
+            <div class="dashboard-grid">
+
+                <div class="dashboard-card">
+                    <h2>Documentos</h2>
+                    <div id="dashboard-documentos-content">
+                        <p>Carregando resumo...</p>
+                        </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h2>Frota</h2>
+                    <div id="dashboard-frota-content">
+                        <p>Carregando resumo...</p>
+                        </div>
+                </div>
+
+                </div>
+        </div>
+    </div>
+</div>
+
             <div id="content-documentos" class="content-module">
                 <div class="container">
                     <header class="main-header">
@@ -152,6 +190,48 @@
                                 <h2>Meus Veículos</h2>
                                 <button id="btn-abrir-modal-veiculo" class="btn-principal">Cadastrar Novo Veículo</button>
                             </div>
+                            <div id="modal-veiculo" class="modal-overlay">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-veiculo-titulo">Cadastrar Novo Veículo</h2>
+            <button class="close-button">&times;</button>
+        </div>
+        <form id="form-veiculo">
+            <input type="hidden" id="veiculo-id">
+            <div class="form-group">
+                <label for="veiculo-placa">Placa</label>
+                <input type="text" id="veiculo-placa" required maxlength="8">
+            </div>
+            <div class="form-group">
+                <label for="veiculo-marca">Marca</label>
+                <input type="text" id="veiculo-marca" required>
+            </div>
+            <div class="form-group">
+                <label for="veiculo-modelo">Modelo</label>
+                <input type="text" id="veiculo-modelo" required>
+            </div>
+            <div class="form-group">
+                <label for="veiculo-ano">Ano</label>
+                <input type="number" id="veiculo-ano" required min="1950" max="2100">
+            </div>
+            <div class="form-group">
+                <label for="veiculo-tipo">Tipo</label>
+                <div class="select-wrapper">
+                    <select id="veiculo-tipo" required>
+                        <option value="" disabled selected>Selecione o tipo</option>
+                        <option value="Tanque">Tanque</option>
+                        <option value="Munck">Munck</option>
+                        <option value="mini-vácuo">Mini-vácuo</option>
+                        <option value="utilitário suporte">Utilitário Suporte</option>
+                    </select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn-salvar">Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
                             <div class="filtros-wrapper">
                                 <div class="search-container">
                                     <input type="search" id="input-busca-veiculo" class="input-busca-style" placeholder="Pesquisar por placa, marca, modelo...">
@@ -353,6 +433,11 @@
         </main>
         
         <nav id="bottom-bar">
+           <a href="#" id="mobile-nav-dashboard" class="bottom-bar-link hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        <span>Dashboard</span>
+    </a>
+           
             <a href="#" id="mobile-nav-documentos" class="bottom-bar-link active">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
                 <span>Documentos</span>
@@ -390,73 +475,73 @@
     <div id="menu-overlay" class="menu-overlay"></div>
 
     <div id="modal-documento" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-titulo"></h2>
-                <button class="close-button">&times;</button>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 id="modal-titulo">Cadastrar Novo Documento</h2> <button class="close-button">&times;</button>
+        </div>
+        <form id="form-documento">
+            <input type="hidden" id="documento-id">
+
+            <div class="form-group">
+                <label for="documento-nome">Nome do Documento</label>
+                <input type="text" id="documento-nome" required>
             </div>
-            <form id="form-documento">
-                <input type="hidden" id="documento-id">
-                <div class="form-group"><label for="documento-nome">Nome do Documento</label><input type="text" id="documento-nome" required></div>
-                <div class="form-group"><label for="documento-categoria">Categoria</label><div class="select-wrapper"><select id="documento-categoria" required><option value="" disabled selected>Selecione</option><option value="Empresa">Empresa</option><option value="Caminhões">Caminhões</option><option value="Colaboradores">Colaboradores</option></select></div></div>
-                <div class="form-group"><label for="documento-vencimento">Data de Vencimento</label><input type="date" id="documento-vencimento" required></div>
-                <div class="form-group"><label for="documento-alerta">Alertar com (dias de antecedência)</label><input type="number" id="documento-alerta" min="0" required></div>
-                <div class="form-group">
-                    <label>Anexo (Opcional)</label>
-                    <div id="anexo-atual-container" class="anexo-atual-display hidden"></div>
-                    <div class="file-upload-wrapper">
-                         <label for="documento-arquivo" class="file-upload-button">Escolher arquivo</label>
-                         <span id="file-name-documento" class="file-name-display">Nenhum arquivo</span>
-                         <input type="file" id="documento-arquivo" class="file-upload-input">
-                    </div>
+
+            <div class="form-group">
+                <label for="documento-categoria">Categoria</label>
+                <div class="select-wrapper">
+                    <select id="documento-categoria" required>
+                        <option value="" disabled selected>Selecione</option>
+                        <option value="Empresa">Empresa</option>
+                        <option value="Caminhões">Caminhões</option>
+                        <option value="Colaboradores">Colaboradores</option>
+                    </select>
                 </div>
-                <div class="modal-footer"><button type="submit" class="btn-salvar">Salvar</button></div>
-            </form>
+            </div>
+
+            <div id="form-group-veiculo-id" class="form-group hidden">
+                <label for="documento-veiculo-id">Vincular ao Veículo (Obrigatório para Categoria 'Caminhões')</label>
+                <div class="select-wrapper">
+                    <select id="documento-veiculo-id">
+                        <option value="">Carregando veículos...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="documento-vencimento">Data de Vencimento</label>
+                <input type="date" id="documento-vencimento" required>
+            </div>
+
+            <div class="form-group">
+                <label for="documento-alerta">Alertar com (dias de antecedência)</label>
+                <input type="number" id="documento-alerta" min="0" required>
+            </div>
+
+            <div class="form-group">
+                <label>Anexo (Opcional)</label>
+                <div id="anexo-atual-container" class="anexo-atual-display hidden"></div>
+                <div class="file-upload-wrapper">
+                    <label for="documento-arquivo" class="file-upload-button">Escolher arquivo</label>
+                    <span id="file-name-documento" class="file-name-display">Nenhum arquivo</span>
+                    <input type="file" id="documento-arquivo" class="file-upload-input">
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button type="submit" class="btn-salvar">Salvar</button>
+            </div>
+        </div>
+</div>
+</form>
         </div>
     </div>
+
+            
+
+            
     
-    <div id="modal-veiculo" class="modal-overlay">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modal-veiculo-titulo">Cadastrar Novo Veículo</h2>
-                <button class="close-button">&times;</button>
-            </div>
-            <form id="form-veiculo">
-                <input type="hidden" id="veiculo-id">
-                <div class="form-group">
-                    <label for="veiculo-placa">Placa</label>
-                    <input type="text" id="veiculo-placa" required maxlength="8">
-                </div>
-                <div class="form-group">
-                    <label for="veiculo-marca">Marca</label>
-                    <input type="text" id="veiculo-marca" required>
-                </div>
-                <div class="form-group">
-                    <label for="veiculo-modelo">Modelo</label>
-                    <input type="text" id="veiculo-modelo" required>
-                </div>
-                <div class="form-group">
-                    <label for="veiculo-ano">Ano</label>
-                    <input type="number" id="veiculo-ano" required min="1950" max="2100">
-                </div>
-                <div class="form-group">
-                    <label for="veiculo-tipo">Tipo</label>
-                    <div class="select-wrapper">
-                        <select id="veiculo-tipo" required>
-                            <option value="" disabled selected>Selecione o tipo</option>
-                            <option value="Tanque">Tanque</option>
-                            <option value="Munck">Munck</option>
-                            <option value="mini-vácuo">Mini-vácuo</option>
-                            <option value="utilitário suporte">Utilitário Suporte</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="submit" class="btn-salvar">Salvar</button>
-                </div>
-            </form>
-        </div>
-    </div>
+           
 
     <div id="modal-manutencao" class="modal-overlay">
     <div class="modal-content">
