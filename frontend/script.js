@@ -99,6 +99,68 @@ const API_URL = IS_LOCAL
     const modalAlterarSenhaTitulo = document.getElementById('modal-alterar-senha-titulo');
 
     
+    // --- LÓGICA DE CLIQUE PARA O DASHBOARD (FASE 5) ---
+const mainContent = document.getElementById('main-content');
+
+if (mainContent) {
+    mainContent.addEventListener('click', async (e) => {
+        const link = e.target.closest('a'); // Encontra o link clicado ou um link pai
+
+        if (!link) return; // Sai se o clique não foi em um link
+
+        // --- Ação para links de Documentos ---
+        if (link.hasAttribute('data-doc-id')) {
+            e.preventDefault(); // Impede a navegação padrão do link #
+            const docId = link.getAttribute('data-doc-id');
+            console.log('Clicou no documento ID:', docId);
+
+            // Tenta encontrar o documento na lista já carregada (se disponível)
+            const documento = todosOsDocumentos.find(d => String(d.id) === docId); // Compara como string por segurança
+
+            if (documento && modalDocumento) {
+                // Preenche o modal com os dados do documento
+                formDocumento.reset();
+                docId.value = documento.id;
+                modalTitulo.textContent = 'Detalhes do Documento'; // Ou 'Editar Documento'
+                docNome.value = documento.nome;
+                docCategoria.value = documento.categoria;
+                docVencimento.value = documento.dataVencimento ? documento.dataVencimento.split('T')[0] : '';
+                docAlerta.value = documento.diasAlerta;
+                anexoAtualContainer.textContent = documento.nome_arquivo ? `Anexo atual: ${documento.nome_arquivo}` : '';
+                anexoAtualContainer.classList.toggle('hidden', !documento.nome_arquivo);
+                docFileName.textContent = 'Nenhum arquivo novo';
+                
+                // Abre o modal
+                abrirModal(modalDocumento);
+            } else {
+                 console.warn('Documento não encontrado na lista local ou modal não existe. Implementar busca por ID se necessário.');
+                 // Poderíamos adicionar um fetch aqui para buscar o doc por ID se ele não estiver na lista
+                 alert('Não foi possível carregar os detalhes do documento.');
+            }
+        }
+
+        // --- Ação para links de Veículos ---
+        else if (link.hasAttribute('data-veiculo-id')) {
+            e.preventDefault(); // Impede a navegação padrão do link #
+            const veiculoId = parseInt(link.getAttribute('data-veiculo-id'), 10);
+            console.log('Clicou no veículo ID:', veiculoId);
+
+            // Tenta encontrar o veículo na lista já carregada
+            const veiculo = todosOsVeiculos.find(v => v.id === veiculoId);
+
+            if (veiculo) {
+                // Usa a função existente para navegar para os detalhes
+                exibirDetalhesDoVeiculo(veiculo);
+            } else {
+                console.warn('Veículo não encontrado na lista local. Implementar busca por ID se necessário.');
+                // Poderíamos adicionar um fetch aqui para buscar o veículo por ID
+                alert('Não foi possível carregar os detalhes do veículo.');
+            }
+        }
+    });
+}
+
+
 
     // Documentos
 
@@ -132,6 +194,10 @@ const API_URL = IS_LOCAL
 
     const docCategoria = document.getElementById('documento-categoria');
 
+    const formGroupVeiculoId = document.getElementById('form-group-veiculo-id'); 
+    
+    const documentoVeiculoId = document.getElementById('documento-veiculo-id');
+
     const docVencimento = document.getElementById('documento-vencimento');
 
     const docAlerta = document.getElementById('documento-alerta');
@@ -142,7 +208,7 @@ const API_URL = IS_LOCAL
 
     const anexoAtualContainer = document.getElementById('anexo-atual-container');
 
-
+  
 
     // Frota
 
@@ -361,33 +427,61 @@ const fecharModal = (modalElement) => {
 
 
 
-    // Encontre e substitua esta função (aprox. linha 248)
 const switchView = (targetId) => {
+    console.log(`--- Chamando switchView para: ${targetId} ---`); 
+
     contentModules.forEach(module => module.classList.add('hidden'));
     const targetContent = document.getElementById(targetId);
     if (targetContent) targetContent.classList.remove('hidden');
 
-    // --- ADIÇÃO IMPORTANTE ---
-    // Se o alvo for a página de notificações, chamamos a função para carregar os dados.
+    // --- CARREGAMENTO DE DADOS SOB DEMANDA ---
     if (targetId === 'content-notificacoes') {
         carregarPaginaNotificacoes();
+    } else if (targetId === 'content-dashboard') { 
+        carregarDashboard(); 
+    } else if (targetId === 'content-documentos') {
+        fetchDocumentos(); // Carrega documentos SÓ quando a página é exibida
+    } else if (targetId === 'content-frota') {
+        fetchVeiculos(); // Carrega veículos SÓ quando a página é exibida
     }
-    // --- FIM DA ADIÇÃO ---
+    // Adicionar 'else if' para Colaboradores e Contratos no futuro
 
+    // --- Lógica de Destaque (permanece a mesma da correção anterior) ---
     let activeModuleName = '';
-    if (targetId.startsWith('content-')) {
+    // ... (resto da lógica de destaque como antes) ...
+     if (targetId.startsWith('content-')) {
         activeModuleName = targetId.split('-')[1];
     }
     if (targetId === 'content-veiculo-detalhes') {
         activeModuleName = 'frota';
     }
+    console.log(`Módulo ativo determinado: ${activeModuleName}`); 
 
     if (activeModuleName) {
-        navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${activeModuleName}`));
-        mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${activeModuleName}`));
-    }
-};
+        console.log('Limpando classe active de todos os navLinks:', navLinks); 
+        navLinks.forEach(link => link.classList.remove('active')); 
 
+        const sidebarLinkId = `nav-${activeModuleName}`;
+        const activeSidebarLink = document.getElementById(sidebarLinkId);
+        console.log(`Tentando encontrar e ativar link da sidebar: #${sidebarLinkId}`, activeSidebarLink); 
+
+        if (activeSidebarLink) {
+            activeSidebarLink.classList.add('active');
+            console.log(`Classe 'active' ADICIONADA a:`, activeSidebarLink); 
+        } else {
+             console.error(`ERRO: Link da sidebar #${sidebarLinkId} não encontrado no DOM!`); 
+        }
+
+        mobileNavLinks.forEach(link => link.classList.remove('active'));
+        const mobileLinkId = `mobile-nav-${activeModuleName}`;
+        const activeMobileLink = document.getElementById(mobileLinkId);
+        if (activeMobileLink) activeMobileLink.classList.add('active');
+
+    } else {
+        console.warn('Nenhum módulo ativo determinado, pulando destaque.'); 
+    }
+    console.log(`--- Fim switchView para: ${targetId} ---`); 
+};
     
 
     document.querySelectorAll('.nav-link, .bottom-bar-link').forEach(link => {
@@ -462,122 +556,77 @@ const switchView = (targetId) => {
 
 
 
-// INÍCIO DO CÓDIGO PARA SUBSTITUIR (verificarLogin)
-
+// SUBSTITUA A FUNÇÃO 'verificarLogin' INTEIRA POR ESTA VERSÃO OTIMIZADA
 const verificarLogin = () => {
-
     const token = obterToken();
-
     const userInfo = localStorage.getItem('userInfo');
 
-
-
+    // Esconde todos os itens por padrão
     document.querySelectorAll('.sidebar-nav li, #bottom-bar .bottom-bar-link').forEach(item => {
-
-        if (!item.querySelector('#btn-abrir-perfil') && !item.querySelector('#btn-logout') && item.id !== 'mobile-more-menu-wrapper') {
-
-            item.classList.add('hidden');
-
+        // ... (lógica para esconder itens permanece a mesma) ...
+         if (!item.querySelector('#btn-abrir-perfil') && !item.querySelector('#btn-logout') && item.id !== 'mobile-more-menu-wrapper' && !item.querySelector('#mobile-btn-perfil') && !item.querySelector('#mobile-btn-logout') && !item.querySelector('#mobile-btn-admin')) {
+             item.classList.add('hidden');
         }
-
     });
-
-    liAdminPanel.classList.add('hidden');
-
-    mobileBtnAdmin.classList.add('hidden');
-
+    liAdminPanel?.classList.add('hidden');
+    mobileBtnAdmin?.classList.add('hidden');
+    document.getElementById('li-nav-dashboard')?.classList.add('hidden'); 
+    document.getElementById('mobile-nav-dashboard')?.classList.add('hidden'); 
 
 
     if (token && userInfo) {
-
         const { usuario } = JSON.parse(userInfo);
-
         telaLogin.classList.add('hidden');
-
         appContainer.classList.remove('hidden');
-
         bottomBar.classList.remove('hidden');
 
-
-
-        fetchNotificacoes();
-
-
+        fetchNotificacoes(); // Busca notificações (importante manter)
 
         const perfilLinkText = btnAbrirPerfil.querySelector('.nav-text');
-
         if (perfilLinkText) perfilLinkText.textContent = `${usuario.nome || usuario.email}`;
 
-
-
         const userRole = usuario.role;
+        let defaultView = null; 
 
-
-
-        // --- LÓGICA DE VISIBILIDADE E CARREGAMENTO DE DADOS ---
-
+        // --- LÓGICA DE VISIBILIDADE ATUALIZADA ---
         if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
-
-            document.querySelectorAll('#nav-documentos, #nav-frota, #nav-colaboradores, #nav-contratos').forEach(link => link.parentElement.classList.remove('hidden'));
-
-            document.querySelectorAll('#mobile-nav-documentos, #mobile-nav-frota, #mobile-nav-colaboradores, #mobile-nav-contratos').forEach(link => link.classList.remove('hidden'));
-
+            document.querySelectorAll('#li-nav-dashboard, #nav-documentos, #nav-frota, #nav-colaboradores, #nav-contratos, #nav-notificacoes').forEach(link => link.closest('li')?.classList.remove('hidden'));
+            document.querySelectorAll('#mobile-nav-dashboard, #mobile-nav-documentos, #mobile-nav-frota, #mobile-nav-colaboradores, #mobile-nav-contratos, #mobile-nav-notificacoes').forEach(link => link?.classList.remove('hidden'));
             
+            defaultView = 'content-dashboard'; // Dashboard é o padrão
+            // NÃO chamamos fetchDocumentos() ou fetchVeiculos() aqui mais.
 
-            // Apenas carrega os dados e define a view se o DOM estiver pronto
-
-            if (tbodyDocumentos && tbodyVeiculos) {
-
-                fetchDocumentos();
-
-                fetchVeiculos();
-
-                switchView('content-documentos');
-
+            if (userRole === 'SUPER_ADMIN') {
+                liAdminPanel?.classList.remove('hidden');
+                mobileBtnAdmin?.classList.remove('hidden');
             }
 
         } else if (userRole === 'ENCARREGADO' || userRole === 'MECANICO') {
-
-            document.querySelector('#nav-frota').parentElement.classList.remove('hidden');
-
-            document.querySelector('#mobile-nav-frota').classList.remove('hidden');
-
-
-
-            // Apenas carrega os dados e define a view se o DOM estiver pronto
-
-            if (tbodyVeiculos) {
-
-                fetchVeiculos();
-
-                switchView('content-frota');
-
-            }
-
+            document.querySelector('#nav-frota')?.closest('li').classList.remove('hidden');
+            document.querySelector('#nav-notificacoes')?.closest('li').classList.remove('hidden');
+            document.querySelector('#mobile-nav-frota')?.classList.remove('hidden');
+            document.querySelector('#mobile-nav-notificacoes')?.classList.remove('hidden');
+           
+            defaultView = 'content-frota';
+            fetchVeiculos(); // Carrega veículos pois é a view padrão deles
         }
 
-        
-
-        if (userRole === 'SUPER_ADMIN') {
-
-            liAdminPanel.classList.remove('hidden');
-
-            mobileBtnAdmin.classList.remove('hidden');
-
+        // Define a view inicial
+        if (defaultView && document.getElementById(defaultView)) {
+            switchView(defaultView); 
+            navLinks.forEach(link => link.classList.toggle('active', link.id === `nav-${defaultView.split('-')[1]}`));
+            mobileNavLinks.forEach(link => link.classList.toggle('active', link.id === `mobile-nav-${defaultView.split('-')[1]}`));
+        } else if (tbodyDocumentos) { 
+             switchView('content-documentos');
+             // Se o fallback for documentos, carrega os dados aqui
+             fetchDocumentos(); 
         }
-
-
 
     } else {
-
         telaLogin.classList.remove('hidden');
-
         appContainer.classList.add('hidden');
-
         bottomBar.classList.add('hidden');
-
     }
-
 };
 
 // FIM DO CÓDIGO PARA SUBSTITUIR
@@ -806,6 +855,8 @@ const renderizarTabela = () => {
 
             docFileName.textContent = 'Nenhum arquivo novo';
 
+            handleDocumentoCategoriaChange();
+
             abrirModal(modalDocumento);
 
         };
@@ -1027,6 +1078,65 @@ const exibirDetalhesDoVeiculo = async (veiculo) => {
     }
 
 };
+
+// Garanta que esta função exista EXATAMENTE assim no seu script.js
+
+/**
+ * Controla a visibilidade do campo 'Vincular Veículo' baseado na categoria.
+ */
+const handleDocumentoCategoriaChange = () => {
+    // Verifica se as referências existem antes de usá-las
+    if (!docCategoria || !formGroupVeiculoId || !documentoVeiculoId) {
+        console.error("Erro: Referências para campos de categoria/veículo não encontradas.");
+        return; 
+    }
+
+    if (docCategoria.value === 'Caminhões') {
+        formGroupVeiculoId.classList.remove('hidden'); // <-- ESTA LINHA DEVE TORNAR O CAMPO VISÍVEL
+        documentoVeiculoId.required = true; 
+        popularVeiculosSelect(); 
+    } else {
+        formGroupVeiculoId.classList.add('hidden'); // <-- ESTA LINHA ESCONDE O CAMPO
+        documentoVeiculoId.required = false; 
+        documentoVeiculoId.value = ''; 
+    }
+};
+
+    const popularVeiculosSelect = async () => {
+        if (!documentoVeiculoId) return;
+
+        // Evita buscar repetidamente se já foi populado e a lista está em memória
+        if (todosOsVeiculos && todosOsVeiculos.length > 0 && documentoVeiculoId.options.length > 1) {
+             console.log('Select de veículos já populado, usando cache.');
+             return; 
+        }
+
+        documentoVeiculoId.innerHTML = '<option value="">Carregando...</option>';
+
+        try {
+            // Reutiliza a função fetchVeiculos se os dados ainda não foram carregados
+            if (!todosOsVeiculos || todosOsVeiculos.length === 0) {
+                 await fetchVeiculos(); // Garante que a lista 'todosOsVeiculos' esteja preenchida
+            }
+
+            if (!todosOsVeiculos || todosOsVeiculos.length === 0) {
+                throw new Error('Nenhum veículo encontrado para listar.');
+            }
+
+            documentoVeiculoId.innerHTML = '<option value="" disabled selected>Selecione um veículo...</option>'; // Placeholder
+
+            todosOsVeiculos.forEach(veiculo => {
+                const option = document.createElement('option');
+                option.value = veiculo.id;
+                option.textContent = `${veiculo.placa} - ${veiculo.marca} ${veiculo.modelo}`;
+                documentoVeiculoId.appendChild(option);
+            });
+
+        } catch (error) {
+            console.error('Erro ao popular select de veículos:', error);
+            documentoVeiculoId.innerHTML = '<option value="">Erro ao carregar</option>';
+        }
+    };
 
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
@@ -1850,6 +1960,8 @@ const renderizarTabelaPlanos = (planos) => {
     });
 
 
+
+
     // --- NOVO EVENT LISTENER PARA A FASE 4 ---
 if (manutencaoPlanoItem) {
     manutencaoPlanoItem.addEventListener('change', () => {
@@ -1915,6 +2027,11 @@ if (manutencaoPlanoItem) {
 
 });
 
+if (docCategoria) {
+    docCategoria.addEventListener('change', handleDocumentoCategoriaChange);
+} else {
+    console.error("Erro: Campo de Categoria (docCategoria) não encontrado para adicionar listener.");
+}
     
 
     btnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
@@ -1923,21 +2040,22 @@ if (manutencaoPlanoItem) {
 
     
 
-    if (btnAbrirModalCadastro) btnAbrirModalCadastro.addEventListener('click', () => {
+    // Dentro do DOMContentLoaded
 
+if (btnAbrirModalCadastro) {
+    btnAbrirModalCadastro.addEventListener('click', () => {
+        console.log("Botão Cadastrar Novo Documento CLICADO!");
         formDocumento.reset();
-
         docId.value = '';
-
         modalTitulo.textContent = 'Cadastrar Novo Documento';
-
         anexoAtualContainer.classList.add('hidden');
-
         docFileName.textContent = 'Nenhum arquivo escolhido';
-
+        
+        handleDocumentoCategoriaChange(); // <<< VERIFIQUE ESTA LINHA (DEVE ESTAR AQUI)
+        
         abrirModal(modalDocumento);
-
     });
+}
 
 
 
@@ -3447,6 +3565,95 @@ const navegarParaNotificacao = async (notificacao) => {
 // --- FIM DA LÓGICA DA PÁGINA DE NOTIFICAÇÕES ---
 // =================================================================
 
+
+// =================================================================
+// --- LÓGICA DO DASHBOARD (FASE 5) ---
+// =================================================================
+
+// SUBSTITUA A FUNÇÃO carregarResumoDocumentos
+const carregarResumoDocumentos = async () => {
+    const container = document.getElementById('dashboard-documentos-content');
+    if (!container) return;
+    container.innerHTML = '<p>Carregando resumo...</p>';
+    try {
+        const response = await fetch(`${API_URL}/api/documentos/resumo`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            if (response.status === 403) throw new Error('Acesso não autorizado.');
+            throw new Error('Falha ao buscar resumo de documentos.');
+        }
+        const data = await response.json();
+
+        // --- HTML ESTRUTURADO ---
+        container.innerHTML = `
+            <div class="dashboard-counts">
+                <div><span>Total:</span> <strong>${data.total}</strong></div>
+                <div><span>Vencidos:</span> <strong class="text-danger">${data.vencidos}</strong></div>
+                <div><span>A Vencer (30d):</span> <strong class="text-warning">${data.aVencer30d}</strong></div>
+            </div>
+            <h4>Próximos Vencimentos:</h4>
+            ${data.proximosVencimentos.length > 0 ? `
+                <ul class="dashboard-list clickable-list">
+                    ${data.proximosVencimentos.map(doc => `
+                        <li>
+                            <a href="#" data-doc-id="${doc.id}">
+                                ${doc.nome} 
+                                <span class="list-date">(${new Date(doc.dataVencimento).toLocaleDateString('pt-BR', { timeZone: 'UTC' })})</span>
+                            </a>
+                        </li>`).join('')}
+                </ul>` : '<p>Nenhum documento a vencer nos próximos dias.</p>'}
+        `;
+    } catch (error) {
+        console.error('Erro ao carregar resumo de documentos:', error);
+        container.innerHTML = `<p class="error-message">${error.message}</p>`;
+    }
+};
+
+// SUBSTITUA A FUNÇÃO carregarResumoFrota
+const carregarResumoFrota = async () => {
+    const container = document.getElementById('dashboard-frota-content');
+    if (!container) return;
+    container.innerHTML = '<p>Carregando resumo...</p>';
+    try {
+        const response = await fetch(`${API_URL}/api/veiculos/resumo`, { headers: getAuthHeaders() });
+        if (!response.ok) {
+            if (response.status === 403) throw new Error('Acesso não autorizado.');
+            throw new Error('Falha ao buscar resumo da frota.');
+        }
+        const data = await response.json();
+
+        // --- HTML ESTRUTURADO ---
+        container.innerHTML = `
+            <div class="dashboard-counts">
+                <div><span>Total:</span> <strong>${data.totalVeiculos}</strong></div>
+                <div><span>Alerta Manut.:</span> <strong class="text-warning">${data.manutencaoAlerta}</strong></div>
+                <div><span>Vencido Manut.:</span> <strong class="text-danger">${data.manutencaoVencida}</strong></div>
+                <div><span>Solic. Abertas:</span> <strong>${data.solicitacoesAbertas}</strong></div>
+            </div>
+            <h4>Veículos c/ Atenção:</h4>
+             ${data.veiculosComAtencao.length > 0 ? `
+                <ul class="dashboard-list clickable-list">
+                    ${data.veiculosComAtencao.map(v => `
+                        <li>
+                            <a href="#" data-veiculo-id="${v.id}">
+                                ${v.modelo} (${v.placa}) 
+                                <span class="list-status ${v.status.toLowerCase().replace(/\s+/g, '-')}"> - ${v.status}</span>
+                            </a>
+                        </li>`).join('')}
+                </ul>` : '<p>Nenhum veículo requer atenção imediata.</p>'}
+        `;
+    } catch (error) {
+        console.error('Erro ao carregar resumo da frota:', error);
+        container.innerHTML = `<p class="error-message">${error.message}</p>`;
+    }
+};
+
+/**
+ * Função chamada quando a view do dashboard é ativada.
+ */
+const carregarDashboard = () => {
+    carregarResumoDocumentos();
+    carregarResumoFrota();
+};
 
 
     verificarLogin();

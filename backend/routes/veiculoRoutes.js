@@ -17,13 +17,20 @@ import {
     criarSolicitacaoManutencao,
     listarSolicitacoesManutencao,
     // NOVO
-    assumirSolicitacaoManutencao 
+    assumirSolicitacaoManutencao, 
+    obterResumoFrota,
 } from '../controllers/VeiculoController.js';
+
+
 
 const router = express.Router();
 
+
+
+
 // --- ROTAS PRINCIPAIS DE VEÍCULOS ---
 router.get('/', listarVeiculos);
+router.get('/resumo', obterResumoFrota); 
 router.get('/:id', obterVeiculoPorId);
 router.post('/', criarVeiculo);
 router.put('/:id', atualizarVeiculo);

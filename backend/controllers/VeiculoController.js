@@ -607,3 +607,134 @@ export const assumirSolicitacaoManutencao = async (req, res) => {
         client.release();
     }
 };
+
+// =================================================================
+// --- NOVA FUNÇÃO PARA O DASHBOARD (FASE 5) ---
+// =================================================================
+/**
+ * Obtém dados resumidos sobre a frota para o dashboard.
+ * Rota: GET /api/veiculos/resumo
+ */
+export const obterResumoFrota = async (req, res) => {
+    // Garante que apenas Admin e Escritório acessem
+    if (req.usuario.role !== 'SUPER_ADMIN' && req.usuario.role !== 'ESCRITORIO') {
+        return res.status(403).json({ message: 'Acesso não autorizado.' });
+    }
+
+    const client = await pool.connect(); // Usaremos um cliente para múltiplas queries
+    try {
+        // 1. Contagem total de veículos
+        const totalVeiculosResult = await client.query('SELECT COUNT(*) AS total FROM veiculos');
+        const totalVeiculos = parseInt(totalVeiculosResult.rows[0].total, 10);
+
+        // 2. Contagem de solicitações abertas (ABERTO ou EM_ANDAMENTO)
+        const solicitacoesAbertasResult = await client.query(
+            "SELECT COUNT(*) AS total FROM solicitacoes_manutencao WHERE status IN ('ABERTO', 'EM_ANDAMENTO')"
+        );
+        const solicitacoesAbertas = parseInt(solicitacoesAbertasResult.rows[0].total, 10);
+
+        // 3. Status de Manutenção Preventiva (Esta é a parte mais complexa)
+        //    Reutilizaremos a lógica de cálculo de status, mas aplicada a todos os veículos.
+        let veiculosComAlerta = 0;
+        let veiculosComVencido = 0;
+        const veiculosComAtencao = []; // Lista para veículos com Alerta/Vencido ou Solicitação
+
+        const todosVeiculosResult = await client.query('SELECT id, placa, modelo FROM veiculos');
+        const todosVeiculos = todosVeiculosResult.rows;
+
+        for (const veiculo of todosVeiculos) {
+            let veiculoStatusManutencao = 'Em Dia'; // Status padrão
+            let precisaAtencao = false;
+            let motivoAtencao = '';
+
+            // Verifica status das preventivas (lógica similar ao scheduler e listarPlanos)
+            const planosResult = await client.query('SELECT * FROM planos_manutencao WHERE veiculo_id = $1 AND (intervalo_km IS NOT NULL OR intervalo_dias IS NOT NULL)', [veiculo.id]);
+            const planos = planosResult.rows;
+
+            if (planos.length > 0) {
+                 const kmAtualResult = await client.query(`SELECT GREATEST((SELECT km_atual FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC, id DESC LIMIT 1), (SELECT km_atual FROM abastecimentos WHERE veiculo_id = $1 ORDER BY data DESC, id DESC LIMIT 1)) as km_atual`, [veiculo.id]);
+                 const kmAtual = kmAtualResult.rows.length > 0 && kmAtualResult.rows[0].km_atual ? parseInt(kmAtualResult.rows[0].km_atual) : 0;
+
+                 for (const plano of planos) {
+                    const ultimaManutencaoResult = await client.query(`SELECT data, km_atual FROM manutencoes WHERE veiculo_id = $1 AND tipo = 'Preventiva' AND (plano_manutencao_id = $2 OR pecas::text ILIKE $3) ORDER BY data DESC, id DESC LIMIT 1`, [veiculo.id, plano.id, `%${plano.descricao}%`]); // Usa ID se disponível, senão busca por texto
+                    const ultimaManutencao = ultimaManutencaoResult.rows.length > 0 ? ultimaManutencaoResult.rows[0] : null;
+
+                    let statusKm = 'Em Dia';
+                    if (plano.intervalo_km && kmAtual > 0) { /* ... lógica km ... */ 
+                        const kmBase = ultimaManutencao ? parseInt(ultimaManutencao.km_atual) : 0;
+                        const proximaKm = kmBase + parseInt(plano.intervalo_km);
+                        const kmFaltante = proximaKm - kmAtual;
+                        if (kmFaltante <= 0) statusKm = 'Vencido';
+                        else if (kmFaltante <= (parseInt(plano.intervalo_km) * 0.15)) statusKm = 'Alerta';
+                    }
+                    let statusTempo = 'Em Dia';
+                    if (plano.intervalo_dias) { /* ... lógica tempo ... */ 
+                        const dataBase = ultimaManutencao ? new Date(ultimaManutencao.data) : new Date(plano.created_at);
+                        const proximaData = new Date(dataBase);
+                        proximaData.setDate(proximaData.getDate() + parseInt(plano.intervalo_dias));
+                        const diasFaltantes = Math.ceil((proximaData.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                        if (diasFaltantes <= 0) statusTempo = 'Vencido';
+                        else if (diasFaltantes <= (parseInt(plano.intervalo_dias) * 0.15)) statusTempo = 'Alerta';
+                    }
+                    
+                    if (statusKm === 'Vencido' || statusTempo === 'Vencido') {
+                        veiculoStatusManutencao = 'Vencido';
+                        break; // Se um item está vencido, o veículo todo está com status Vencido
+                    }
+                    if (statusKm === 'Alerta' || statusTempo === 'Alerta') {
+                        veiculoStatusManutencao = 'Alerta'; // Se não há Vencido, mas há Alerta
+                    }
+                 }
+            }
+
+            // Atualiza contadores e define motivo de atenção
+            if (veiculoStatusManutencao === 'Vencido') {
+                veiculosComVencido++;
+                precisaAtencao = true;
+                motivoAtencao = 'Manutenção Vencida';
+            } else if (veiculoStatusManutencao === 'Alerta') {
+                veiculosComAlerta++;
+                precisaAtencao = true;
+                motivoAtencao = 'Manutenção em Alerta';
+            }
+
+            // Verifica se há solicitações abertas para este veículo
+            const solicitacaoVeiculoResult = await client.query(
+                "SELECT id FROM solicitacoes_manutencao WHERE veiculo_id = $1 AND status IN ('ABERTO', 'EM_ANDAMENTO') LIMIT 1",
+                [veiculo.id]
+            );
+            if (solicitacaoVeiculoResult.rows.length > 0) {
+                precisaAtencao = true;
+                // Prioriza o status de manutenção se já for Alerta/Vencido
+                motivoAtencao = motivoAtencao || 'Solicitação Aberta'; 
+            }
+
+            // Adiciona à lista de atenção se necessário
+            if (precisaAtencao && veiculosComAtencao.length < 5) { // Limita a 5 para não sobrecarregar
+                veiculosComAtencao.push({
+                    id: veiculo.id,
+                    placa: veiculo.placa,
+                    modelo: veiculo.modelo,
+                    status: motivoAtencao
+                });
+            }
+        } // Fim do loop for (const veiculo...)
+
+        // Monta o objeto de resposta
+        const resumo = {
+            totalVeiculos: totalVeiculos,
+            manutencaoAlerta: veiculosComAlerta,
+            manutencaoVencida: veiculosComVencido,
+            solicitacoesAbertas: solicitacoesAbertas,
+            veiculosComAtencao: veiculosComAtencao
+        };
+
+        res.status(200).json(resumo);
+
+    } catch (error) {
+        console.error('Erro ao obter resumo da frota:', error);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    } finally {
+        client.release(); // Libera o cliente de volta para o pool
+    }
+};
