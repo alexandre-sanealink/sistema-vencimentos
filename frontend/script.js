@@ -290,6 +290,12 @@ if (mainContent) {
 
     const btnAdicionarPeca = document.getElementById('btn-adicionar-peca');
 
+    // --- NOVAS REFERÊNCIAS RELATÓRIO MENSAL ---
+    const secaoRelatorioMensal = document.getElementById('secao-relatorio-mensal');
+    const formRelatorioMensal = document.getElementById('form-relatorio-mensal');
+    const relatorioMes = document.getElementById('relatorio-mes');
+    const relatorioAno = document.getElementById('relatorio-ano');
+
     const formGroupPlanoItem = document.getElementById('form-group-plano-item');
     const manutencaoPlanoItem = document.getElementById('manutencao-plano-item');
 
@@ -929,6 +935,58 @@ const renderizarTabela = () => {
 
 };
 
+/**
+ * Busca o PDF da OS no backend e força o download com o nome correto.
+ * @param {number} manutencaoId O ID da manutenção.
+ */
+const gerarEExibirPdfOS = async (manutencaoId) => {
+    console.log(`Solicitando PDF para manutenção ID: ${manutencaoId}`);
+    try {
+        const response = await fetch(`${API_URL}/api/veiculos/manutencoes/${manutencaoId}/os-pdf`, { 
+            headers: getAuthHeaders() 
+        });
+
+        if (!response.ok) {
+            let errorMsg = `Erro ${response.status}: ${response.statusText}`;
+            try { const errorData = await response.json(); errorMsg = errorData.error || errorData.message || errorMsg; } catch (e) {}
+            throw new Error(errorMsg);
+        }
+
+        // Pega o blob (o arquivo PDF)
+        const blob = await response.blob();
+
+        // --- LÓGICA DE DOWNLOAD CORRIGIDA ---
+
+        // 1. Tenta extrair o nome do arquivo do header 'Content-Disposition'
+        let filename = 'OS.pdf'; // Nome padrão
+        const contentDisposition = response.headers.get('content-disposition');
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1];
+            }
+        }
+
+        // 2. Cria uma URL temporária para o blob
+        const fileURL = URL.createObjectURL(blob);
+
+        // 3. Cria um link <a> invisível para forçar o download com o nome correto
+        const downloadLink = document.createElement('a');
+        downloadLink.href = fileURL;
+        downloadLink.download = filename; // Define o nome do arquivo para o download
+        document.body.appendChild(downloadLink); // Adiciona o link ao corpo
+        downloadLink.click(); // Simula o clique no link
+        document.body.removeChild(downloadLink); // Remove o link
+
+        // 4. Revoga a URL do objeto para liberar memória (não precisa mais do window.open)
+        URL.revokeObjectURL(fileURL);
+
+    } catch (error) {
+        console.error('Erro ao gerar/exibir PDF da OS:', error);
+        alert(`Não foi possível gerar o PDF: ${error.message}`);
+    } 
+};
+
 // FIM DO CÓDIGO PARA SUBSTITUIR
 
 
@@ -966,6 +1024,21 @@ const exibirDetalhesDoVeiculo = async (veiculo) => {
         }
 
     }
+
+    
+if (secaoRelatorioMensal) {
+    if (userRole === 'SUPER_ADMIN' || userRole === 'ESCRITORIO') {
+        secaoRelatorioMensal.classList.remove('hidden');
+
+        // Pré-popula os campos com o mês e ano atuais
+        const dataAtual = new Date();
+        relatorioMes.value = dataAtual.getMonth() + 1; // getMonth() é 0-11
+        relatorioAno.value = dataAtual.getFullYear();
+
+    } else {
+        secaoRelatorioMensal.classList.add('hidden');
+    }
+}
 
     
 
@@ -1482,144 +1555,72 @@ const adicionarLinhaPeca = () => {
 
 // INÍCIO DO CÓDIGO PARA SUBSTITUIR
 
+// SUBSTITUA A FUNÇÃO 'renderizarTabelaManutencoes' INTEIRA
 const renderizarTabelaManutencoes = (manutencoes) => {
-
     if (!tbodyManutencoes) return;
-
     tbodyManutencoes.innerHTML = '';
 
-
-
     if (!manutencoes || manutencoes.length === 0) {
-
-        tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum registro de manutenção encontrado.</td></tr>`;
-
+        tbodyManutencoes.innerHTML = `<tr><td colspan="6" style="text-align:center;">Nenhum registro de manutenção encontrado.</td></tr>`; // Aumenta colspan para 6
         return;
-
     }
-
-
 
     const formatarData = (d) => new Date(d).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
 
-
-
     manutencoes.forEach(m => {
-
         const tr = document.createElement('tr');
-
         
-
-        // LÓGICA ATUALIZADA PARA EXIBIR O TIPO (PEÇA/SERVIÇO) DE CADA ITEM
-
         const pecasTexto = Array.isArray(m.pecas) && m.pecas.length > 0
-
-            ? m.pecas.map(p => {
-
-                // Verifica se o item é um Serviço
-
-                if (p.tipo === 'Servico') {
-
-                    // Retorna um formato mais simples para serviços
-
-                    return `<span class="item-tipo-servico">[Serviço]</span> ${p.descricao}`;
-
-                }
-
-                
-
-                // Se não for serviço, trata como Peça (incluindo dados antigos que não tinham o campo 'tipo')
-
-                const quantidade = p.quantidade || 1;
-
-                const marca = p.marca ? `(${p.marca})` : '';
-
+            ? m.pecas.map(p => { /* ... (lógica existente para formatar peças) ... */ 
+                if (p.tipo === 'Servico') { return `<span class="item-tipo-servico">[Serviço]</span> ${p.descricao}`; }
+                const quantidade = p.quantidade || 1; const marca = p.marca ? `(${p.marca})` : '';
                 return `<span class="item-tipo-peca">[Peça]</span> ${quantidade}x ${p.descricao} ${marca}`;
-
-
-
             }).join('<br>')
-
             : '-';
 
-
-
+        // ✅ MODIFICAÇÃO: Adiciona uma nova célula <td> no final para Ações
+        //                e ajusta a célula anterior (índice 4) para o número da OS
         tr.innerHTML = `
-
             <td>${formatarData(m.data)}</td>
-
             <td>${m.tipo}</td>
-
             <td>${m.km_atual}</td>
-
             <td>${pecasTexto}</td>
+            <td>${m.numero_os ? `OS-${String(m.numero_os).padStart(6, '0')}` : '-'}</td> 
+            <td></td>  
+        `; // Colspan na thead precisará ser 6 agora
 
-            <td></td> 
+        // Adiciona a classe 'manutencao-row' e 'data-id' para facilitar a captura do ID no clique
+        tr.classList.add('manutencao-row');
+        tr.dataset.id = m.id; // Armazena o ID da manutenção na própria linha
 
-        `;
+        const acoesCell = tr.children[5]; // Ações agora estão na 6ª célula (índice 5)
 
-
-
-        const acoesCell = tr.children[4];
-
-
-
-        const btnDeletar = document.createElement('button');
-
-        btnDeletar.className = 'btn-deletar';
-
-        btnDeletar.title = 'Excluir Registro de Manutenção';
-
-        btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
-
+        // --- BOTÃO GERAR PDF OS ---
+        const btnPdf = document.createElement('button');
+        btnPdf.className = 'btn-pdf btn-gerar-os'; // Adiciona classes para estilo e identificação
+        btnPdf.title = `Gerar PDF da OS-${String(m.numero_os).padStart(6, '0')}`;
+        btnPdf.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-pdf" viewBox="0 0 16 16"><path d="M14 14V4.5L9.5 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2zM9.5 3A1.5 1.5 0 0 0 11 4.5h2V14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1h5.5v2z"/><path d="M4.603 14.087a.81.81 0 0 1-.438-.42c-.195-.388-.13-.776.08-1.102.198-.307.526-.568.897-.787a7.68 7.68 0 0 1 1.482-.645 19.697 19.697 0 0 0 1.062-2.227 7.269 7.269 0 0 1-.43-1.295c-.086-.4-.119-.796-.046-1.136.075-.354.274-.672.658-.889.37-.232.793-.346 1.236-.364.44-.015.86.06 1.225.218.37.16.65.396.865.703.214.306.338.656.338 1.026 0 .447-.135.856-.41 1.215-.273.36-.66.63-1.095.796a5.116 5.116 0 0 1-.607.137c-.504.093-.986.142-1.432.142-.218 0-.395-.02-.556-.064-.16-.043-.288-.1-.381-.174l-.058.119a10.518 10.518 0 0 0 .99 1.408.491.491 0 0 1-.295.152 1.9 1.9 0 0 1-.454-.152l-.15.345a.49.49 0 0 1-.148.153h-.032l-.11.121-.043.041-.015.014-.002.002a.5.5 0 0 1-.252.066.39.39 0 0 1-.061 0l-.142-.014a.33.33 0 0 1-.1-.026l-.1-.038-.075-.041a.243.243 0 0 1-.048-.037l-.03-.03-.014-.015a.031.031 0 0 1 0-.004zM6.8 11.84h.794a1 1 0 0 0 .704-.295l.408-.407a.5.5 0 0 0-.555-.838l-.407.407a.15.15 0 0 1-.106.043H6.8v.6z"/></svg>`;
+        // btnPdf.onclick = () => gerarEExibirPdfOS(m.id); // Adicionaremos a lógica depois
+        acoesCell.appendChild(btnPdf);
         
-
-        btnDeletar.onclick = async () => {
-
-            if (confirm(`Tem certeza que deseja excluir o registro de manutenção do dia ${formatarData(m.data)}?`)) {
-
+        // --- Botão Deletar (existente) ---
+        const btnDeletar = document.createElement('button');
+        btnDeletar.className = 'btn-deletar';
+        btnDeletar.title = 'Excluir Registro de Manutenção';
+        btnDeletar.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>`;
+        btnDeletar.onclick = async () => { /* ... (lógica de deletar existente) ... */ 
+             if (confirm(`Tem certeza que deseja excluir o registro de manutenção do dia ${formatarData(m.data)}?`)) {
                 try {
-
-                    const response = await fetch(`${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes/${m.id}`, {
-
-                        method: 'DELETE',
-
-                        headers: getAuthHeaders()
-
-                    });
-
-                    if (response.ok) {
-
-                        exibirDetalhesDoVeiculo(veiculoSelecionado); 
-
-                    } else {
-
-                        const erro = await response.json();
-
-                        alert(`Erro ao excluir registro: ${erro.error || 'Erro desconhecido'}`);
-
-                    }
-
-                } catch (error) {
-
-                    console.error('Erro ao deletar manutenção:', error);
-
-                    alert('Ocorreu um erro de conexão ao tentar excluir.');
-
-                }
-
+                    const response = await fetch(`${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes/${m.id}`, { method: 'DELETE', headers: getAuthHeaders() });
+                    if (response.ok) { exibirDetalhesDoVeiculo(veiculoSelecionado); } 
+                    else { const erro = await response.json(); alert(`Erro ao excluir registro: ${erro.error || 'Erro desconhecido'}`); }
+                } catch (error) { console.error('Erro ao deletar manutenção:', error); alert('Ocorreu um erro de conexão.'); }
             }
-
         };
-
-
-
         acoesCell.appendChild(btnDeletar);
 
         tbodyManutencoes.appendChild(tr);
-
     });
-
 };
 
 /**
@@ -2057,6 +2058,18 @@ if (btnAbrirModalCadastro) {
     });
 }
 
+if (formRelatorioMensal) {
+    formRelatorioMensal.addEventListener('submit', (e) => {
+        e.preventDefault(); // Impede o envio padrão do formulário
+
+        if (veiculoSelecionado && relatorioMes.value && relatorioAno.value) {
+            gerarEExibirPdfRelatorioMensal(veiculoSelecionado.id, relatorioMes.value, relatorioAno.value);
+        } else {
+            alert('Erro: Não foi possível obter os dados necessários para gerar o relatório.');
+        }
+    });
+}
+
 
 
     btnAdminPanel.addEventListener('click', () => carregarPainelAdmin());
@@ -2228,6 +2241,72 @@ if (btnAbrirModalManutencao) {
     });
 
 }
+
+// Dentro do DOMContentLoaded
+
+if (tbodyManutencoes) {
+    tbodyManutencoes.addEventListener('click', (e) => {
+        // Verifica se o clique foi no botão de PDF (ou dentro dele, como no SVG)
+        const pdfButton = e.target.closest('.btn-gerar-os'); 
+        
+        if (pdfButton) {
+            // Encontra a linha da tabela (tr) pai do botão
+            const row = pdfButton.closest('.manutencao-row');
+            if (row && row.dataset.id) {
+                const manutencaoId = parseInt(row.dataset.id, 10);
+                gerarEExibirPdfOS(manutencaoId); // Chama a função para gerar o PDF
+            } else {
+                console.error("Não foi possível encontrar o ID da manutenção na linha da tabela.");
+            }
+        }
+    });
+}
+
+/**
+ * Busca o PDF do Relatório Mensal no backend e força o download com o nome correto.
+ * @param {number} veiculoId O ID do veículo.
+ * @param {string} mes O mês (1-12).
+ * @param {string} ano O ano (AAAA).
+ */
+const gerarEExibirPdfRelatorioMensal = async (veiculoId, mes, ano) => {
+    console.log(`Solicitando Relatório Mensal para Veículo ID: ${veiculoId}, Período: ${mes}/${ano}`);
+    try {
+        const response = await fetch(`${API_URL}/api/veiculos/${veiculoId}/relatorio-mensal-pdf?mes=${mes}&ano=${ano}`, { 
+            headers: getAuthHeaders() 
+        });
+
+        if (!response.ok) {
+             let errorMsg = `Erro ${response.status}: ${response.statusText}`;
+             try { const errorData = await response.json(); errorMsg = errorData.error || errorData.message || errorMsg; } catch (e) {}
+             throw new Error(errorMsg);
+        }
+
+        const blob = await response.blob();
+
+        // --- LÓGICA DE DOWNLOAD CORRIGIDA ---
+        let filename = 'Relatorio.pdf'; // Nome padrão
+        const contentDisposition = response.headers.get('content-disposition');
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
+            if (filenameMatch && filenameMatch[1]) {
+                filename = filenameMatch[1];
+            }
+        }
+
+        const fileURL = URL.createObjectURL(blob);
+        const downloadLink = document.createElement('a');
+        downloadLink.href = fileURL;
+        downloadLink.download = filename;
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        URL.revokeObjectURL(fileURL);
+
+    } catch (error) {
+        console.error('Erro ao gerar/exibir Relatório Mensal:', error);
+        alert(`Não foi possível gerar o relatório: ${error.message}`);
+    }
+};
 
 
 

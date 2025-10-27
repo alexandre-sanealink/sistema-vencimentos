@@ -16,9 +16,10 @@ import {
     deletarPlanoManutencao,
     criarSolicitacaoManutencao,
     listarSolicitacoesManutencao,
-    // NOVO
     assumirSolicitacaoManutencao, 
     obterResumoFrota,
+    gerarPdfOrdemServico,
+    gerarPdfRelatorioMensalVeiculo
 } from '../controllers/VeiculoController.js';
 
 
@@ -31,6 +32,7 @@ const router = express.Router();
 // --- ROTAS PRINCIPAIS DE VEÍCULOS ---
 router.get('/', listarVeiculos);
 router.get('/resumo', obterResumoFrota); 
+router.get('/:veiculoId/relatorio-mensal-pdf', gerarPdfRelatorioMensalVeiculo);
 router.get('/:id', obterVeiculoPorId);
 router.post('/', criarVeiculo);
 router.put('/:id', atualizarVeiculo);
@@ -40,6 +42,7 @@ router.delete('/:id', deletarVeiculo);
 router.get('/:veiculoId/manutencoes', listarManutencoes);
 router.post('/:veiculoId/manutencoes', adicionarManutencao);
 router.delete('/:veiculoId/manutencoes/:manutencaoId', deletarManutencao);
+router.get('/manutencoes/:manutencaoId/os-pdf', gerarPdfOrdemServico);
 
 // --- ROTAS DE ABASTECIMENTO ---
 router.get('/:veiculoId/abastecimentos', listarAbastecimentos);

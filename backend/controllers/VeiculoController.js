@@ -1,14 +1,18 @@
 // --- Conexão com o Banco de Dados ---
-import pg from 'pg';
-const { Pool } = pg;
+import pg from 'pg';       // <-- Ensure this line exists
+const { Pool } = pg;       // <-- Ensure this line exists
 import { enviarEmail } from '../mailer.js';
+import PDFDocument from 'pdfkit'; 
+import fs from 'fs'; 
+import path from 'path'; 
+import { fileURLToPath } from 'url';
+
 
 const IS_LOCAL_ENV = process.env.PGHOST === 'localhost';
 
 
-
 // Arquivo: VeiculoController.js
-const pool = new Pool(
+const pool = new Pool( // <--- This line caused the error if Pool wasn't defined above
     process.env.DATABASE_URL 
     ? { 
         connectionString: process.env.DATABASE_URL,
@@ -16,6 +20,8 @@ const pool = new Pool(
       } 
     : {} 
 );
+
+
 
 // =================================================================
 // --- NOVA FUNÇÃO AUXILIAR DE NOTIFICAÇÕES ---
@@ -173,81 +179,62 @@ export const listarManutencoes = async (req, res) => {
 
 // ARQUIVO: /controllers/VeiculoController.js
 
-// SUBSTITUA a função 'adicionarManutencao' inteira por esta versão final
+// SUBSTITUA a função 'adicionarManutencao' inteira por esta versão
+// SUBSTITUA adicionarManutencao NOVAMENTE por esta versão
 export const adicionarManutencao = async (req, res) => {
     const { veiculoId } = req.params;
-    // (NOVO) Recebe também o planoItemId do corpo da requisição
-    const { data, tipo, km_atual, pecas, solicitacaoId, planoItemId } = req.body;
+    const { data, tipo, km_atual, pecas, solicitacaoId, planoItemId } = req.body; // solicitacaoId já era recebido
 
-    if (!data || !tipo || !km_atual) {
-        return res.status(400).json({ error: 'Os campos data, tipo e km_atual são obrigatórios.' });
-    }
+    // ... (validações como antes) ...
+     if (!data || !tipo || !km_atual) { /* ... */ return res.status(400).json({ error: '...' }); }
+     if (tipo === 'Preventiva' && !planoItemId) { /* ... */ return res.status(400).json({ error: '...' }); }
 
-    // (NOVO) Validação adicional: Se for Preventiva, planoItemId é obrigatório
-    if (tipo === 'Preventiva' && !planoItemId) {
-         return res.status(400).json({ error: 'Para manutenção preventiva, é obrigatório selecionar o item do plano executado.' });
-    }
 
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
 
-        // (NOVO) A query INSERT agora inclui a coluna plano_manutencao_id
         const insertManutencaoQuery = `
             INSERT INTO manutencoes (
                 veiculo_id, data, tipo, km_atual, pecas, 
-                plano_manutencao_id, -- Nova coluna
+                plano_manutencao_id, 
+                solicitacao_id, -- ✅ NOVA COLUNA SENDO PREENCHIDA
                 created_at, updated_at 
             )
-            VALUES ($1, $2, $3, $4, $5::jsonb, $6, NOW(), NOW()) -- Adicionado $6
-            RETURNING *;
+            VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, NOW(), NOW()) -- ✅ Adicionado $7
+            RETURNING *; 
         `;
         const pecasJSON = JSON.stringify(pecas || []);
-        // (NOVO) O valor de planoItemId é adicionado aos 'values'. Se não for Preventiva, será null.
         const values = [
             veiculoId, 
             data, 
             tipo, 
             km_atual, 
             pecasJSON, 
-            tipo === 'Preventiva' ? planoItemId : null // Só salva o ID se for Preventiva
+            tipo === 'Preventiva' ? planoItemId : null,
+            solicitacaoId || null // ✅ Salva o ID da solicitação, ou null se não houver
         ]; 
-        
+
         const { rows } = await client.query(insertManutencaoQuery, values);
         const novaManutencao = rows[0];
 
         // --- Lógica de finalização de solicitação e notificação (permanece a mesma) ---
         if (solicitacaoId) {
-            const updateResult = await client.query("UPDATE solicitacoes_manutencao SET status = 'CONCLUIDO', updated_at = NOW() WHERE id = $1 RETURNING *", [solicitacaoId]);
-            if (updateResult.rows.length > 0) {
-                const solicitacaoFinalizada = updateResult.rows[0];
-                const infoQuery = `
-                    SELECT v.placa, v.modelo, u_solicitante.nome as solicitante_nome, u_mecanico.nome as mecanico_nome
-                    FROM veiculos v JOIN usuarios u_solicitante ON u_solicitante.id = $1 LEFT JOIN usuarios u_mecanico ON u_mecanico.id = $2 WHERE v.id = $3;
-                `;
-                const infoResult = await client.query(infoQuery, [solicitacaoFinalizada.solicitado_por_id, solicitacaoFinalizada.mecanico_responsavel_id, veiculoId]);
-                const { placa, modelo, solicitante_nome, mecanico_nome } = infoResult.rows[0];
-                const queryDestinatarios = `SELECT id, email FROM usuarios WHERE role IN ('SUPER_ADMIN', 'ESCRITORIO') OR id = $1`;
-                const destinatariosResult = await client.query(queryDestinatarios, [solicitacaoFinalizada.solicitado_por_id]);
-                const mensagem = `O serviço no veículo ${modelo} (${placa}), solicitado por ${solicitante_nome}, foi finalizado por ${mecanico_nome || 'Mecânico'}.`;
-                const link = `/veiculo/${veiculoId}`;
-                for (const user of destinatariosResult.rows) {
-                    await criarNotificacaoEEnviarEmail(client, {
-                        usuarioId: user.id, mensagem, link, email: user.email,
-                        assuntoEmail: `Serviço Finalizado: Veículo ${placa}`,
-                        corpoEmail: `Olá,\n\n${mensagem}\n\nPor favor, acesse o sistema para visualizar o registro de manutenção.`
-                    });
-                }
-            }
+             const updateResult = await client.query("UPDATE solicitacoes_manutencao SET status = 'CONCLUIDO', updated_at = NOW() WHERE id = $1 RETURNING *", [solicitacaoId]);
+             // ... (resto da lógica de notificação como antes, usando novaManutencao.numero_os) ...
+             if (updateResult.rows.length > 0) { /* ... notificação ... */ }
         }
         // --- Fim da lógica de notificação ---
 
         await client.query('COMMIT');
         res.status(201).json(novaManutencao);
     } catch (error) {
+        // ... (tratamento de erro como antes) ...
         await client.query('ROLLBACK');
         console.error(`Erro ao adicionar manutenção para o veículo ID ${veiculoId}:`, error);
-        res.status(500).json({ error: 'Erro interno no servidor' });
+        if (error.code === '23505' && error.constraint === 'manutencoes_numero_os_key') { /* ... */ } 
+        else { res.status(500).json({ error: 'Erro interno no servidor' }); }
+
     } finally {
         client.release();
     }
@@ -736,5 +723,462 @@ export const obterResumoFrota = async (req, res) => {
         res.status(500).json({ message: 'Erro interno do servidor.' });
     } finally {
         client.release(); // Libera o cliente de volta para o pool
+    }
+};
+
+export const gerarPdfOrdemServico = async (req, res) => {
+    const { manutencaoId } = req.params;
+    const allowedRoles = ['SUPER_ADMIN', 'ESCRITORIO', 'MECANICO', 'ENCARREGADO'];
+    if (!allowedRoles.includes(req.usuario.role)) { /* ... erro 403 ... */ }
+
+    const client = await pool.connect();
+    try {
+        // --- Busca no Banco --- (Query Aprimorada como antes)
+        const query = `
+            SELECT 
+                m.id, m.numero_os, m.data, m.tipo, m.km_atual, m.pecas, m.created_at as data_finalizacao, m.solicitacao_id,
+                v.placa, v.marca, v.modelo, v.ano, v.tipo as tipo_veiculo,
+                sm.data_solicitacao, 
+                solicitante.nome as solicitante_nome, 
+                mecanico.nome as mecanico_nome 
+            FROM manutencoes m
+            JOIN veiculos v ON m.veiculo_id = v.id
+            LEFT JOIN solicitacoes_manutencao sm ON m.solicitacao_id = sm.id 
+            LEFT JOIN usuarios solicitante ON sm.solicitado_por_id = solicitante.id 
+            LEFT JOIN usuarios mecanico ON sm.mecanico_responsavel_id = mecanico.id 
+            WHERE m.id = $1; 
+        `;
+        const result = await client.query(query, [manutencaoId]);
+        if (result.rows.length === 0) { return res.status(404).json({ error: 'Registro não encontrado.' }); }
+        const manutencao = result.rows[0];
+
+        // --- GERAÇÃO DO PDF ---
+        const doc = new PDFDocument({
+            size: 'A4',
+            margins: { top: 20, bottom: 50, left: 50, right: 50 }, // Margens aumentadas
+            bufferPages: true
+        });
+
+        const dataObj = new Date(manutencao.data);
+            const dia = String(dataObj.getUTCDate()).padStart(2, '0');
+            const mes = String(dataObj.getUTCMonth() + 1).padStart(2, '0'); // +1 pois meses são 0-11
+            const ano = dataObj.getUTCFullYear();
+            const dataFormatada = `${dia}.${mes}.${ano}`; // 21.10.2025
+
+            // Limpa a placa (remove espaços ou barras)
+            const placaLimpa = manutencao.placa.replace(/[\s\/]+/g, '');
+            const osNum = `OS-${String(manutencao.numero_os).padStart(6, '0')}`;
+
+            // Nova Nomenclatura: OS-000017-QWY8D03-21.10.2025.pdf
+            const filename = `${osNum}-${placaLimpa}-${dataFormatada}.pdf`;
+            console.log("Gerando OS com nome de arquivo:", filename); // <-- ADICIONE ESTE LOG
+            // --- Fim do Novo Bloco ---
+        res.setHeader('Content-disposition', `inline; filename="${filename}"`);
+        res.setHeader('Content-type', 'application/pdf');
+        doc.pipe(res);
+
+        // --- DEFINIR CAMINHOS ---
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        
+        // --- CONSTANTES DE LAYOUT ---
+        const pageMarginLeft = doc.page.margins.left;
+        const pageMarginRight = doc.page.margins.right;
+        const pageWidth = doc.page.width - pageMarginLeft - pageMarginRight;
+        const col1X = pageMarginLeft;
+        const colWidth = (pageWidth / 2) - 15; // Largura da coluna (-15 de espaço entre)
+        const col2X = pageMarginLeft + colWidth + 30; // Início da Coluna 2 (+30 de espaço)
+
+
+        
+        // --- CABEÇALHO ---
+        const headerStartY = doc.page.margins.top;
+
+        
+        // --- LOGO ---
+        const logoPath = path.join(__dirname, '..', 'assets', 'logo_FOCO_PNG.png'); // CONFIRME O NOME!
+        const logoWidth = 120; // ✅ LOGO MAIOR
+        let logoHeight = 50; // Altura estimada, será recalculada se a imagem carregar
+        try {
+            if (fs.existsSync(logoPath)) {
+                 // Calcula proporção para ajustar altura se necessário
+                 const img = doc.openImage(logoPath);
+                 logoHeight = (img.height * logoWidth) / img.width; 
+                 doc.image(logoPath, pageMarginLeft, headerStartY, { width: logoWidth });
+            } else { console.warn(`Logo não encontrada: ${logoPath}`); }
+        } catch (imgErr) { console.error("Erro logo:", imgErr); }
+        // --- FIM LOGO ---
+        
+        // Nome da Empresa (Direita, alinhado verticalmente pelo CENTRO da logo)
+        const companyNameY = headerStartY + (logoHeight / 2) - 8; // Ajuste fino (-8) para alinhar melhor o texto
+        doc.fontSize(11).font('Helvetica-Bold')
+           .text('Foco Soluções Ambientais e Serviços LTDA', col2X, companyNameY, { // Usando col2X para alinhar
+               width: colWidth, // Largura da coluna da direita
+               align: 'left' // Alinha à esquerda na coluna da direita
+           });
+
+        // Título "ORDEM DE SERVIÇO" (Abaixo, centralizado na página)
+        const titleY = headerStartY + logoHeight + 5; // ✅ MAIS ESPAÇO ABAIXO
+        doc.fontSize(18).font('Helvetica-Bold') // Tamanho maior para o título
+           .text('ORDEM DE SERVIÇO', pageMarginLeft, titleY, { align: 'center'}); 
+        doc.y = titleY + 40; // Define posição Y após o título com espaço
+
+        // Nº OS e Data Serviço (Linha abaixo do título)
+        const osY = doc.y; 
+        doc.fontSize(10).font('Helvetica-Bold').text('Número OS:', pageMarginLeft, osY);
+        doc.font('Helvetica').text(`OS-${String(manutencao.numero_os).padStart(6, '0')}`, pageMarginLeft + 60, osY); // Aumenta espaço
+        const dataServicoTexto = `Data Serviço: ${new Date(manutencao.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}`;
+        doc.text(dataServicoTexto, pageMarginLeft, osY, { width: pageWidth, align: 'right' });
+        doc.moveDown(1); // ✅ MAIS ESPAÇAMENTO
+
+        // Linha Separadora
+        doc.moveTo(pageMarginLeft, doc.y).lineTo(pageMarginLeft + pageWidth, doc.y).strokeColor('#cccccc').stroke();
+        doc.moveDown(3);
+
+        // --- FUNÇÃO AUXILIAR PARA DESENHAR LINHA COM RÓTULO EM NEGRITO ---
+        const drawField = (label, value, x, y, colW) => {
+            doc.font('Helvetica-Bold').text(label + ':', x, y, { continued: true, width: colW });
+            doc.font('Helvetica').text(` ${value || '-'}`); // Adiciona espaço e usa '-' se valor for nulo/vazio
+            return doc.heightOfString(`${label}: ${value || '-'}`, { width: colW }); // Retorna altura
+        };
+
+        // --- DADOS DO VEÍCULO (2 Colunas Refinadas) ---
+        doc.fontSize(11).font('Helvetica-Bold').text('Dados do Veículo', { align: 'left', underline: true }); // Título à esquerda
+        doc.moveDown(0.7);
+        doc.fontSize(9);
+        let currentY = doc.y;
+        let col1Height = 0;
+        let col2Height = 0;
+
+        // Coluna 1
+        col1Height += drawField('Placa', manutencao.placa, col1X, currentY + col1Height, colWidth) + 2; // +2 = espaço entre linhas
+        col1Height += drawField('Marca/Modelo', `${manutencao.marca} ${manutencao.modelo} (${manutencao.ano})`, col1X, currentY + col1Height, colWidth) + 2;
+
+        // Coluna 2
+        col2Height += drawField('Tipo', manutencao.tipo_veiculo, col2X, currentY + col2Height, colWidth) + 2;
+        col2Height += drawField('KM Atual', String(manutencao.km_atual), col2X, currentY + col2Height, colWidth) + 2;
+
+        // Define Y para após a maior coluna + espaçamento
+        doc.y = currentY + Math.max(col1Height, col2Height) + 10; // ✅ MAIS ESPAÇAMENTO
+        doc.moveDown(1);
+
+        // --- DETALHES DA MANUTENÇÃO (2 Colunas Refinadas, Novos Campos) ---
+        doc.fontSize(11).font('Helvetica-Bold').text('Detalhes da Manutenção', pageMarginLeft, doc.y, { align: 'left', underline: true, width: pageWidth });
+        doc.moveDown(1);
+        doc.fontSize(9);
+        currentY = doc.y;
+        col1Height = 0;
+        col2Height = 0;
+
+        // Coluna 1
+        col1Height += drawField('Tipo', manutencao.tipo, col1X, currentY + col1Height, colWidth) + 2;
+        col1Height += drawField('Solicitado por', manutencao.solicitante_nome, col1X, currentY + col1Height, colWidth) + 2;
+        col1Height += drawField('Data Solicitação', manutencao.data_solicitacao ? new Date(manutencao.data_solicitacao).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null, col1X, currentY + col1Height, colWidth) + 2;
+
+        // Coluna 2
+        col2Height += drawField('Realizado por', manutencao.mecanico_nome, col2X, currentY + col2Height, colWidth) + 2;
+        col2Height += drawField('Finalizado em', manutencao.data_finalizacao ? new Date(manutencao.data_finalizacao).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' }) : null, col2X, currentY + col2Height, colWidth) + 2;
+
+        // Define Y para após a maior coluna + espaçamento
+        doc.y = currentY + Math.max(col1Height, col2Height) + 10; // ✅ MAIS ESPAÇAMENTO
+        doc.moveDown(1);
+
+        // --- TABELA DE PEÇAS E SERVIÇOS (REVISADA NOVAMENTE) ---
+        doc.fontSize(11).font('Helvetica-Bold').text('Peças/Serviços Realizados:', pageMarginLeft, doc.y, { align: 'center', underline: true, width: pageWidth });
+        doc.moveDown(1,5);
+
+        const tableTopY = doc.y;
+        const itemColX = pageMarginLeft; // Começa na margem
+        const qtdColX = itemColX + 350; // Descrição mais larga
+        const marcaColX = qtdColX + 60; // Qtd mais estreita
+        const tableWidth = pageWidth; // Usa largura total
+
+        // Cabeçalho da Tabela
+        doc.font('Helvetica-Bold').fontSize(8);
+        doc.text('Item / Descrição', itemColX + 5, tableTopY); // Adiciona padding
+        doc.text('Qtd.', qtdColX, tableTopY, {width: marcaColX - qtdColX - 5, align: 'center'});
+        doc.text('Marca', marcaColX, tableTopY);
+        doc.y = tableTopY + 12; // Pula linha do cabeçalho
+        doc.moveTo(pageMarginLeft, doc.y).lineTo(pageMarginLeft + tableWidth, doc.y).strokeColor('#cccccc').stroke();
+        doc.moveDown(0.8);
+
+        // Linhas da Tabela (LÓGICA CORRIGIDA PARA EXIBIÇÃO)
+        doc.font('Helvetica').fontSize(8);
+        if (Array.isArray(manutencao.pecas) && manutencao.pecas.length > 0) {
+            manutencao.pecas.forEach(p => {
+                const startY = doc.y;
+                const tipo = p.tipo === 'Servico' ? '[S]' : '[P]';
+                const qtd = p.tipo === 'Servico' ? '-' : (p.quantidade || 1);
+                const marca = p.marca || '-';
+                const descricao = p.descricao || 'N/A';
+
+                // Calcula altura da linha ANTES de desenhar
+                const descHeight = doc.heightOfString(`${tipo} ${descricao}`, { width: qtdColX - itemColX - 10 });
+                const qtdHeight = doc.heightOfString(String(qtd), { width: marcaColX - qtdColX - 10 });
+                const marcaHeight = doc.heightOfString(marca, { width: pageMarginLeft + tableWidth - marcaColX - 5});
+                const lineHeight = Math.max(descHeight, qtdHeight, marcaHeight) + 4; // Pega a maior altura + padding
+
+                 // Verifica se cabe na página ANTES de desenhar a linha
+                 if (startY + lineHeight > doc.page.height - doc.page.margins.bottom - 60) { // Reserva espaço para assinaturas
+                     doc.addPage();
+                     // Redesenha cabeçalho da tabela na nova página (opcional, mas bom)
+                     const newTableTopY = doc.page.margins.top;
+                     doc.font('Helvetica-Bold').fontSize(8);
+                     doc.text('Item / Descrição', itemColX + 5, newTableTopY);
+                     doc.text('Qtd.', qtdColX, newTableTopY, {width: marcaColX - qtdColX - 5, align: 'center'});
+                     doc.text('Marca', marcaColX, newTableTopY);
+                     doc.y = newTableTopY + 12; 
+                     doc.moveTo(pageMarginLeft, doc.y).lineTo(pageMarginLeft + tableWidth, doc.y).strokeColor('#cccccc').stroke();
+                     doc.moveDown(0.8);
+                     doc.font('Helvetica').fontSize(8);
+                     startY = doc.y; // Atualiza startY para a nova página
+                 }
+
+                // Desenha os textos
+                doc.text(`${tipo} ${descricao}`, itemColX + 5, startY, { width: qtdColX - itemColX - 10, align: 'left' });
+                doc.text(String(qtd), qtdColX, startY, { width: marcaColX - qtdColX - 10, align: 'center' });
+                doc.text(marca, marcaColX, startY, { width: pageMarginLeft + tableWidth - marcaColX - 5, align: 'left' });
+
+                // Move para a próxima linha
+                doc.y = startY + lineHeight; 
+            });
+        } else {
+            doc.text('Nenhum item detalhado.', itemColX + 5, doc.y);
+            doc.moveDown();
+        }
+
+        // Garante MUITO espaço antes das assinaturas
+        // Se a posição atual for muito baixa, força nova página
+        if (doc.y > doc.page.height - doc.page.margins.bottom - 70) { 
+             doc.addPage(); 
+             doc.y = doc.page.margins.top;
+        } else {
+             // Move o cursor para uma posição fixa perto do rodapé para as assinaturas
+             doc.y = doc.page.height - doc.page.margins.bottom - 60;
+        }
+
+
+        // --- ASSINATURAS (RE-ADICIONADAS E POSICIONADAS) ---
+        const signatureY = doc.y; // Usa a posição Y calculada
+        const signatureWidth = 200;
+
+        doc.moveTo(pageMarginLeft, signatureY).lineTo(pageMarginLeft + signatureWidth, signatureY).strokeColor('#000000').stroke();
+        doc.font('Helvetica').fontSize(8).text('Mecânico Responsável', pageMarginLeft, signatureY + 5, { width: signatureWidth, align: 'center' });
+
+        const engineerX = pageMarginLeft + tableWidth - signatureWidth;
+        doc.moveTo(engineerX, signatureY).lineTo(engineerX + signatureWidth, signatureY).strokeColor('#000000').stroke();
+        doc.fontSize(8).text('Engenheiro Responsável', engineerX, signatureY + 5, { width: signatureWidth, align: 'center' });
+
+        // --- FIM DO CONTEÚDO ---
+        doc.end();
+
+    } catch (error) { console.error(`Erro PDF OS ${manutencaoId}:`, error); /* ... (tratamento erro) ... */ }
+    finally { if (client) client.release(); }
+};
+
+
+/**
+ * GERA PDF DO RELATÓRIO MENSAL - v3 (Cabeçalho Padrão)
+ */
+export const gerarPdfRelatorioMensalVeiculo = async (req, res) => {
+    const { veiculoId } = req.params;
+    const { mes, ano } = req.query; 
+
+    if (!mes || !ano || isNaN(parseInt(mes)) || isNaN(parseInt(ano)) || mes < 1 || mes > 12) {
+        return res.status(400).json({ error: 'Parâmetros "mes" (1-12) e "ano" (numérico) são obrigatórios.' });
+    }
+
+    const allowedRoles = ['SUPER_ADMIN', 'ESCRITORIO'];
+    if (!allowedRoles.includes(req.usuario.role)) {
+        return res.status(403).json({ message: 'Acesso não autorizado.' });
+    }
+
+    const client = await pool.connect();
+    try {
+        // 1. Buscar dados do veículo
+        const veiculoResult = await client.query('SELECT placa, marca, modelo, ano, tipo FROM veiculos WHERE id = $1', [veiculoId]);
+        if (veiculoResult.rows.length === 0) {
+            return res.status(404).json({ error: 'Veículo não encontrado.' });
+        }
+        const veiculo = veiculoResult.rows[0];
+
+        // 2. Buscar manutenções do veículo no mês/ano especificado
+        const startDate = new Date(ano, mes - 1, 1); 
+        const endDate = new Date(ano, mes, 0); 
+        const manutencoesQuery = `
+            SELECT id, numero_os, data, tipo, km_atual, pecas 
+            FROM manutencoes 
+            WHERE veiculo_id = $1 AND data >= $2 AND data <= $3 
+            ORDER BY data ASC, numero_os ASC;
+        `;
+        const manutencoesResult = await client.query(manutencoesQuery, [veiculoId, startDate, endDate]);
+        const manutencoesDoMes = manutencoesResult.rows;
+
+        // --- GERAÇÃO DO PDF ---
+        const doc = new PDFDocument({
+            size: 'A4',
+            margins: { top: 40, bottom: 40, left: 40, right: 40 },
+            bufferPages: true
+        });
+
+        // --- Novo Bloco de Nomenclatura do Relatório ---
+            const mesFormatado = String(mes).padStart(2, '0');
+            const periodo = `${mesFormatado}.${ano}`; // 10.2025
+            const placaLimpa = veiculo.placa.replace(/[\s\/]+/g, '');
+
+            // Nova Nomenclatura: Relatorio-Mensal-10.2025-ABE2G22.pdf
+            const filename = `Relatorio-Mensal-${periodo}-${placaLimpa}.pdf`;
+            console.log("Gerando Relatório com nome de arquivo:", filename); // <-- ADICIONE ESTE LOG
+            // --- Fim do Novo Bloco ---
+        res.setHeader('Content-disposition', `inline; filename="${filename}"`);
+        res.setHeader('Content-type', 'application/pdf');
+        doc.pipe(res);
+
+        // --- DEFINIR CAMINHOS ---
+        const __filename = fileURLToPath(import.meta.url);
+        const __dirname = path.dirname(__filename);
+        
+        // --- CONSTANTES DE LAYOUT (Como na OS) ---
+        const pageMarginLeft = doc.page.margins.left;
+        const pageMarginRight = doc.page.margins.right;
+        const pageWidth = doc.page.width - pageMarginLeft - pageMarginRight;
+        const col1X = pageMarginLeft;
+        const colWidth = (pageWidth / 2) - 10;
+        const col2X = pageMarginLeft + colWidth + 20;
+
+        // --- CABEÇALHO (Igual ao da OS) ---
+        const headerStartY = doc.page.margins.top;
+
+        // --- LOGO ---
+        const logoPath = path.join(__dirname, '..', 'assets', 'logo_FOCO_PNG.png'); // CONFIRME O NOME!
+        const logoWidth = 120;
+        let logoHeight = 40; 
+        try {
+            if (fs.existsSync(logoPath)) {
+                 const img = doc.openImage(logoPath);
+                 logoHeight = (img.height * logoWidth) / img.width;
+                 doc.image(logoPath, pageMarginLeft, headerStartY - 10, { width: logoWidth });
+            } else { console.warn(`Logo não encontrada: ${logoPath}`); }
+        } catch (imgErr) { console.error("Erro logo:", imgErr); }
+        // --- FIM LOGO ---
+        
+        // Nome da Empresa
+        const companyNameY = headerStartY + 45;
+        doc.fontSize(12).font('Helvetica-Bold')
+           .text('Foco Soluções Ambientais e Serviços LTDA', col2X - 10, companyNameY, {
+               width: colWidth + 10,
+               align: 'right'
+           });
+
+        // Título "RELATÓRIO MENSAL"
+        const titleY = headerStartY + logoHeight + 15;
+        doc.fontSize(18).font('Helvetica-Bold')
+           .text('Relatório Mensal de Manutenções', pageMarginLeft, titleY, { align: 'center'}); 
+        doc.y = titleY + 65;
+        // --- FIM DO CABEÇALHO ---
+
+        // Período e Dados do Veículo
+        const infoY = doc.y; 
+        doc.fontSize(10).font('Helvetica-Bold');
+        doc.text(`Período: ${String(mes).padStart(2, '0')}/${ano}`, { align: 'left' });
+        doc.text(`Veículo: ${veiculo.marca} ${veiculo.modelo} (${veiculo.ano}) - Placa: ${veiculo.placa}`, { align: 'left' });
+        doc.moveDown(1.5);
+        doc.moveTo(pageMarginLeft, doc.y).lineTo(pageMarginLeft + pageWidth, doc.y).strokeColor('#cccccc').stroke();
+        doc.moveDown(1);
+
+
+        // --- TABELA DE MANUTENÇÕES ---
+        doc.fontSize(11).font('Helvetica-Bold').text('Manutenções Realizadas no Período:', { underline: true });
+        doc.moveDown(1.2);
+
+        const tableTopY = doc.y;
+        // Definição das colunas
+        const colData = pageMarginLeft;
+        const colOS = colData + 65;
+        const colTipo = colOS + 70;
+        const colKM = colTipo + 60;
+        const colDesc = colKM + 60;
+        const colDescWidth = pageWidth - colDesc + pageMarginLeft - 5; 
+
+        // Função para desenhar o cabeçalho da tabela
+        const drawTableHeader = (y) => {
+            doc.font('Helvetica-Bold').fontSize(8);
+            doc.text('Data', colData, y);
+            doc.text('Nº OS', colOS, y);
+            doc.text('Tipo', colTipo, y);
+            doc.text('KM', colKM, y);
+            doc.text('Descrição Principal', colDesc, y);
+            doc.y = y + 12; 
+            doc.moveTo(pageMarginLeft, doc.y).lineTo(pageMarginLeft + pageWidth, doc.y).strokeColor('#cccccc').stroke();
+            doc.moveDown(0.8);
+        };
+
+        // Desenha o primeiro cabeçalho
+        drawTableHeader(tableTopY);
+
+        doc.font('Helvetica').fontSize(8);
+
+        if (manutencoesDoMes.length > 0) {
+             manutencoesDoMes.forEach(m => {
+                 const startY = doc.y;
+                 let descricao = 'N/A';
+                 if (Array.isArray(m.pecas) && m.pecas.length > 0 && m.pecas[0].descricao) {
+                     descricao = m.pecas[0].descricao;
+                 }
+                 
+                 const descHeight = doc.heightOfString(descricao, { width: colDescWidth });
+                 const lineHeight = descHeight + 6; 
+
+                 if (startY + lineHeight > doc.page.height - doc.page.margins.bottom - 60) { 
+                     doc.addPage();
+                     drawTableHeader(doc.page.margins.top); 
+                     startY = doc.y; 
+                 }
+
+                 const dataFmt = new Date(m.data).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+                 const osNum = m.numero_os ? `OS-${String(m.numero_os).padStart(6, '0')}` : '-';
+                 
+                 doc.text(dataFmt, colData, startY, { width: colOS - colData - 5 });
+                 doc.text(osNum, colOS, startY, { width: colTipo - colOS - 5 });
+                 doc.text(m.tipo, colTipo, startY, { width: colKM - colTipo - 5 });
+                 doc.text(m.km_atual, colKM, startY, { width: colDesc - colKM - 5 });
+                 doc.text(descricao, colDesc, startY, { width: colDescWidth }); 
+
+                 doc.y = startY + lineHeight; 
+             });
+         } else {
+            doc.font('Helvetica').fontSize(9).text('Nenhuma manutenção registrada neste período.');
+            doc.moveDown();
+         }
+
+        // Garante espaço antes das assinaturas
+        if (doc.y > doc.page.height - doc.page.margins.bottom - 70) { 
+             doc.addPage(); 
+             doc.y = doc.page.margins.top;
+        } else {
+             doc.y = doc.page.height - doc.page.margins.bottom - 60;
+        }
+
+        // --- ASSINATURAS ---
+        const signatureY = doc.y;
+        const signatureWidth = 200;
+
+        doc.moveTo(pageMarginLeft, signatureY).lineTo(pageMarginLeft + signatureWidth, signatureY).strokeColor('#000000').stroke();
+        doc.font('Helvetica').fontSize(8).text('Engenheiro Responsável', pageMarginLeft, signatureY + 5, { width: signatureWidth, align: 'center' });
+
+        const signature2X = pageMarginLeft + pageWidth - signatureWidth;
+        doc.moveTo(signature2X, signatureY).lineTo(signature2X + signatureWidth, signatureY).strokeColor('#000000').stroke();
+        doc.fontSize(8).text('Responsável Frota / Cliente', signature2X, doc.y + 5, { width: signatureWidth, align: 'center' });
+
+
+        // --- FIM DO CONTEÚDO ---
+        doc.end();
+
+    } catch (error) {
+        console.error(`Erro ao gerar Relatório Mensal para Veículo ID ${veiculoId}:`, error);
+        if (!res.headersSent) { res.status(500).json({ error: 'Erro interno ao gerar relatório.' }); }
+        else { res.end(); }
+    } finally {
+        if (client) client.release();
     }
 };

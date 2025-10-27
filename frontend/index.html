@@ -277,7 +277,7 @@
                                             <th>Tipo</th>
                                             <th>KM Atual</th>
                                             <th>Peças / Descrição</th>
-                                            <th>Ações</th>
+                                            <th>Nº OS</th> <th>Ações</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tbody-manutencoes"></tbody>
@@ -362,8 +362,41 @@
                                 </table>
                             </div>
                         </div>
+                        <div id="secao-relatorio-mensal" class="lista-container hidden" style="margin-top: 30px;">
+        <div class="lista-header">
+            <h2>Relatórios Gerenciais</h2>
+        </div>
+        <form id="form-relatorio-mensal" class="form-inline" style="padding: 20px;">
+            <div class="form-group">
+                <label for="relatorio-mes">Mês</label>
+                <div class="select-wrapper">
+                    <select id="relatorio-mes">
+                        <option value="1">Janeiro</option>
+                        <option value="2">Fevereiro</option>
+                        <option value="3">Março</option>
+                        <option value="4">Abril</option>
+                        <option value="5">Maio</option>
+                        <option value="6">Junho</option>
+                        <option value="7">Julho</option>
+                        <option value="8">Agosto</option>
+                        <option value="9">Setembro</option>
+                        <option value="10">Outubro</option>
+                        <option value="11">Novembro</option>
+                        <option value="12">Dezembro</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="relatorio-ano">Ano</label>
+                <input type="number" id="relatorio-ano" placeholder="AAAA" min="2020" max="2100">
+            </div>
+            <button type="submit" id="btn-gerar-relatorio-mensal" class="btn-principal">Gerar Relatório de Manutenções</button>
+        </form>
+    </div>
+    </div> </div> 
                     </div>
                 </div>
+                
             </div>
 
             <div id="content-colaboradores" class="content-module hidden">
