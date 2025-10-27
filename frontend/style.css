@@ -1056,3 +1056,273 @@ textarea {
 .clickable-list .list-status.manutenção-vencida { color: #dc3545; font-weight: 500;}
 .clickable-list .list-status.manutenção-em-alerta { color: #ffc107; font-weight: 500;}
 .clickable-list .list-status.solicitação-aberta { color: #17a2b8; font-weight: 500;}
+
+/* Estilo básico para o botão PDF nas tabelas */
+.btn-pdf {
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    color: #6c757d; /* Cinza */
+    transition: color 0.2s ease;
+}
+
+.btn-pdf:hover {
+    color: #007bff; /* Azul no hover */
+}
+
+/* =================================================================== */
+/* --- MELHORIA: QUEBRA DE LINHA TABELA (v5 - Correção Suave) --- */
+/* =================================================================== */
+
+/* 1. Define o layout fixo e a largura total (como na v4) */
+#content-veiculo-detalhes .table-wrapper table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* 2. Estilos gerais da célula (como na v4) */
+#content-veiculo-detalhes .table-wrapper th,
+#content-veiculo-detalhes .table-wrapper td {
+    padding: 12px 8px;
+    vertical-align: top;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+/* 3. Larguras fixas para colunas estreitas (como na v4) */
+/* Coluna 1: Data */
+#content-veiculo-detalhes th:nth-child(1),
+#content-veiculo-detalhes td:nth-child(1) { width: 13%; }
+/* Coluna 2: Tipo */
+#content-veiculo-detalhes th:nth-child(2),
+#content-veiculo-detalhes td:nth-child(2) { width: 10%; }
+/* Coluna 3: KM Atual */
+#content-veiculo-detalhes th:nth-child(3),
+#content-veiculo-detalhes td:nth-child(3) { width: 12%; }
+/* Coluna 5: Nº OS */
+#content-veiculo-detalhes th:nth-child(5),
+#content-veiculo-detalhes td:nth-child(5) { width: 13%; }
+/* Coluna 6: Ações */
+#content-veiculo-detalhes th:nth-child(6),
+#content-veiculo-detalhes td:nth-child(6) { width: 10%; text-align: center; }
+
+/* 4. Regra ATUALIZADA para a coluna de descrição (a 4ª) */
+#content-veiculo-detalhes th:nth-child(4),
+#content-veiculo-detalhes td:nth-child(4) {
+    /* Define a largura restante (total = 100 - 13 - 10 - 12 - 13 - 10 = 42%) */
+    width: 42%; 
+    
+    /* --- MUDANÇA PRINCIPAL --- */
+    /* Remove a regra agressiva 'word-break: break-all' */
+    /* Adiciona a regra 'overflow-wrap: break-word', que quebra 
+       preferencialmente entre palavras. */
+    white-space: normal;
+    word-wrap: break-word;     /* Fallback */
+    overflow-wrap: break-word; /* Padrão moderno */
+}
+
+/* ======================================================== */
+/* --- MELHORIA: QUEBRA DE LINHA TABELA SOLICITAÇÕES --- */
+/* ======================================================== */
+
+/* 1. Define o layout fixo e a largura total */
+/* Usamos um seletor que identifica a tabela pelo seu tbody ID */
+#tbody-solicitacoes-container .table-wrapper table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* Precisamos adicionar um ID ao <div> pai da tabela de solicitações no HTML */
+/* Se não for possível, usaremos um seletor mais genérico */
+
+/* Abordagem Genérica (tentativa 1) - Pode afetar outras tabelas se não formos cuidadosos.
+   Vamos tentar uma abordagem mais segura primeiro, assumindo a estrutura do HTML
+*/
+#content-veiculo-detalhes .lista-container:nth-of-type(2) .table-wrapper table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+
+/* 2. Define larguras fixas para as colunas da tabela de solicitações */
+/* Coluna 1: Data */
+#content-veiculo-detalhes .lista-container:nth-of-type(2) th:nth-child(1),
+#content-veiculo-detalhes .lista-container:nth-of-type(2) td:nth-child(1) {
+    width: 18%; 
+}
+/* Coluna 2: Status */
+#content-veiculo-detalhes .lista-container:nth-of-type(2) th:nth-child(2),
+#content-veiculo-detalhes .lista-container:nth-of-type(2) td:nth-child(2) {
+    width: 13%;
+}
+/* Coluna 3: Solicitado Por */
+#content-veiculo-detalhes .lista-container:nth-of-type(2) th:nth-child(3),
+#content-veiculo-detalhes .lista-container:nth-of-type(2) td:nth-child(3) {
+    width: 15%;
+}
+/* Coluna 4: Descrição (flexível) - Não definimos largura */
+
+/* Coluna 5: Mecânico Responsável */
+#content-veiculo-detalhes .lista-container:nth-of-type(2) th:nth-child(5),
+#content-veiculo-detalhes .lista-container:nth-of-type(2) td:nth-child(5) {
+    width: 15%;
+}
+/* Coluna 6: Ações */
+#content-veiculo-detalhes .lista-container:nth-of-type(2) th:nth-child(6),
+#content-veiculo-detalhes .lista-container:nth-of-type(2) td:nth-child(6) {
+    width: 15%;
+    text-align: center;
+}
+
+/* 3. Regra CRUCIAL para a coluna de descrição (a 4ª) */
+#content-veiculo-detalhes .lista-container:nth-of-type(2) th:nth-child(4),
+#content-veiculo-detalhes .lista-container:nth-of-type(2) td:nth-child(4) {
+    /* Largura restante (100 - 18 - 13 - 15 - 15 - 15 = 24%) */
+    width: 24%; 
+    
+    /* Quebra de linha suave */
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 4. Regra geral para células (padding, alinhamento) */
+#content-veiculo-detalhes .lista-container:nth-of-type(2) .table-wrapper td {
+    vertical-align: top;
+    padding: 12px 8px;
+    border-bottom: 1px solid #eee;
+}
+
+/* ======================================================== */
+/* --- MELHORIA: QUEBRA DE LINHA TABELA PLANO MANUTENÇÃO --- */
+/* ======================================================== */
+
+/* 1. Define o layout fixo e a largura total */
+/* Este seletor mira no 4º .lista-container dentro da página de detalhes,
+      que é o container do "Plano de Manutenção Preventiva" */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) .table-wrapper table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* 2. Define larguras fixas para as colunas "estreitas" */
+/* Coluna 2: Intervalo KM */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) th:nth-child(2),
+#content-veiculo-detalhes .lista-container:nth-of-type(4) td:nth-child(2) {
+    width: 15%;
+    text-align: center;
+}
+/* Coluna 3: Intervalo Dias */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) th:nth-child(3),
+#content-veiculo-detalhes .lista-container:nth-of-type(4) td:nth-child(3) {
+    width: 15%;
+    text-align: center;
+}
+/* Coluna 4: Status */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) th:nth-child(4),
+#content-veiculo-detalhes .lista-container:nth-of-type(4) td:nth-child(4) {
+    width: 15%;
+    text-align: center;
+}
+/* Coluna 5: Ações */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) th:nth-child(5),
+#content-veiculo-detalhes .lista-container:nth-of-type(4) td:nth-child(5) {
+    width: 10%;
+    text-align: center;
+}
+
+/* 3. Regra CRUCIAL para a coluna de descrição (a 1ª) */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) th:nth-child(1),
+#content-veiculo-detalhes .lista-container:nth-of-type(4) td:nth-child(1) {
+    /* Largura restante (100 - 15 - 15 - 15 - 10 = 45%) */
+    width: 45%; 
+    
+    /* Quebra de linha suave */
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 4. Regra geral para células (padding, alinhamento) */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) .table-wrapper td {
+    vertical-align: top;
+    padding: 12px 8px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Alinha o texto das colunas 2 e 3 (números) à direita */
+#content-veiculo-detalhes .lista-container:nth-of-type(4) td:nth-child(2),
+#content-veiculo-detalhes .lista-container:nth-of-type(4) td:nth-child(3) {
+     text-align: right;
+     padding-right: 15px;
+}
+
+/* ======================================================== */
+/* --- MELHORIA: QUEBRA DE LINHA TABELA DOCUMENTOS --- */
+/* ======================================================== */
+
+/* 1. Define o layout fixo e a largura total */
+#content-documentos .table-wrapper table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+/* 2. Define larguras fixas para as colunas "estreitas" */
+/* Coluna 2: Categoria */
+#content-documentos th:nth-child(2),
+#content-documentos td:nth-child(2) {
+    width: 15%;
+}
+/* Coluna 3: Data de Vencimento */
+#content-documentos th:nth-child(3),
+#content-documentos td:nth-child(3) {
+    width: 15%;
+}
+/* Coluna 4: Dias Restantes */
+#content-documentos th:nth-child(4),
+#content-documentos td:nth-child(4) {
+    width: 15%;
+}
+/* Coluna 5: Status */
+#content-documentos th:nth-child(5),
+#content-documentos td:nth-child(5) {
+    width: 12%;
+    text-align: center; /* Centraliza o status */
+}
+/* Coluna 6: Anexo */
+#content-documentos th:nth-child(6),
+#content-documentos td:nth-child(6) {
+    width: 8%;
+    text-align: center; /* Centraliza o ícone */
+}
+/* Coluna 7: Ações */
+#content-documentos th:nth-child(7),
+#content-documentos td:nth-child(7) {
+    width: 10%;
+    text-align: center; /* Centraliza os ícones */
+}
+
+/* 3. Regra CRUCIAL para a coluna "Nome do Documento" (a 1ª) */
+#content-documentos th:nth-child(1),
+#content-documentos td:nth-child(1) {
+    /* Largura restante (100 - 15 - 15 - 15 - 12 - 8 - 10 = 25%) */
+    width: 25%; 
+    
+    /* Quebra de linha suave */
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+/* 4. Regra geral para células (padding, alinhamento) */
+#content-documentos .table-wrapper td {
+    vertical-align: top;
+    padding: 12px 8px;
+    border-bottom: 1px solid #eee;
+}

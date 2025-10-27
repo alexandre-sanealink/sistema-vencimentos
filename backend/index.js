@@ -33,7 +33,9 @@ const pool = new Pool( // <--- Agora o Pool será reconhecido
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+    exposedHeaders: ['Content-Disposition'], // Permite que o frontend leia este header
+}));
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
