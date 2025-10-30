@@ -1,10 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
 
 
-
-
-
-    console.log('--- Verificando Referências dos Elementos ---');
+console.log('--- Verificando Referências dos Elementos ---');
 
 console.log('Botão Solicitação:', document.getElementById('btn-abrir-modal-solicitacao'));
 
@@ -80,6 +77,48 @@ const API_URL = IS_LOCAL
 
     const mobileBtnLogout = document.getElementById('mobile-btn-logout');
 
+    const listaContainer = document.querySelector('.lista-container');
+
+    const paginationContainer = document.getElementById('pagination-container');
+
+    const pageInfo = document.getElementById('page-info');
+
+    const btnAnterior = document.getElementById('btn-anterior');
+
+    const btnProxima = document.getElementById('btn-proxima');
+
+
+    const toggleMobileMenu = () => {
+
+        sidebar.classList.toggle('sidebar-visible');
+
+        menuOverlay.classList.toggle('visible');
+
+    };
+
+
+    // --- EVENT LISTENERS ---
+
+    if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
+
+    if (menuOverlay) menuOverlay.addEventListener('click', toggleMobileMenu);
+
+
+
+    if (btnAnterior) btnAnterior.addEventListener('click', () => {
+
+        if (paginaAtual > 1) {
+
+            paginaAtual--;
+
+            renderizarTabela();
+
+            if (listaContainer) listaContainer.scrollIntoView({ behavior: 'smooth' });
+
+        }
+
+    });
+    
     // Painel Admin
 
     const btnAbrirModalAdminNovo = document.getElementById('btn-abrir-modal-admin-novo');
@@ -102,26 +141,43 @@ const API_URL = IS_LOCAL
     // --- LÓGICA DE CLIQUE PARA O DASHBOARD (FASE 5) ---
 const mainContent = document.getElementById('main-content');
 
+// SUBSTITUA TODO O BLOCO if (mainContent) { ... } POR ESTE
+
 if (mainContent) {
     mainContent.addEventListener('click', async (e) => {
-        const link = e.target.closest('a'); // Encontra o link clicado ou um link pai
+        const link = e.target.closest('a'); 
+        if (!link) return; 
 
-        if (!link) return; // Sai se o clique não foi em um link
-
-        // --- Ação para links de Documentos ---
+        // --- Ação para links de Documentos (LÓGICA ATUALIZADA) ---
         if (link.hasAttribute('data-doc-id')) {
-            e.preventDefault(); // Impede a navegação padrão do link #
+            e.preventDefault();
             const docId = link.getAttribute('data-doc-id');
             console.log('Clicou no documento ID:', docId);
 
-            // Tenta encontrar o documento na lista já carregada (se disponível)
-            const documento = todosOsDocumentos.find(d => String(d.id) === docId); // Compara como string por segurança
+            // Tenta encontrar o documento na lista local primeiro
+            let documento = todosOsDocumentos.find(d => String(d.id) === docId);
 
+            // ✅ SE NÃO ENCONTRAR, BUSCA NO BACKEND
+            if (!documento) {
+                console.warn(`Documento ${docId} não encontrado no cache local. Buscando no servidor...`);
+                try {
+                    const response = await fetch(`${DOCS_URL}/${docId}`, { headers: getAuthHeaders() });
+                    if (!response.ok) {
+                        throw new Error('Falha ao buscar detalhes do documento.');
+                    }
+                    documento = await response.json();
+                } catch (error) {
+                    console.error(error);
+                    alert('Não foi possível carregar os detalhes do documento.');
+                    return; // Para a execução
+                }
+            }
+
+            // Se encontrou (localmente ou do backend), abre o modal
             if (documento && modalDocumento) {
-                // Preenche o modal com os dados do documento
                 formDocumento.reset();
                 docId.value = documento.id;
-                modalTitulo.textContent = 'Detalhes do Documento'; // Ou 'Editar Documento'
+                modalTitulo.textContent = 'Detalhes do Documento';
                 docNome.value = documento.nome;
                 docCategoria.value = documento.categoria;
                 docVencimento.value = documento.dataVencimento ? documento.dataVencimento.split('T')[0] : '';
@@ -130,37 +186,53 @@ if (mainContent) {
                 anexoAtualContainer.classList.toggle('hidden', !documento.nome_arquivo);
                 docFileName.textContent = 'Nenhum arquivo novo';
                 
-                // Abre o modal
+                handleDocumentoCategoriaChange(); // Garante que o campo de veículo apareça se for "Caminhões"
+                if (documento.veiculo_id) { // Pré-seleciona o veículo se estiver vinculado
+                    documentoVeiculoId.value = documento.veiculo_id;
+                }
+
                 abrirModal(modalDocumento);
             } else {
-                 console.warn('Documento não encontrado na lista local ou modal não existe. Implementar busca por ID se necessário.');
-                 // Poderíamos adicionar um fetch aqui para buscar o doc por ID se ele não estiver na lista
-                 alert('Não foi possível carregar os detalhes do documento.');
+                alert('Não foi possível carregar os detalhes do documento.');
             }
         }
 
-        // --- Ação para links de Veículos ---
+        // --- Ação para links de Veículos (LÓGICA ATUALIZADA) ---
         else if (link.hasAttribute('data-veiculo-id')) {
-            e.preventDefault(); // Impede a navegação padrão do link #
+            e.preventDefault(); 
             const veiculoId = parseInt(link.getAttribute('data-veiculo-id'), 10);
             console.log('Clicou no veículo ID:', veiculoId);
 
-            // Tenta encontrar o veículo na lista já carregada
-            const veiculo = todosOsVeiculos.find(v => v.id === veiculoId);
+            // Tenta encontrar o veículo na lista local primeiro
+            let veiculo = todosOsVeiculos.find(v => v.id === veiculoId);
 
+            // ✅ SE NÃO ENCONTRAR, BUSCA NO BACKEND
+            if (!veiculo) {
+                console.warn(`Veículo ${veiculoId} não encontrado no cache local. Buscando no servidor...`);
+                try {
+                    // A rota GET /api/veiculos/:id já existe!
+                    const response = await fetch(`${VEICULOS_URL}/${veiculoId}`, { headers: getAuthHeaders() }); 
+                    if (!response.ok) {
+                         throw new Error('Falha ao buscar detalhes do veículo.');
+                    }
+                    veiculo = await response.json();
+                } catch (error) {
+                    console.error(error);
+                    alert('Não foi possível carregar os detalhes do veículo.');
+                    return; // Para a execução
+                }
+            }
+
+            // Se encontrou (localmente ou do backend), navega para os detalhes
             if (veiculo) {
-                // Usa a função existente para navegar para os detalhes
                 exibirDetalhesDoVeiculo(veiculo);
             } else {
-                console.warn('Veículo não encontrado na lista local. Implementar busca por ID se necessário.');
-                // Poderíamos adicionar um fetch aqui para buscar o veículo por ID
                 alert('Não foi possível carregar os detalhes do veículo.');
             }
         }
     });
+       
 }
-
-
 
     // Documentos
 
@@ -171,16 +243,6 @@ if (mainContent) {
     const inputBusca = document.getElementById('input-busca');
 
     const btnAbrirModalCadastro = document.getElementById('btn-abrir-modal-cadastro');
-
-    const listaContainer = document.querySelector('.lista-container');
-
-    const paginationContainer = document.getElementById('pagination-container');
-
-    const pageInfo = document.getElementById('page-info');
-
-    const btnAnterior = document.getElementById('btn-anterior');
-
-    const btnProxima = document.getElementById('btn-proxima');
 
     const modalDocumento = document.getElementById('modal-documento');
 
@@ -431,10 +493,11 @@ const fecharModal = (modalElement) => {
 
 };
 
-
-
+ 
 const switchView = (targetId) => {
     console.log(`--- Chamando switchView para: ${targetId} ---`); 
+
+    window.scrollTo(0, 0);
 
     contentModules.forEach(module => module.classList.add('hidden'));
     const targetContent = document.getElementById(targetId);
@@ -516,13 +579,7 @@ const switchView = (targetId) => {
 
 
 
-    const toggleMobileMenu = () => {
-
-        sidebar.classList.toggle('sidebar-visible');
-
-        menuOverlay.classList.toggle('visible');
-
-    };
+   
 
 
 
@@ -1938,31 +1995,6 @@ const renderizarTabelaPlanos = (planos) => {
 
     
 
-    // --- EVENT LISTENERS ---
-
-    if (hamburgerBtn) hamburgerBtn.addEventListener('click', toggleMobileMenu);
-
-    if (menuOverlay) menuOverlay.addEventListener('click', toggleMobileMenu);
-
-
-
-    if (btnAnterior) btnAnterior.addEventListener('click', () => {
-
-        if (paginaAtual > 1) {
-
-            paginaAtual--;
-
-            renderizarTabela();
-
-            if (listaContainer) listaContainer.scrollIntoView({ behavior: 'smooth' });
-
-        }
-
-    });
-
-
-
-
     // --- NOVO EVENT LISTENER PARA A FASE 4 ---
 if (manutencaoPlanoItem) {
     manutencaoPlanoItem.addEventListener('change', () => {
@@ -2035,9 +2067,20 @@ if (docCategoria) {
 }
     
 
+    // SUBSTITUA AS LINHAS ACIMA POR ESTAS:
+if (btnLogout) {
     btnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
+} else {
+    // Adiciona um log caso o elemento não seja encontrado, para diagnóstico futuro
+    console.error("AVISO: Elemento #btn-logout não foi encontrado ao adicionar listener.");
+}
 
+if (mobileBtnLogout) {
     mobileBtnLogout.addEventListener('click', acoesDeUsuario.fazerLogout);
+} else {
+    // Adiciona um log caso o elemento não seja encontrado, para diagnóstico futuro
+    console.error("AVISO: Elemento #mobile-btn-logout não foi encontrado ao adicionar listener.");
+}
 
     
 
@@ -2320,21 +2363,29 @@ const gerarEExibirPdfRelatorioMensal = async (veiculoId, mes, ano) => {
 // ARQUIVO: script.js
 // Confirme que esta é a sua função `handleManutencaoSubmit`
 
-// SUBSTITUA a função 'handleManutencaoSubmit' inteira por esta versão final
+// SUBSTITUA a função 'handleManutencaoSubmit' inteira por esta versão
+
 const handleManutencaoSubmit = async (e) => {
     e.preventDefault();
     if (!veiculoSelecionado) return;
 
+    // --- CORREÇÃO: Busca as referências aos elementos DENTRO da função ---
     const manutencaoDataInput = document.getElementById('manutencao-data');
     const manutencaoTipoInput = document.getElementById('manutencao-tipo');
     const manutencaoKmInput = document.getElementById('manutencao-km');
     const solicitacaoIdInput = document.getElementById('manutencao-solicitacao-id');
-    // (NOVO) Busca a referência ao select do item do plano
-    const manutencaoPlanoItemSelect = document.getElementById('manutencao-plano-item'); 
+    const manutencaoPlanoItemSelect = document.getElementById('manutencao-plano-item');
+    // --- Fim da Correção ---
+
+    // Validação para garantir que os campos principais existem
+    if (!manutencaoDataInput || !manutencaoTipoInput || !manutencaoKmInput) {
+        console.error("Erro fatal: Campos essenciais do formulário de manutenção não encontrados.");
+        alert("Erro ao salvar: Campos do formulário não encontrados. Recarregue a página.");
+        return;
+    }
 
     const pecas = [];
     document.querySelectorAll('.peca-item').forEach(item => {
-        //... (lógica de coleta das peças permanece a mesma) ...
         const tipo = item.querySelector('.peca-input-tipo').value;
         const descricao = item.querySelector('.peca-input-desc').value;
         if (descricao) {
@@ -2347,6 +2398,7 @@ const handleManutencaoSubmit = async (e) => {
         }
     });
 
+    // Usa as variáveis locais que acabamos de definir
     const dadosManutencao = {
         data: manutencaoDataInput.value,
         tipo: manutencaoTipoInput.value,
@@ -2354,12 +2406,10 @@ const handleManutencaoSubmit = async (e) => {
         pecas: pecas,
     };
 
-    // Adiciona o ID da solicitação se existir
     if (solicitacaoIdInput && solicitacaoIdInput.value) {
         dadosManutencao.solicitacaoId = solicitacaoIdInput.value;
     }
 
-    // (NOVO) Adiciona o ID do item do plano SE o tipo for Preventiva e um item foi selecionado
     if (dadosManutencao.tipo === 'Preventiva' && manutencaoPlanoItemSelect && manutencaoPlanoItemSelect.value) {
         dadosManutencao.planoItemId = manutencaoPlanoItemSelect.value;
     }
@@ -2370,16 +2420,15 @@ const handleManutencaoSubmit = async (e) => {
         const response = await fetch(url, {
             method: 'POST',
             headers: getAuthHeaders(),
-            body: JSON.stringify(dadosManutencao) // Envia todos os dados coletados
+            body: JSON.stringify(dadosManutencao)
         });
         if (response.ok) {
             fecharModal(modalManutencao);
             exibirDetalhesDoVeiculo(veiculoSelecionado);
         } else {
             const erro = await response.json();
-            // (NOVO) Tratamento de erro específico para item do plano obrigatório
             if (erro.error === 'Para manutenção preventiva, é obrigatório selecionar o item do plano executado.') {
-                alert(erro.error); // Mostra a mensagem de erro específica
+                alert(erro.error);
             } else {
                 alert(`Erro ao salvar registro: ${erro.error || 'Erro desconhecido.'}`);
             }
@@ -3737,4 +3786,4 @@ const carregarDashboard = () => {
 
     verificarLogin();
 
-});
+})

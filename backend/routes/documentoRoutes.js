@@ -9,7 +9,8 @@ import {
     criarDocumento,
     atualizarDocumento,
     deletarDocumento,
-    obterResumoDocumentos // Importa a nova função
+    obterResumoDocumentos, // Importa a nova função
+    obterDocumentoPorId
 } from '../controllers/DocumentoController.js';
 // Não precisamos importar verificarToken aqui, pois será aplicado no index.js
 
@@ -42,6 +43,9 @@ router.get('/resumo', obterResumoDocumentos);
 
 // GET /api/documentos - Lista todos os documentos
 router.get('/', listarDocumentos);
+
+// GET /api/documentos/:id - Busca um documento específico
+router.get('/:id', obterDocumentoPorId);
 
 // POST /api/documentos - Cria um novo documento (com upload de arquivo)
 router.post('/', upload.single('arquivo'), criarDocumento);
