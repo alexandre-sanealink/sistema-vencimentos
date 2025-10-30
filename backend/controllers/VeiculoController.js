@@ -752,6 +752,21 @@ export const gerarPdfOrdemServico = async (req, res) => {
         if (result.rows.length === 0) { return res.status(404).json({ error: 'Registro não encontrado.' }); }
         const manutencao = result.rows[0];
 
+        // ==========================================================
+// --- CORREÇÃO BUG PDF RENDER (Parse de String JSON) ---
+// ==========================================================
+if (typeof manutencao.pecas === 'string') {
+    try {
+        // Log para confirmar que a correção está rodando no Render
+        console.log("PDF: Detectado 'pecas' como string, fazendo parse..."); 
+        manutencao.pecas = JSON.parse(manutencao.pecas);
+    } catch (e) {
+        console.error('PDF: Erro ao fazer parse do JSON de peças:', e);
+        manutencao.pecas = []; // Define como array vazio em caso de erro
+    }
+}
+// ==========================================================
+
         // --- GERAÇÃO DO PDF ---
         const doc = new PDFDocument({
             size: 'A4',
