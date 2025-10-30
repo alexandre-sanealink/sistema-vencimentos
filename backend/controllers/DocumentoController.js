@@ -43,6 +43,27 @@ export const listarDocumentos = async (req, res) => {
     }
 };
 
+export const obterDocumentoPorId = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const query = `
+            SELECT doc.*, u.nome as criado_por_nome 
+            FROM documentos doc 
+            LEFT JOIN usuarios u ON doc.criado_por_email = u.email 
+            WHERE doc.id = $1;
+        `;
+        const { rows } = await pool.query(query, [id]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Documento não encontrado.' });
+        }
+        res.status(200).json(rows[0]);
+    } catch (error) {
+        console.error('Erro ao buscar documento por ID:', error);
+        res.status(500).json({ message: 'Erro interno do servidor.' });
+    }
+};
+
 /**
  * Cria um novo documento.
  * Rota: POST /api/documentos

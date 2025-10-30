@@ -1326,3 +1326,44 @@ textarea {
     padding: 12px 8px;
     border-bottom: 1px solid #eee;
 }
+
+/* ============================================= */
+/* --- CORREÇÃO LAYOUT RESPONSIVO (MOBILE) --- */
+/* ============================================= */
+
+/* ============================================= */
+/* --- CORREÇÃO LAYOUT RESPONSIVO (MOBILE) --- */
+/* ============================================= */
+
+/* ============================================= */
+/* --- CORREÇÃO LAYOUT RESPONSIVO (MOBILE) --- */
+/* ============================================= */
+
+/* Aplica estas regras apenas em telas com 768px de largura ou menos */
+@media (max-width: 768px) {
+
+    /* 1. Adiciona o scroll lateral no container da tabela */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Melhora a rolagem no iOS */
+    }
+
+    /* 2. Força a tabela a ter uma largura mínima.
+       Isso garante que ela "estoure" a tela e ative a rolagem.
+       Ajuste este valor se 750px for muito ou pouco.
+    */
+    .table-wrapper table {
+        min-width: 980px; 
+    }
+
+    /* 3. ESTA É A REGRA MAIS IMPORTANTE:
+       Impede que o conteúdo das células (como "VENCE EM BREVE" ou "Vencido há 50 d...")
+       quebre em várias linhas, o que estava causando a sobreposição.
+       Ao forçar uma linha única, a coluna se alarga para caber o conteúdo.
+    */
+    .table-wrapper th,
+    .table-wrapper td {
+        white-space: nowrap;
+    }
+}
+
