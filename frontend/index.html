@@ -412,8 +412,18 @@
                     </header>
                     <div class="main-content-body">
                         <div class="lista-container">
-                            <div id="container-todas-notificacoes" class="notifications-list">
-                                <p>Carregando notificações...</p>
+                            
+                            <div class="filtros-container" id="filtros-notificacoes">
+                                <button class="filtro-btn active" data-status="naolida">Não Lidas</button>
+                                <button class="filtro-btn" data-status="lida">Lidas</button>
+                            </div>
+                            <div id="container-todas-notificacoes" class="notifications-list" style="margin-top: 20px;">
+                                </div>
+
+                            <div id="pagination-notificacoes" class="pagination-container hidden">
+                                <button id="btn-notificacoes-anterior" class="pagination-button" disabled>&lt; Anterior</button>
+                                <span id="page-info-notificacoes"></span>
+                                <button id="btn-notificacoes-proxima" class="pagination-button" disabled>Próxima &gt;</button>
                             </div>
                         </div>
                     </div>

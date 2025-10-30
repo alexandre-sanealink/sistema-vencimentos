@@ -422,6 +422,13 @@ if (mainContent) {
     const btnManutencaoProxima = document.getElementById('btn-manutencao-proxima');
     const pageInfoManutencao = document.getElementById('page-info-manutencao');
 
+    const filtrosNotificacoes = document.getElementById('filtros-notificacoes');
+    const containerNotificacoes = document.getElementById('container-todas-notificacoes');
+    const paginationNotificacoes = document.getElementById('pagination-notificacoes');
+    const btnNotificacoesAnterior = document.getElementById('btn-notificacoes-anterior');
+    const btnNotificacoesProxima = document.getElementById('btn-notificacoes-proxima');
+    const pageInfoNotificacoes = document.getElementById('page-info-notificacoes');
+
     
 
     // Variáveis de estado
@@ -445,6 +452,9 @@ if (mainContent) {
     let paginaAtual = 1;
 
     let paginaAtualManutencao = 1;
+
+    let filtroNotificacaoAtual = 'naolida'; // Define 'naolida' como o filtro padrão
+    let paginaAtualNotificacoes = 1;
 
     const ITENS_POR_PAGINA = 15;
 
@@ -3630,110 +3640,149 @@ document.addEventListener('click', (e) => {
 /**
  * Orquestrador principal: busca os dados e chama a função de renderização.
  */
+/**
+ * Orquestrador principal: busca os dados (filtrados e paginados) e chama a função de renderização.
+ */
 const carregarPaginaNotificacoes = async () => {
-    const container = document.getElementById('container-todas-notificacoes');
-    if (!container) return;
+    if (!containerNotificacoes) return;
 
-    container.innerHTML = '<p>Carregando notificações...</p>';
+    // Mostra um feedback de carregamento
+    containerNotificacoes.innerHTML = '<p>Carregando notificações...</p>';
+    // Esconde a paginação enquanto carrega
+    if (paginationNotificacoes) paginationNotificacoes.classList.add('hidden');
 
-    try {
-        // Faz a chamada para o NOVO endpoint que busca TODAS as notificações
-        const response = await fetch(`${API_URL}/api/notificacoes/todas`, { headers: getAuthHeaders() });
+    try {
+        // Usa as variáveis de estado para montar a URL da API
+        const url = `${API_URL}/api/notificacoes/todas?status=${filtroNotificacaoAtual}&pagina=${paginaAtualNotificacoes}`;
+        const response = await fetch(url, { headers: getAuthHeaders() });
+        
         if (!response.ok) {
-            throw new Error('Falha ao buscar notificações.');
-        }
-        const notificacoes = await response.json();
-        renderizarPaginaNotificacoes(notificacoes);
+            throw new Error('Falha ao buscar notificações.');
+        }
+        // O backend agora retorna um objeto: { notificacoes: [], totalPaginas: X, paginaAtual: Y }
+        const data = await response.json(); 
+        renderizarPaginaNotificacoes(data); // Envia o objeto completo para a renderização
 
-    } catch (error) {
-        console.error('Erro ao carregar página de notificações:', error);
-        container.innerHTML = '<p class="error-message">Não foi possível carregar as notificações. Tente novamente mais tarde.</p>';
-    }
+    } catch (error) {
+        console.error('Erro ao carregar página de notificações:', error);
+        containerNotificacoes.innerHTML = '<p class="error-message">Não foi possível carregar as notificações. Tente novamente mais tarde.</p>';
+    }
 };
 
 /**
  * Renderiza a lista de notificações na página.
  * @param {Array} notificacoes - A lista de notificações vinda do backend.
  */
-const renderizarPaginaNotificacoes = (notificacoes) => {
-    const container = document.getElementById('container-todas-notificacoes');
-    if (!container) return;
+/**
+ * Renderiza a lista de notificações na página e atualiza os controles de paginação.
+ * @param {object} data - O objeto recebido do backend { notificacoes: [], totalPaginas: X, paginaAtual: Y }
+ */
+const renderizarPaginaNotificacoes = (data) => {
+    if (!containerNotificacoes) return;
 
-    container.innerHTML = ''; // Limpa o container
+    const { notificacoes, totalPaginas, paginaAtual } = data;
 
-    if (notificacoes.length === 0) {
-        container.innerHTML = '<p>Nenhuma notificação encontrada.</p>';
-        return;
+    containerNotificacoes.innerHTML = ''; // Limpa o "Carregando..."
+
+    if (!notificacoes || notificacoes.length === 0) {
+        // Mensagem customizada se não houver itens
+        containerNotificacoes.innerHTML = `<p>Nenhuma notificação ${filtroNotificacaoAtual === 'lida' ? 'lida' : 'não lida'} encontrada.</p>`;
+        // Esconde a paginação se não houver itens
+        if (paginationNotificacoes) paginationNotificacoes.classList.add('hidden');
+        return;
+    }
+
+    // Mostra a paginação (se tiver mais de 1 página)
+    if (paginationNotificacoes && totalPaginas > 1) {
+        paginationNotificacoes.classList.remove('hidden');
+        pageInfoNotificacoes.textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+        btnNotificacoesAnterior.disabled = paginaAtual === 1;
+        btnNotificacoesProxima.disabled = paginaAtual === totalPaginas;
+    } else {
+        if (paginationNotificacoes) paginationNotificacoes.classList.add('hidden');
     }
 
-    notificacoes.forEach(notificacao => {
-        const item = document.createElement('div');
-        item.className = 'notification-item';
-        // Adiciona uma classe especial se a notificação já foi lida
-        if (notificacao.lida) {
-            item.classList.add('notificacao-lida');
-        }
+    // Renderiza os itens da página
+    notificacoes.forEach(notificacao => {
+        const item = document.createElement('div');
+        item.className = 'notification-item';
+        if (notificacao.lida) {
+            item.classList.add('notificacao-lida');
+        }
 
-        const dataFormatada = new Date(notificacao.created_at).toLocaleString('pt-BR', {
-            day: '2-digit', month: '2-digit', year: 'numeric',
-            hour: '2-digit', minute: '2-digit'
-        });
+        const dataFormatada = new Date(notificacao.created_at).toLocaleString('pt-BR', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
 
-        item.innerHTML = `
-            <div class="notification-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
-            </div>
-            <div class="notification-content">
-                <p class="notification-message">${notificacao.mensagem}</p>
-                <span class="notification-timestamp">${dataFormatada}</span>
-            </div>
-        `;
+        item.innerHTML = `
+            <div class="notification-icon">
+                ${notificacao.lida 
+                    ? '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>'
+                    : '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>'
+                }
+            </div>
+            <div class="notification-content">
+                <p class="notification-message">${notificacao.mensagem}</p>
+                <span class="notification-timestamp">${dataFormatada}</span>
+            </div>
+        `;
 
-        // Adiciona o evento de clique para navegar
-        item.addEventListener('click', () => navegarParaNotificacao(notificacao));
-
-        container.appendChild(item);
-    });
+        // Adiciona o evento de clique (que também marca como lida)
+        item.addEventListener('click', () => navegarParaNotificacao(notificacao));
+        containerNotificacoes.appendChild(item);
+    });
 };
 
 /**
  * Lida com o clique em uma notificação: marca como lida e navega.
  * @param {object} notificacao - O objeto da notificação clicada.
  */
+/**
+ * Lida com o clique em uma notificação: marca como lida, navega E ATUALIZA A LISTA.
+ * @param {object} notificacao - O objeto da notificação clicada.
+ */
 const navegarParaNotificacao = async (notificacao) => {
-    try {
-        // Passo 1: Marca a notificação como lida no backend (mesmo que já esteja)
-        await fetch(`${API_URL}/api/notificacoes/${notificacao.id}/read`, {
-            method: 'PATCH',
-            headers: getAuthHeaders()
-        });
-
-        // Atualiza a contagem de notificações no sino em tempo real
-        fetchNotificacoes();
+    try {
+        // Passo 1: Marca a notificação como lida no backend (só se não estiver lida)
+        if (!notificacao.lida) {
+            await fetch(`${API_URL}/api/notificacoes/${notificacao.id}/read`, {
+                method: 'PATCH',
+                headers: getAuthHeaders()
+            });
+            
+            // Atualiza o contador do sino (pois uma foi lida)
+            fetchNotificacoes();
+        }
 
         // Passo 2: Analisa o link para extrair o ID do veículo
-        const linkParts = notificacao.link.split('/'); // Ex: "/veiculo/2" se torna ["", "veiculo", "2"]
-        if (linkParts[1] === 'veiculo' && linkParts[2]) {
-            const veiculoId = parseInt(linkParts[2], 10);
-            
-            // Passo 3: Encontra o objeto completo do veículo na lista que já temos em memória
-            const veiculoAlvo = todosOsVeiculos.find(v => v.id === veiculoId);
-            
-            if (veiculoAlvo) {
-                // Passo 4: Usa a função existente para navegar até a página de detalhes
-                exibirDetalhesDoVeiculo(veiculoAlvo);
-            } else {
-                console.error(`Veículo com ID ${veiculoId} não encontrado na lista local.`);
-                // Se não encontrar, como fallback, recarregamos a lista e tentamos de novo
+        const linkParts = notificacao.link.split('/'); // Ex: "/veiculo/2"
+        if (linkParts[1] === 'veiculo' && linkParts[2]) {
+            const veiculoId = parseInt(linkParts[2], 10);
+            
+            // Garante que a lista de veículos esteja carregada antes de navegar
+            if (todosOsVeiculos.length === 0) {
                 await fetchVeiculos();
-                const veiculoAtualizado = todosOsVeiculos.find(v => v.id === veiculoId);
-                if(veiculoAtualizado) exibirDetalhesDoVeiculo(veiculoAtualizado);
             }
+            const veiculoAlvo = todosOsVeiculos.find(v => v.id === veiculoId);
+            
+            if (veiculoAlvo) {
+                // Usa a função existente para navegar até a página de detalhes
+                exibirDetalhesDoVeiculo(veiculoAlvo);
+            } else {
+                console.error(`Veículo com ID ${veiculoId} não encontrado na lista local.`);
+                // Se não encontrar, apenas muda para a lista de frota
+                switchView('content-frota');
+            }
+        } else {
+            // Se não for um link de veículo, apenas recarrega a lista de notificações
+            // (Isso fará o item sumir da aba "Não Lidas")
+            await carregarPaginaNotificacoes();
         }
-    } catch (error) {
-        console.error('Erro ao processar clique na notificação:', error);
-        alert('Ocorreu um erro ao processar a notificação.');
-    }
+section   } catch (error) {
+        console.error('Erro ao processar clique na notificação:', error);
+        alert('Ocorreu um erro ao processar a notificação.');
+    }
 };
 
 // =================================================================
@@ -3864,6 +3913,50 @@ const carregarDashboard = () => {
         });
     }
 
+
+    // Listener para os botões de FILTRO (Abas "Lidas" / "Não Lidas")
+    if (filtrosNotificacoes) {
+        filtrosNotificacoes.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                // Remove a classe 'active' do botão antigo
+                const btnAtivo = filtrosNotificacoes.querySelector('.filtro-btn.active');
+                if (btnAtivo) btnAtivo.classList.remove('active');
+                
+                // Adiciona 'active' ao botão clicado
+                e.target.classList.add('active');
+                
+                // Atualiza as variáveis de estado
+                filtroNotificacaoAtual = e.target.dataset.status;
+                paginaAtualNotificacoes = 1; // Reseta para a página 1
+                
+                // Recarrega a lista com os novos filtros
+                carregarPaginaNotificacoes();
+            }
+        });
+    }
+
+    // Listener para o botão "Anterior" da paginação
+    if (btnNotificacoesAnterior) {
+        btnNotificacoesAnterior.addEventListener('click', async () => {
+            if (paginaAtualNotificacoes > 1) {
+                paginaAtualNotificacoes--;
+                await carregarPaginaNotificacoes(); // Espera carregar
+                // Rola para o topo do container
+                if (containerNotificacoes) containerNotificacoes.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    // Listener para o botão "Próxima" da paginação
+    if (btnNotificacoesProxima) {
+        btnNotificacoesProxima.addEventListener('click', async () => {
+            // A lógica de desabilitar o botão já é tratada na renderização
+            paginaAtualNotificacoes++;
+            await carregarPaginaNotificacoes(); // Espera carregar
+            // Rola para o topo do container
+            if (containerNotificacoes) containerNotificacoes.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
 
     verificarLogin();
 
