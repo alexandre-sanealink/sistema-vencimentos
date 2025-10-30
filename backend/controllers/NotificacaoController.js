@@ -66,18 +66,40 @@ export const marcarComoLida = async (req, res) => {
  * Rota: GET /api/notificacoes/todas
  */
 export const listarTodasNotificacoes = async (req, res) => {
-    const usuarioId = req.usuario.id;
+    const usuarioId = req.usuario.id;
+    const { status = 'naolida', pagina = '1' } = req.query; 
+    const paginaAtual = parseInt(pagina, 10);
+    const itensPorPagina = 15;
+    const offset = (paginaAtual - 1) * itensPorPagina;
 
-    try {
-        const query = `
-            SELECT * FROM notificacoes 
-            WHERE usuario_id = $1
-            ORDER BY created_at DESC;
-        `;
-        const { rows } = await pool.query(query, [usuarioId]);
-        res.status(200).json(rows);
-    } catch (error) {
-        console.error('Erro ao listar todas as notificações:', error);
-        res.status(500).json({ error: 'Erro interno no servidor' });
+    let lidaStatus;
+    if (status === 'lida') {
+        lidaStatus = true;
+    } else {
+        lidaStatus = false;
     }
+
+    try {
+        // Query 1 (Contagem Total - Agora em linha única)
+        const totalQuery = `SELECT COUNT(*) FROM notificacoes WHERE usuario_id = $1 AND lida = $2`;
+        
+        const totalResult = await pool.query(totalQuery, [usuarioId, lidaStatus]);
+        const totalItens = parseInt(totalResult.rows[0].count, 10);
+        const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+
+        // Query 2 (Busca Paginada - Agora em linha única)
+        const query = `SELECT * FROM notificacoes WHERE usuario_id = $1 AND lida = $2 ORDER BY created_at DESC LIMIT $3 OFFSET $4`;
+
+        const { rows } = await pool.query(query, [usuarioId, lidaStatus, itensPorPagina, offset]);
+        
+        res.status(200).json({
+            notificacoes: rows,
+            totalPaginas: totalPaginas,
+            paginaAtual: paginaAtual
+        });
+
+    } catch (error) {
+        console.error('Erro ao listar todas as notificações:', error);
+        res.status(500).json({ error: 'Erro interno no servidor' });
+    }
 };
