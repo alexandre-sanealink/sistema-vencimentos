@@ -417,6 +417,11 @@ if (mainContent) {
 
     const loginErrorMessage = document.getElementById('login-error-message');
 
+    const paginationManutencao = document.getElementById('pagination-manutencao');
+    const btnManutencaoAnterior = document.getElementById('btn-manutencao-anterior');
+    const btnManutencaoProxima = document.getElementById('btn-manutencao-proxima');
+    const pageInfoManutencao = document.getElementById('page-info-manutencao');
+
     
 
     // Variáveis de estado
@@ -438,6 +443,8 @@ if (mainContent) {
     let termoDeBuscaVeiculo = '';
 
     let paginaAtual = 1;
+
+    let paginaAtualManutencao = 1;
 
     const ITENS_POR_PAGINA = 15;
 
@@ -1119,23 +1126,8 @@ if (secaoRelatorioMensal) {
 
     // Busca e renderiza o histórico de MANUTENÇÕES
 
-    try {
-
-        const resManutencoes = await fetch(`${VEICULOS_URL}/${veiculo.id}/manutencoes`, { headers: getAuthHeaders() });
-
-        if (!resManutencoes.ok) throw new Error('Falha ao buscar manutenções');
-
-        const manutencoes = await resManutencoes.json();
-
-        renderizarTabelaManutencoes(manutencoes);
-
-    } catch (error) {
-
-        console.error('Erro ao buscar manutenções:', error);
-
-        tbodyManutencoes.innerHTML = `<tr><td colspan="5" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
-
-    }
+    paginaAtualManutencao = 1;
+    carregarManutencoesPaginado();
 
 
 
@@ -1692,6 +1684,61 @@ const handleTipoManutencaoChange = () => {
         formGroupPlanoItem.classList.add('hidden');
     }
 };
+
+/**
+ * Atualiza os botões e texto da paginação de manutenção.
+ */
+const atualizarControlesPaginacaoManutencao = (paginaAtual, totalPaginas) => {
+    if (!pageInfoManutencao || !paginationManutencao) return;
+
+    if (totalPaginas <= 1) {
+        paginationManutencao.classList.add('hidden');
+    } else {
+        paginationManutencao.classList.remove('hidden');
+    }
+
+    pageInfoManutencao.textContent = `Página ${paginaAtual} de ${totalPaginas}`;
+    btnManutencaoAnterior.disabled = paginaAtual === 1;
+    btnManutencaoProxima.disabled = paginaAtual === totalPaginas;
+};
+
+/**
+ * Busca no backend os dados da tabela de histórico de manutenção
+ * para a página atualmente selecionada.
+ */
+const carregarManutencoesPaginado = async () => {
+    // Se veiculoSelecionado não estiver definido, não faz nada
+    if (!veiculoSelecionado) return; 
+    
+    // Mostra "Carregando..." na tabela
+    if (tbodyManutencoes) tbodyManutencoes.innerHTML = `<tr><td colspan="6" style="text-align:center;">Carregando histórico...</td></tr>`;
+
+    try {
+        // Busca a página correta (controlada pela variável global paginaAtualManutencao)
+        const resManutencoes = await fetch(
+            `${VEICULOS_URL}/${veiculoSelecionado.id}/manutencoes?pagina=${paginaAtualManutencao}`, 
+            { headers: getAuthHeaders() }
+        );
+        if (!resManutencoes.ok) throw new Error('Falha ao buscar manutenções');
+
+        // Pega a resposta do backend (que agora é um objeto)
+        const data = await resManutencoes.json();
+        
+        // Renderiza a tabela apenas com os itens da página
+        renderizarTabelaManutencoes(data.manutencoes);
+        // Atualiza os botões (ex: "Página 1 de 3")
+        atualizarControlesPaginacaoManutencao(data.paginaAtual, data.totalPaginas);
+
+    } catch (error) {
+        console.error('Erro ao buscar manutenções:', error);
+        if (tbodyManutencoes) tbodyManutencoes.innerHTML = `<tr><td colspan="6" style="text-align:center;">Erro ao carregar histórico.</td></tr>`;
+        // Esconde a paginação se der erro
+        if (paginationManutencao) paginationManutencao.classList.add('hidden');
+    }
+};
+//
+// === FIM DO NOVO BLOCO ===
+
 
 /**
  * (FASE 4) Busca os itens do plano de manutenção do veículo e popula o select.
@@ -3782,6 +3829,40 @@ const carregarDashboard = () => {
     carregarResumoDocumentos();
     carregarResumoFrota();
 };
+
+//
+// ADICIONE ESTE BLOCO NO FINAL DO DOMContentLoaded
+//
+
+
+   // --- Listeners da Paginação de Manutenção ---
+    if (btnManutencaoAnterior) {
+        btnManutencaoAnterior.addEventListener('click', async () => { 
+            if (paginaAtualManutencao > 1) {
+                paginaAtualManutencao--;
+                await carregarManutencoesPaginado();
+                
+                // --- CORREÇÃO FINAL DO SCROLL ---
+                // Pega o container-pai da tabela (que tem o título)
+                const targetContainer = tbodyManutencoes.closest('.lista-container');
+                // Manda rolar para o topo DELE
+                if (targetContainer) targetContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        });
+    }
+
+    if (btnManutencaoProxima) {
+        btnManutencaoProxima.addEventListener('click', async () => {
+            paginaAtualManutencao++;
+            await carregarManutencoesPaginado();
+            
+            // --- CORREÇÃO FINAL DO SCROLL ---
+            // Pega o container-pai da tabela (que tem o título)
+            const targetContainer = tbodyManutencoes.closest('.lista-container');
+            // Manda rolar para o topo DELE
+            if (targetContainer) targetContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
 
 
     verificarLogin();

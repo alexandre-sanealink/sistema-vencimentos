@@ -147,36 +147,60 @@ export const deletarVeiculo = async (req, res) => {
 
 // --- FUNÇÕES DE MANUTENÇÃO ---
 
-// INÍCIO DO CÓDIGO PARA SUBSTITUIR
+//
+// SUBSTITUA A SUA FUNÇÃO "listarManutencoes" INTEIRA POR ESTA:
+//
 export const listarManutencoes = async (req, res) => {
     const { veiculoId } = req.params;
-    try {
-        const { rows } = await pool.query('SELECT * FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC', [veiculoId]);
+    const pagina = parseInt(req.query.pagina || '1', 10);
+    const itensPorPagina = 10; // Vamos exibir 10 manutenções por página
 
-        // CORREÇÃO FINAL: Faz o parse manual da coluna 'pecas' para cada registro.
+    try {
+        // 1. Contagem total de itens
+        const totalResult = await pool.query(
+            'SELECT COUNT(*) FROM manutencoes WHERE veiculo_id = $1', 
+            [veiculoId]
+        );
+        const totalItens = parseInt(totalResult.rows[0].count, 10);
+        const totalPaginas = Math.ceil(totalItens / itensPorPagina);
+
+        // 2. Cálculo do offset (quantos itens pular)
+        const offset = (pagina - 1) * itensPorPagina;
+
+        // 3. Busca os itens da página específica, ordenando pela data mais recente
+        const { rows } = await pool.query(
+            'SELECT * FROM manutencoes WHERE veiculo_id = $1 ORDER BY data DESC, id DESC LIMIT $2 OFFSET $3', 
+            [veiculoId, itensPorPagina, offset]
+        );
+
+        // 4. Aplica a correção de JSON.parse (que já tínhamos)
         const manutencoesTratadas = rows.map(manutencao => {
-            // Garante que o parse só aconteça se 'pecas' for uma string.
             if (typeof manutencao.pecas === 'string') {
                 try {
-                    // "Abre o pacote", transformando o texto em uma lista de objetos.
                     manutencao.pecas = JSON.parse(manutencao.pecas);
                 } catch (e) {
                     console.error('Erro ao fazer parse do JSON de peças:', e);
-                    manutencao.pecas = []; // Em caso de erro, define como lista vazia.
+                    manutencao.pecas = [];
                 }
             }
             return manutencao;
         });
 
-        res.status(200).json(manutencoesTratadas);
+        // 5. Retorna um objeto com os dados da página E o total de páginas
+        res.status(200).json({
+            manutencoes: manutencoesTratadas,
+            totalPaginas: totalPaginas,
+            paginaAtual: pagina
+        });
 
     } catch (error) {
         console.error(`Erro ao listar manutenções para o veículo ID ${veiculoId}:`, error);
         res.status(500).json({ error: 'Erro interno no servidor' });
     }
 };
-// FIM DO CÓDIGO PARA SUBSTITUIR
-
+//
+// FIM DA SUBSTITUIÇÃO
+//
 // ARQUIVO: /controllers/VeiculoController.js
 
 // SUBSTITUA a função 'adicionarManutencao' inteira por esta versão
