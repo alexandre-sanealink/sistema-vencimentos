@@ -1026,8 +1026,28 @@ export const gerarPdfRelatorioMensalVeiculo = async (req, res) => {
             WHERE veiculo_id = $1 AND data >= $2 AND data <= $3 
             ORDER BY data ASC, numero_os ASC;
         `;
-        const manutencoesResult = await client.query(manutencoesQuery, [veiculoId, startDate, endDate]);
-        const manutencoesDoMes = manutencoesResult.rows;
+        // SUBSTITUA as 2 linhas acima por este bloco de 17 linhas:
+
+const manutencoesResult = await client.query(manutencoesQuery, [veiculoId, startDate, endDate]);
+const manutencoesRaw = manutencoesResult.rows; // Pega os dados "crus"
+
+// ==========================================================
+// --- CORREÇÃO BUG PDF RELATÓRIO (Parse de String JSON) ---
+// ==========================================================
+// Faz o parse da coluna 'pecas' que vem como string do Render
+const manutencoesDoMes = manutencoesRaw.map(manutencao => {
+    if (typeof manutencao.pecas === 'string') {
+        try {
+            console.log("Relatório: Detectado 'pecas' como string, fazendo parse...");
+            manutencao.pecas = JSON.parse(manutencao.pecas);
+        } catch (e) {
+            console.error('Relatório: Erro ao fazer parse de pecas', e);
+            manutencao.pecas = []; // Define como array vazio em caso de erro
+        }
+    }
+    return manutencao;
+});
+// ==========================================================
 
         // --- GERAÇÃO DO PDF ---
         const doc = new PDFDocument({
